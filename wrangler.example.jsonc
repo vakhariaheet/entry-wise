@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "YOUR_PROJECT_NAME",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-07",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "RATE_LIMIT_KV",
+      "id": "YOUR_KV_NAMESPACE_ID"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "entrywise",
+      "database_id": "YOUR_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "routes": [
+    {
+      "custom_domain": true,
+      "pattern": "your-domain.com"
+    }
+  ],
+  "assets": {
+    "directory": "public"
+  }
+}

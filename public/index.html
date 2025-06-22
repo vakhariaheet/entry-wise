@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EntryWise - Modern Form Backend Service</title>
+    <link rel="icon" type="image/png" href="/assets/logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5755fe',
+                        secondary: '#7c3aed',
+                        accent: '#ff71cd'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            
+        }
+        * {
+            scroll-behavior: smooth;
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #5755fe 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #5755fe 0%, #7c3aed 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header/Navigation -->
+    <header class="fixed w-full bg-white/80 backdrop-blur-lg border-b border-gray-200 z-50">
+        <nav class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <img src="/assets/logo.png" alt="EntryWise Logo" class="w-10 h-10 rounded-lg">
+                    <span class="text-2xl font-bold gradient-text">EntryWise</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="text-gray-600 hover:text-primary transition-colors">Features</a>
+                    <a href="#providers" class="text-gray-600 hover:text-primary transition-colors">Email Providers</a>
+                    <a href="#security" class="text-gray-600 hover:text-primary transition-colors">Security</a>
+                    <a href="https://github.com/yourusername/entry-wise" class="text-gray-600 hover:text-primary transition-colors">GitHub</a>
+                    <a href="/docs" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors">Documentation</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 px-6">
+        <div class="container mx-auto text-center">
+            <h1 class="text-5xl md:text-6xl font-bold mb-6 gradient-text">
+                Form Backend for the Modern Web
+            </h1>
+            <p class="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
+                Handle form submissions, file uploads, and email notifications with ease. Built on Cloudflare Workers for global performance.
+            </p>
+            <div class="flex flex-col md:flex-row items-center justify-center gap-4">
+                <a href="/docs" class="px-8 py-3 gradient-bg text-white rounded-lg hover:opacity-90 transition-opacity">
+                    Get Started
+                </a>
+                <a href="https://github.com/vakhariaheet/entry-wise" class="px-8 py-3 border border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition-colors">
+                    View on GitHub
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-16 gradient-text">
+                Everything You Need for Form Management
+            </h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature Card 1 -->
+                <div class="p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 gradient-bg rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Dynamic Forms</h3>
+                    <p class="text-gray-600">
+                        Support for various field types including text, email, phone, URL, and file uploads.
+                    </p>
+                </div>
+
+                <!-- Feature Card 2 -->
+                <div class="p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 gradient-bg rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">File Uploads</h3>
+                    <p class="text-gray-600">
+                        Handle file attachments securely with automatic base64 encoding for email delivery.
+                    </p>
+                </div>
+
+                <!-- Feature Card 3 -->
+                <div class="p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 gradient-bg rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Email Notifications</h3>
+                    <p class="text-gray-600">
+                        Instant email notifications with support for multiple providers and beautiful templates.
+                    </p>
+                </div>
+
+                <!-- Feature Card 4 -->
+                <div class="p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 gradient-bg rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Advanced Security</h3>
+                    <p class="text-gray-600">
+                        Built-in protection with API keys, domain verification, rate limiting, and honeypot fields.
+                    </p>
+                </div>
+
+                <!-- Feature Card 5 -->
+                <div class="p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 gradient-bg rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Multi-Site Support</h3>
+                    <p class="text-gray-600">
+                        Manage multiple sites with separate configurations, fields, and email settings.
+                    </p>
+                </div>
+
+                <!-- Feature Card 6 -->
+                <div class="p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow">
+                    <div class="w-12 h-12 gradient-bg rounded-lg flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Spam Protection</h3>
+                    <p class="text-gray-600">
+                        Built-in spam protection with honeypot fields and customizable rate limiting.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Email Providers Section -->
+    <section id="providers" class="py-20">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-16 gradient-text">
+                Supported Email Providers
+            </h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Resend -->
+                <div class="p-6 rounded-xl border border-gray-200 text-center hover:shadow-lg transition-shadow">
+                    <h3 class="text-xl font-semibold mb-4">Resend</h3>
+                    <p class="text-gray-600 mb-4">Modern email API with excellent delivery rates</p>
+                    <a href="https://resend.com" class="text-primary hover:text-secondary transition-colors">Learn More →</a>
+                </div>
+
+                <!-- MailerSend -->
+                <div class="p-6 rounded-xl border border-gray-200 text-center hover:shadow-lg transition-shadow">
+                    <h3 class="text-xl font-semibold mb-4">MailerSend</h3>
+                    <p class="text-gray-600 mb-4">Advanced features with template support</p>
+                    <a href="https://mailersend.com" class="text-primary hover:text-secondary transition-colors">Learn More →</a>
+                </div>
+
+                <!-- Mailtrap -->
+                <div class="p-6 rounded-xl border border-gray-200 text-center hover:shadow-lg transition-shadow">
+                    <h3 class="text-xl font-semibold mb-4">Mailtrap</h3>
+                    <p class="text-gray-600 mb-4">Perfect for testing and development</p>
+                    <a href="https://mailtrap.io" class="text-primary hover:text-secondary transition-colors">Learn More →</a>
+                </div>
+
+                <!-- SMTP2GO -->
+                <div class="p-6 rounded-xl border border-gray-200 text-center hover:shadow-lg transition-shadow">
+                    <h3 class="text-xl font-semibold mb-4">SMTP2GO</h3>
+                    <p class="text-gray-600 mb-4">Reliable delivery with detailed analytics</p>
+                    <a href="https://smtp2go.com" class="text-primary hover:text-secondary transition-colors">Learn More →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Security Section -->
+    <section id="security" class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-16 gradient-text">
+                Enterprise-Grade Security
+            </h2>
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <ul class="space-y-6">
+                        <li class="flex items-start">
+                            <svg class="w-6 h-6 text-green-500 mt-1 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <div>
+                                <h3 class="font-semibold mb-1">Encrypted Credentials</h3>
+                                <p class="text-gray-600">All API keys and provider tokens are encrypted at rest</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-6 h-6 text-green-500 mt-1 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <div>
+                                <h3 class="font-semibold mb-1">Domain Verification</h3>
+                                <p class="text-gray-600">Forms can only be submitted from authorized domains</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-6 h-6 text-green-500 mt-1 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <div>
+                                <h3 class="font-semibold mb-1">Rate Limiting</h3>
+                                <p class="text-gray-600">Built-in protection against abuse and DDoS attacks</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="w-6 h-6 text-green-500 mt-1 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <div>
+                                <h3 class="font-semibold mb-1">Spam Protection</h3>
+                                <p class="text-gray-600">Advanced honeypot fields and validation</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="p-6 rounded-xl gradient-bg text-white">
+                    <h3 class="text-xl font-semibold mb-6">Example Configuration</h3>
+                    <pre class="bg-white/10 p-4 rounded-lg overflow-x-auto"><code>{
+  "name": "Your Company",
+  "email_provider": "smtp2go",
+  "from_email": "forms@yourdomain.com",
+  "from_name": "Your Forms",
+  "admin_email": "admin@yourdomain.com"
+}</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-3xl font-bold mb-6 gradient-text">
+                Ready to Get Started?
+            </h2>
+            <p class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+                Start handling form submissions with EntryWise today. Free and open source.
+            </p>
+            <div class="flex flex-col md:flex-row items-center justify-center gap-4">
+                <a href="/docs" class="px-8 py-3 gradient-bg text-white rounded-lg hover:opacity-90 transition-opacity">
+                    View Documentation
+                </a>
+                <a href="https://github.com/yourusername/entry-wise" class="px-8 py-3 border border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition-colors">
+                    Star on GitHub
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-200 py-12">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                    <img src="/assets/logo.png" alt="EntryWise Logo" class="w-8 h-8 rounded-lg">
+                    <span class="gradient-text font-semibold">EntryWise</span>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="https://github.com/yourusername/entry-wise" class="text-gray-600 hover:text-primary transition-colors">
+                        GitHub
+                    </a>
+                    <a href="/docs" class="text-gray-600 hover:text-primary transition-colors">
+                        Documentation
+                    </a>
+                    <a href="#features" class="text-gray-600 hover:text-primary transition-colors">
+                        Features
+                    </a>
+                </div>
+            </div>
+            <div class="mt-8 text-center text-gray-500">
+                © 2025 EntryWise. Open source form handling for the modern web.
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
