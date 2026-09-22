@@ -48,22 +48,55 @@ export class CloudflareEmailService implements EmailService {
     constructor(private binding: any) {}
 
     async send(params: SendEmailParams): Promise<{ messageId: string }> {
-        const rawMime = buildMimeMessage(
-            params.fromName || 'EntryWise',
-            CF_FROM_EMAIL,
-            params.to,
-            params.subject,
-            params.html,
-            params.attachments || []
-        );
+        const fromEmail = params.from || CF_FROM_EMAIL;
+        const fromName = params.fromName || 'EntryWise';
 
+        // 1. Try structured message format (supported by modern Cloudflare Email Service)
         try {
-            const message = new EmailMessage(CF_FROM_EMAIL, params.to, rawMime);
-            await this.binding.send(message);
-            return { messageId: `cf_${Date.now()}` };
-        } catch (error: any) {
-            console.error('Cloudflare SendEmail error:', error);
-            throw new Error(`Cloudflare email delivery failed: ${error.message || error}`);
+            const result = await this.binding.send({
+                to: params.to,
+                from: { email: fromEmail, name: fromName },
+                subject: params.subject,
+                html: params.html,
+                text: params.html ? params.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '',
+                attachments: (params.attachments || []).map(att => ({
+                    filename: att.filename,
+                    content: att.content,
+                    type: att.type || 'application/octet-stream',
+                    disposition: 'attachment' as const,
+                })),
+            });
+            return { messageId: result?.messageId || `cf_${Date.now()}` };
+        } catch (builderError: any) {
+            // 2. Fallback to EmailMessage MIME API if binding expects EmailMessage class
+            try {
+                const rawMime = buildMimeMessage(
+                    fromName,
+                    fromEmail,
+                    params.to,
+                    params.subject,
+                    params.html,
+                    params.attachments || []
+                );
+                const message = new EmailMessage(fromEmail, params.to, rawMime);
+                await this.binding.send(message);
+                return { messageId: `cf_${Date.now()}` };
+            } catch (mimeError: any) {
+                const primaryError = builderError || mimeError;
+                const errCode = mimeError?.code || builderError?.code || 'E_SEND_FAILED';
+                const errMsg = mimeError?.message || builderError?.message || String(mimeError || builderError);
+
+                console.error('Cloudflare SendEmail failed:', {
+                    code: errCode,
+                    message: errMsg,
+                    from: fromEmail,
+                    to: params.to,
+                    builderError: builderError?.message || String(builderError),
+                    mimeError: mimeError?.message || String(mimeError),
+                });
+
+                throw new Error(`Cloudflare email delivery failed [${errCode}]: ${errMsg}`);
+            }
         }
     }
 }

@@ -178,8 +178,8 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
         });
 
         return sendResponse(c, 200, emailResponse, 'Submission received successfully');
-    } catch (error) {
-        console.error('Submission error:', error);
-        return sendResponse(c, 500, null, 'Internal server error');
+    } catch (error: any) {
+        console.error('Submission error:', error?.message || error);
+        return sendResponse(c, 500, null, error?.message || 'Internal server error');
     }
 };
