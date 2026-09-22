@@ -19,18 +19,6 @@ export const renderAutoResponderEmail = ({
     const displayName = companyName?.trim() || cleanDomain;
     const greeting = recipientName ? `Hi ${recipientName},` : 'Hello,';
     const messageBody = customBody || `Thank you for getting in touch with us at ${displayName}. We have received your message and our team will get back to you shortly.`;
-
-    let formattedDate = new Date().toUTCString();
-    try {
-        formattedDate = new Intl.DateTimeFormat('en-US', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-            timeZone: timezone,
-        }).format(new Date());
-    } catch {
-        formattedDate = new Date().toUTCString();
-    }
-
     const returnUrl = `https://${cleanDomain}`;
 
     return `<!DOCTYPE html>
@@ -122,29 +110,8 @@ export const renderAutoResponderEmail = ({
             font-size: 15px;
             line-height: 1.6;
             color: #475569;
-            margin: 0 auto 24px auto;
+            margin: 0 auto 32px auto;
             max-width: 440px;
-        }
-        .details-box {
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 14px 18px;
-            margin-bottom: 24px;
-            text-align: left;
-        }
-        .details-label {
-            color: #64748b;
-            font-size: 13px;
-            font-weight: 500;
-            padding: 4px 0;
-        }
-        .details-value {
-            color: #0f172a;
-            font-size: 13px;
-            font-weight: 600;
-            text-align: right;
-            padding: 4px 0;
         }
         .cta-button {
             display: inline-block;
@@ -195,23 +162,6 @@ export const renderAutoResponderEmail = ({
                                 ${messageBody.replace(/\n/g, '<br/>')}
                             </p>
 
-                            <!-- Clean Summary Box -->
-                            <table cellpadding="0" cellspacing="0" border="0" width="100%" class="details-box">
-                                <tr>
-                                    <td class="details-label">Sent To</td>
-                                    <td class="details-value">${displayName}</td>
-                                </tr>
-                                <tr>
-                                    <td class="details-label">Website</td>
-                                    <td class="details-value">
-                                        <a href="${returnUrl}" style="color: #4f46e5; text-decoration: none;" target="_blank">${cleanDomain}</a>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="details-label">Date & Time</td>
-                                    <td class="details-value" style="color: #64748b; font-weight: 500;">${formattedDate}</td>
-                                </tr>
-                            </table>
 
                             <!-- Clean Action Link / Button -->
                             <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
