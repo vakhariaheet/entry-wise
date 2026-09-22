@@ -5,6 +5,7 @@ import { HONEYPOT_FIELDS, MAX_FILE_SIZE, VALID_FILE_TYPES } from '../../../types
 import { decrypt } from '../../../utils/encryption';
 import { renderFormSubmissionEmail } from '../../../emails/FormSubmissionEmail';
 import { renderAutoResponderEmail } from '../../../emails/AutoResponderEmail';
+import { renderConfirmationPage } from '../../../templates/ConfirmationPage';
 import { EmailServiceFactory, EmailAttachment } from '../../../services/email';
 import { verifyTurnstileToken } from '../../../utils/turnstile';
 import { dispatchWebhook } from '../../../utils/webhook';
@@ -118,6 +119,13 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
         if (honeypotTriggered) {
             if (redirectUrl) {
                 return c.redirect(redirectUrl, 303);
+            }
+            const acceptHeader = c.req.header('Accept') || '';
+            if (acceptHeader.includes('text/html') && !acceptHeader.includes('application/json')) {
+                return c.html(renderConfirmationPage({
+                    companyName: site.domain,
+                    siteDomain: site.domain,
+                }), 200);
             }
             return c.json({ is_success: true, message: 'Submission received successfully' }, 200);
         }
@@ -342,30 +350,27 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
         // If client requested HTML browser view, render thank-you page
         const acceptHeader = c.req.header('Accept') || '';
         if (acceptHeader.includes('text/html') && !acceptHeader.includes('application/json')) {
-            return c.html(`
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Submission Received</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f9fafb; }
-        .card { background: white; padding: 48px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); text-align: center; max-width: 440px; margin: 20px; }
-        .check { width: 56px; height: 56px; background: #ecfdf5; color: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 28px; }
-        h1 { margin: 0 0 8px 0; color: #111827; font-size: 24px; }
-        p { color: #6b7280; font-size: 15px; margin: 0; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <div class="check">✓</div>
-        <h1>Thank You!</h1>
-        <p>Your submission has been received successfully.</p>
-    </div>
-</body>
-</html>
-            `.trim(), 200);
+            let submittedAtFormatted = new Date().toUTCString();
+            try {
+                submittedAtFormatted = new Intl.DateTimeFormat('en-US', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                    timeZone: site.timezone || 'UTC',
+                }).format(new Date());
+            } catch {
+                submittedAtFormatted = new Date().toUTCString();
+            }
+
+            const referer = c.req.header('Referer');
+            const returnUrl = referer && !referer.includes(c.req.url) ? referer : undefined;
+
+            return c.html(renderConfirmationPage({
+                companyName: company.name || company.from_name,
+                siteDomain: site.domain,
+                submissionId,
+                submittedAt: submittedAtFormatted,
+                returnUrl,
+            }), 200);
         }
 
         // Default: Standard Zalando-compliant JSON response

@@ -4,6 +4,7 @@ import { sendResponse } from '../../utils/sendResponse';
 import { SubmissionData, HONEYPOT_FIELDS, MAX_FILE_SIZE, VALID_FILE_TYPES } from '../../types/submission';
 import { decrypt } from '../../utils/encryption';
 import { renderFormSubmissionEmail } from '../../emails/FormSubmissionEmail';
+import { renderConfirmationPage } from '../../templates/ConfirmationPage';
 import { EmailServiceFactory, EmailAttachment } from '../../services/email';
 import { emailProviderEnum } from '../../schemas/company.schema';
 
@@ -176,6 +177,30 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
             html: htmlEmail,
             attachments: fileAttachments,
         });
+
+        const acceptHeader = c.req.header('Accept') || '';
+        if (acceptHeader.includes('text/html') && !acceptHeader.includes('application/json')) {
+            let submittedAtFormatted = new Date().toUTCString();
+            try {
+                submittedAtFormatted = new Intl.DateTimeFormat('en-US', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                    timeZone: site.timezone || 'UTC',
+                }).format(new Date());
+            } catch {
+                submittedAtFormatted = new Date().toUTCString();
+            }
+
+            const referer = c.req.header('Referer');
+            const returnUrl = referer && !referer.includes(c.req.url) ? referer : undefined;
+
+            return c.html(renderConfirmationPage({
+                companyName: company.name || company.from_name,
+                siteDomain: site.domain,
+                submittedAt: submittedAtFormatted,
+                returnUrl,
+            }), 200);
+        }
 
         return sendResponse(c, 200, emailResponse, 'Submission received successfully');
     } catch (error: any) {
