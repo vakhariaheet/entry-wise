@@ -1,11 +1,10 @@
-export type EmailProvider = 'resend' | 'mailersend' | 'mailtrap' | 'smtp2go';
+export type EmailProvider = 'resend' | 'mailersend' | 'mailtrap' | 'smtp2go' | 'cloudflare';
 
 export interface Company {
     id: string;
     name: string;
-    admin_email: string;
     email_provider: EmailProvider;
-    email_provider_token: string;
+    email_provider_token: string | null;
     from_email: string;
     from_name: string;
     created_at: string;

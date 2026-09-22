@@ -20,6 +20,13 @@
       "migrations_dir": "migrations"
     }
   ],
+  // Cloudflare Email Service binding (used when email_provider is "cloudflare")
+  // Requires Cloudflare Email Service to be enabled on your account.
+  "send_email": [
+    {
+      "name": "EMAIL"
+    }
+  ],
   "routes": [
     {
       "custom_domain": true,

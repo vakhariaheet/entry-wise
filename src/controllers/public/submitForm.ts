@@ -8,9 +8,8 @@ import { EmailServiceFactory, EmailAttachment } from '../../services/email';
 import { emailProviderEnum } from '../../schemas/company.schema';
 
 const removeExtension = (filename: string): string => {
-    console.log('filename', filename);
     const lastDotIndex = filename.lastIndexOf('.');
-    if (lastDotIndex === -1) return filename; // No extension found
+    if (lastDotIndex === -1) return filename;
     return filename.substring(0, lastDotIndex);
 };
 
@@ -19,21 +18,20 @@ const validateSubmission = async (
     data: SubmissionData,
     files: File[] = []
 ): Promise<string | null> => {
-    const site_id = c.req.query('site_id') ?? c.get('site_id');
-    console.log('site_id', site_id);
+    const site_id = c.get('site_id');
     if (!site_id) {
         return 'Site ID is required';
     }
-    // Get field definitions for this site
+
     const { results: fields } = await c.env.DB.prepare(`
         SELECT name, type FROM fields WHERE site_id = ?
     `).bind(site_id).all<{ name: string, type: string }>();
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRegex = /^\+?[\d\s-()]+$/;
-    // Validate each field
 
     for (const field of fields) {
-        const value = data.fields[ field.name ];
+        const value = data.fields[field.name];
 
         if (!value && field.type !== 'file') {
             return `Missing required field: ${field.name}`;
@@ -57,20 +55,15 @@ const validateSubmission = async (
                     return `Invalid URL format for field: ${field.name}`;
                 }
                 break;
-
-
         }
-
     }
+
     const fileFields = fields.filter(field => field.type === 'file');
-    // Check if any any files are provided when no file fields are defined
+
     if (files.length > 0 && fileFields.length === 0) {
-        console.log('files', files);
-        console.log('fileFields', fileFields);
         return 'Files provided but no file fields defined in form';
     }
 
-    // Check if any extra files are provided that are not defined in the form
     if (files.length > 0) {
         const fileFieldNames = fileFields.map(field => field.name);
         for (const file of files) {
@@ -84,45 +77,53 @@ const validateSubmission = async (
 };
 
 const checkHoneypot = (data: SubmissionData): boolean => {
-    return HONEYPOT_FIELDS.some(field => data[ field ]);
+    return HONEYPOT_FIELDS.some(field => data[field]);
 };
 
 export const submitForm = async (c: Context<{ Bindings: Env }>) => {
     try {
         const formData = await c.req.formData();
         const metadata = formData.get('metadata');
-
         const files = formData.getAll('attachments') as File[];
-        
-        if (!metadata || typeof metadata !== "string") {
+
+        if (!metadata || typeof metadata !== 'string') {
             return sendResponse(c, 401, null, 'Invalid Request');
         }
-        const data = JSON.parse(metadata);
-        const site_id = c.req.query('site_id');
-        const company_id = c.req.query('company_id');
 
-        // Check honeypot
+        const data = JSON.parse(metadata);
+        const site_id = c.get('site_id');
+        const company_id = c.get('company_id');
+
         if (checkHoneypot(data)) {
             return sendResponse(c, 200, null, 'Submission received');
         }
 
-        // Validate submission
         const validationError = await validateSubmission(c, data, files);
         if (validationError) {
             return sendResponse(c, 400, null, validationError);
         }
 
-        // Get company details with encrypted email provider token
+        // Fetch site (for admin_email, timezone, domain)
+        const { results: sites } = await c.env.DB.prepare(`
+            SELECT domain, admin_email, timezone FROM sites WHERE id = ?
+        `).bind(site_id).all<{ domain: string; admin_email: string; timezone: string }>();
+
+        if (!sites?.length) {
+            return sendResponse(c, 500, null, 'Site configuration not found');
+        }
+
+        const site = sites[0];
+
+        // Fetch company (for email provider config)
         const { results: companies } = await c.env.DB.prepare(`
-            SELECT name, email_provider_token, email_provider, from_email, from_name, admin_email
+            SELECT name, email_provider_token, email_provider, from_email, from_name
             FROM companies WHERE id = ?
         `).bind(company_id).all<{
             name: string;
-            email_provider_token: string;
+            email_provider_token: string | null;
             email_provider: typeof emailProviderEnum['options'][number];
             from_email: string;
             from_name: string;
-            admin_email: string;
         }>();
 
         if (!companies?.length) {
@@ -131,29 +132,22 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
 
         const company = companies[0];
 
-        // Decrypt email provider token
-        const providerToken = await decrypt(
-            company.email_provider_token,
-            c.env.ENCRYPTION_KEY
-        );
-
-        // Get site domain for reference
-        const { results: sites } = await c.env.DB.prepare(`
-            SELECT domain FROM sites WHERE id = ?
-        `).bind(site_id).all<{ domain: string }>();
-
-        const site = sites?.[0];
+        // Decrypt provider token (only for third-party providers)
+        let providerToken: string | null = null;
+        if (company.email_provider !== 'cloudflare' && company.email_provider_token) {
+            providerToken = await decrypt(company.email_provider_token, c.env.ENCRYPTION_KEY);
+        }
 
         const htmlEmail = renderFormSubmissionEmail({
-            siteDomain: site?.domain || 'Unknown Site',
+            siteDomain: site.domain,
             formData: data.fields,
             companyName: company.name,
-            attachments: files.map(file => ({ filename: file.name }))
+            timezone: site.timezone,
+            attachments: files.map(file => ({ filename: file.name })),
         });
 
         const fileAttachments: EmailAttachment[] = [];
 
-        // Process file attachments
         for (const file of files) {
             if (!VALID_FILE_TYPES.includes(file.type)) {
                 return sendResponse(c, 400, null, `Invalid file type: ${file.type}`);
@@ -164,23 +158,23 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
             fileAttachments.push({
                 filename: file.name,
                 content: Buffer.from(await file.arrayBuffer()).toString('base64'),
-                type: file.type || 'application/octet-stream'
+                type: file.type || 'application/octet-stream',
             });
         }
 
-        // Create and use email service
         const emailService = EmailServiceFactory.createEmailService({
             provider: company.email_provider,
-            apiKey: providerToken
+            apiKey: providerToken ?? undefined,
+            binding: company.email_provider === 'cloudflare' ? c.env.EMAIL : undefined,
         });
 
         const emailResponse = await emailService.send({
             from: company.from_email,
             fromName: company.from_name,
-            to: company.admin_email,
-            subject: `New Form Submission - ${site?.domain}`,
+            to: site.admin_email,
+            subject: `New Form Submission - ${site.domain}`,
             html: htmlEmail,
-            attachments: fileAttachments
+            attachments: fileAttachments,
         });
 
         return sendResponse(c, 200, emailResponse, 'Submission received successfully');

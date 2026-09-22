@@ -1,4 +1,5 @@
 import { EmailProvider } from '../../types/company';
+import { CloudflareEmailBinding } from '../../types/env';
 
 export interface EmailAttachment {
     filename: string;
@@ -20,6 +21,7 @@ export interface EmailService {
 }
 
 export interface EmailServiceConfig {
-    apiKey: string;
     provider: EmailProvider;
+    apiKey?: string;
+    binding?: CloudflareEmailBinding;
 }

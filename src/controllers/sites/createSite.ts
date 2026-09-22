@@ -7,11 +7,11 @@ import { generateApiKey } from '../../utils/generateApiKey';
 export const createSite = async (c: Context<{ Bindings: Env }>) => {
     try {
         const companyId = c.req.param('company_id');
-        const body = await c.req.json<CreateSiteBody>() ;
+        const body = await c.req.json<CreateSiteBody>();
         const id = `site_${crypto.randomUUID()}`;
-        // Validate required fields
-        if (!companyId || !body.domain) {
-            return sendResponse(c, 400, null, 'Missing required fields');
+
+        if (!companyId || !body.domain || !body.admin_email || !body.timezone) {
+            return sendResponse(c, 400, null, 'Missing required fields: domain, admin_email, timezone');
         }
 
         // Check if company exists
@@ -32,14 +32,13 @@ export const createSite = async (c: Context<{ Bindings: Env }>) => {
             return sendResponse(c, 400, null, 'Domain already exists');
         }
 
-        // Generate API key
         const api_key = await generateApiKey();
 
         const { success, results } = await c.env.DB.prepare(`
-            INSERT INTO sites (id, company_id, domain, api_key)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO sites (id, company_id, domain, api_key, admin_email, timezone)
+            VALUES (?, ?, ?, ?, ?, ?)
             RETURNING *
-        `).bind(id, companyId, body.domain, api_key)
+        `).bind(id, companyId, body.domain, api_key, body.admin_email, body.timezone)
         .run<Site>();
 
         if (!success || !results?.length) {
@@ -51,4 +50,4 @@ export const createSite = async (c: Context<{ Bindings: Env }>) => {
         console.error('Error creating site:', error);
         return sendResponse(c, 500, null, 'Internal server error');
     }
-}; 
+};

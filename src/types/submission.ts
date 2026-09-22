@@ -5,9 +5,21 @@ export interface SubmissionData {
     }
 }
 
+export type SubmissionStatus = 'new' | 'read' | 'archived' | 'spam';
+
+export interface SubmissionRecord {
+    id: string;
+    site_id: string;
+    data: Record<string, string>;
+    attachments?: Array<{ filename: string; size?: number; type?: string }>;
+    status: SubmissionStatus;
+    ip_address?: string;
+    created_at: string;
+}
+
 export interface Submission {
-    id: number;
-    site_id: number;
+    id: string;
+    site_id: string;
     data: SubmissionData;
     created_at: string;
 }

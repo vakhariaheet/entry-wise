@@ -1,53 +1,51 @@
 import { Context, Next } from 'hono';
 import { verify } from 'hono/jwt';
-import { sendResponse } from '../utils/sendResponse';
+import { sendProblemDetails } from '../utils/sendResponse';
 import { Env } from '../types/env';
-import { HTTPException } from 'hono/http-exception';
 
 export const verifyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
     try {
-        // Get the Authorization header
+        const adminKeyHeader = c.req.header('X-Admin-Key') || c.req.header('X-Admin-Api-Key');
         const authHeader = c.req.header('Authorization');
-        
-        if (!authHeader?.startsWith('Bearer ')) {
-            return sendResponse(c, 401, null, 'No token provided');
+
+        // 1. Check for Static Admin API Key if configured
+        if (c.env.ADMIN_API_KEY) {
+            if (adminKeyHeader && adminKeyHeader === c.env.ADMIN_API_KEY) {
+                c.set('jwtPayload', { sub: 'admin', role: 'admin_api_key' });
+                return await next();
+            }
+            if (authHeader?.startsWith('Bearer ') && authHeader.split(' ')[1] === c.env.ADMIN_API_KEY) {
+                c.set('jwtPayload', { sub: 'admin', role: 'admin_api_key' });
+                return await next();
+            }
         }
 
-        // Extract the token
+        // 2. Check for JWT Bearer token
+        if (!authHeader?.startsWith('Bearer ')) {
+            return sendProblemDetails(c, 401, 'Authentication token or valid admin key is required');
+        }
+
         const token = authHeader.split(' ')[1];
-        
         if (!token) {
-            return sendResponse(c, 401, null, 'Invalid token format');
+            return sendProblemDetails(c, 401, 'Invalid Bearer token format');
         }
 
         try {
-            // Verify the token
             const payload = await verify(token, c.env.JWT_SECRET);
             
             // Check if token is expired
             if (payload.exp && payload.exp < Date.now()) {
-                return sendResponse(c, 401, null, 'Token expired');
+                return sendProblemDetails(c, 401, 'Authentication token has expired');
             }
 
-            // Add the payload to the context variables for later use
             c.set('jwtPayload', payload);
-            
-            // Continue to the next middleware/route handler
             await next();
         } catch (error) {
             console.error('JWT verification error:', error);
-            return sendResponse(c, 401, null, 'Invalid token');
+            return sendProblemDetails(c, 401, 'Invalid authentication token');
         }
     } catch (error) {
-    
-        if(error instanceof HTTPException) {
-            throw new HTTPException(error.status, {
-                message: error.message,
-                cause: error.cause,
-                res: error.res
-                
-            });
-        }
-        return sendResponse(c, 500, null, 'Internal server error');
+        console.error('Auth middleware error:', error);
+        return sendProblemDetails(c, 500, 'Internal authentication error');
     }
-}; 
+};

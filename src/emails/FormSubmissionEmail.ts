@@ -4,6 +4,7 @@ interface FormSubmissionEmailProps {
         [key: string]: string;
     };
     companyName: string;
+    timezone?: string;
     attachments?: { filename: string }[];
 }
 
@@ -11,6 +12,7 @@ export const renderFormSubmissionEmail = ({
     siteDomain,
     formData,
     companyName,
+    timezone = 'UTC',
     attachments = []
 }: FormSubmissionEmailProps): string => {
     const currentDate = new Date().toLocaleString('en-US', {
@@ -19,7 +21,8 @@ export const renderFormSubmissionEmail = ({
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true
+        hour12: true,
+        timeZone: timezone,
     });
 
     const submissionId = `#EW-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`;
