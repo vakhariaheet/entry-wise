@@ -35,7 +35,11 @@ export const verifyDomain = async (c: Context<{ Bindings: Env }>, next: Next) =>
         if (originHeader) {
             try {
                 const requestHostname = new URL(originHeader).hostname.toLowerCase();
-                const siteHostname = site.domain.toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '');
+                const siteHostname = site.domain
+                    .toLowerCase()
+                    .trim()
+                    .replace(/^(https?:\/\/)?(www\.)?/, '')
+                    .replace(/\/.*$/, '');
                 const cleanRequestHost = requestHostname.replace(/^www\./, '');
 
                 const isLocalhost = cleanRequestHost === 'localhost' || cleanRequestHost === '127.0.0.1';

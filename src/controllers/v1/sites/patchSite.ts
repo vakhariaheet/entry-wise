@@ -23,7 +23,11 @@ export const patchSite = async (c: Context<{ Bindings: Env }>) => {
 
         // If domain is being updated, check uniqueness
         if (body.domain) {
-            const cleanDomain = body.domain.toLowerCase().trim();
+            const cleanDomain = body.domain
+                .toLowerCase()
+                .trim()
+                .replace(/^(https?:\/\/)?(www\.)?/, '')
+                .replace(/\/.*$/, '');
             const { results: domainExists } = await c.env.DB.prepare(`
                 SELECT id FROM sites WHERE domain = ? AND id != ?
             `).bind(cleanDomain, id).all();

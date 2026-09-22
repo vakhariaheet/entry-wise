@@ -31,8 +31,12 @@ export const createSite = async (c: Context<{ Bindings: Env }>) => {
             return sendProblemDetails(c, 404, `Company with ID '${companyId}' not found`);
         }
 
-        // Check if domain already exists
-        const cleanDomain = body.domain.toLowerCase().trim();
+        // Sanitize domain (strip protocol, www, and trailing slash/path)
+        const cleanDomain = body.domain
+            .toLowerCase()
+            .trim()
+            .replace(/^(https?:\/\/)?(www\.)?/, '')
+            .replace(/\/.*$/, '');
         const { results: domainExists } = await c.env.DB.prepare(`
             SELECT id FROM sites WHERE domain = ?
         `).bind(cleanDomain).all();
