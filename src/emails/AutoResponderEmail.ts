@@ -62,7 +62,7 @@ export const renderAutoResponderEmail = ({
         }
         .container-table {
             background-color: #f8fafc;
-            padding: 40px 16px;
+            padding: 56px 16px 40px 16px;
         }
         .email-card {
             max-width: 540px;
@@ -74,7 +74,7 @@ export const renderAutoResponderEmail = ({
             overflow: hidden;
         }
         .header-section {
-            padding: 32px 36px 20px 36px;
+            padding: 44px 36px 24px 36px;
             text-align: center;
             border-bottom: 1px solid #f1f5f9;
         }
@@ -169,15 +169,15 @@ export const renderAutoResponderEmail = ({
     </style>
 </head>
 <body>
-    <table cellpadding="0" cellspacing="0" border="0" width="100%" class="container-table">
+    <table cellpadding="0" cellspacing="0" border="0" width="100%" class="container-table" style="background-color: #f8fafc; width: 100%;">
         <tr>
-            <td align="center">
-                <table cellpadding="0" cellspacing="0" border="0" class="email-card">
+            <td align="center" style="padding: 56px 16px 40px 16px; background-color: #f8fafc;">
+                <table cellpadding="0" cellspacing="0" border="0" class="email-card" style="max-width: 540px; width: 100%; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); overflow: hidden;">
                     <!-- Brand Top Header -->
                     <tr>
-                        <td class="header-section">
-                            <div class="company-name">${displayName}</div>
-                            <div class="company-domain">
+                        <td class="header-section" style="padding: 44px 36px 24px 36px; text-align: center; border-bottom: 1px solid #f1f5f9;">
+                            <div class="company-name" style="font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.02em;">${displayName}</div>
+                            <div class="company-domain" style="font-size: 13px; color: #64748b; margin-top: 4px;">
                                 <a href="${returnUrl}" style="color: #64748b; text-decoration: none;" target="_blank">${cleanDomain}</a>
                             </div>
                         </td>
