@@ -300,18 +300,46 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
 
         // 8. Auto-Responder Email (Feature 2: Confirmation Email to Submitter)
         if (site.auto_responder_enabled && submitterEmail) {
+            const companyDisplayName = company.name || company.from_name || site.domain;
+            let interpolatedSubject = site.auto_responder_subject || `Thank you for reaching out - ${companyDisplayName}`;
+            let interpolatedBody = site.auto_responder_body || '';
+
+            const templateVars: Record<string, string> = {
+                ...fields,
+                name: submitterName || '',
+                email: submitterEmail,
+                company: companyDisplayName,
+                company_name: companyDisplayName,
+                domain: site.domain,
+                site_domain: site.domain,
+                submission_id: submissionId,
+            };
+
+            for (const [key, val] of Object.entries(templateVars)) {
+                const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'gi');
+                interpolatedSubject = interpolatedSubject.replace(regex, val);
+                if (interpolatedBody) {
+                    interpolatedBody = interpolatedBody.replace(regex, val);
+                }
+            }
+
             const autoReplyHtml = renderAutoResponderEmail({
                 siteDomain: site.domain,
+                companyName: companyDisplayName,
                 recipientName: submitterName,
-                customBody: site.auto_responder_body,
-                customSubject: site.auto_responder_subject,
+                customBody: interpolatedBody || null,
+                customSubject: interpolatedSubject,
+                submissionId,
+                timezone: site.timezone,
             });
+
+            const autoResponderSenderName = company.name?.trim() ? company.name.trim() : (company.from_name || 'EntryWise');
 
             const autoReplyPromise = emailService.send({
                 from: company.from_email,
-                fromName: company.from_name,
+                fromName: autoResponderSenderName,
                 to: submitterEmail,
-                subject: site.auto_responder_subject || `We received your message - ${site.domain}`,
+                subject: interpolatedSubject,
                 html: autoReplyHtml,
             }).catch(err => console.error('Auto-responder delivery error:', err));
 
