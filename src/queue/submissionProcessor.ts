@@ -9,6 +9,7 @@ import type { Env } from '../types/env';
 import type { SubmissionQueueMessage } from '../types/queue';
 import type { Site } from '../types/site';
 import { decrypt } from '../utils/encryption';
+import { escapeHtml } from '../utils/escapeHtml';
 import { dispatchWebhook } from '../utils/webhook';
 
 function recipientListFirst(
@@ -146,6 +147,19 @@ export async function processSubmissionDelivery(
         site.auto_responder_subject || `Thank you for reaching out — ${companyDisplayName}`;
       let interpolatedBody = site.auto_responder_body || '';
 
+      // Generate a responsive HTML table of submission fields for {{formData}} or {{submission_summary}}
+      let fieldsTableHtml =
+        '<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:540px;border-collapse:collapse;margin:16px 0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;font-size:13px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">';
+      let rowIdx = 0;
+      for (const [k, v] of Object.entries(fields)) {
+        if (k.startsWith('_')) continue;
+        const valStr = typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
+        const bg = rowIdx % 2 === 0 ? '#ffffff' : '#f8fafc';
+        fieldsTableHtml += `<tr style="background:${bg};"><td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;width:35%;vertical-align:top;">${escapeHtml(k)}</td><td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;color:#0f172a;vertical-align:top;">${escapeHtml(valStr)}</td></tr>`;
+        rowIdx++;
+      }
+      fieldsTableHtml += '</table>';
+
       const templateVars: Record<string, string> = {
         ...fields,
         name: submitterName || '',
@@ -155,6 +169,10 @@ export async function processSubmissionDelivery(
         domain: site.domain,
         site_domain: site.domain,
         submission_id: submissionId,
+        formData: fieldsTableHtml,
+        form_data: fieldsTableHtml,
+        submission_summary: fieldsTableHtml,
+        all_fields: fieldsTableHtml,
       };
 
       for (const [k, val] of Object.entries(templateVars)) {

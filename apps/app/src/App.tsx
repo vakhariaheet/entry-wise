@@ -431,9 +431,9 @@ export const AppContent: React.FC<AppProps> = () => {
                       count: totalSubmissions,
                     },
                     {
-                      id: 'template-studio' as DashboardTab,
-                      label: 'Template Studio',
-                      icon: Sparkles,
+                      id: 'template' as DashboardTab,
+                      label: 'Email Template Studio',
+                      icon: Mail,
                     },
                     {
                       id: 'fields' as DashboardTab,
@@ -442,7 +442,6 @@ export const AppContent: React.FC<AppProps> = () => {
                       count: siteFields.length,
                     },
                     { id: 'connectors' as DashboardTab, label: 'Connectors', icon: Share2 },
-                    { id: 'template' as DashboardTab, label: 'Auto-Responder', icon: Mail },
                     { id: 'embed' as DashboardTab, label: 'Code & Embed', icon: Code2 },
                     { id: 'settings' as DashboardTab, label: 'Settings', icon: Settings },
                   ].map((tab) => {
@@ -531,7 +530,7 @@ export const AppContent: React.FC<AppProps> = () => {
                   <CodeEmbedView
                     site={currentSite}
                     fields={siteFields}
-                    onNavigateToStudio={() => setActiveTab('template-studio')}
+                    onNavigateToStudio={() => setActiveTab('template')}
                   />
                 )}
 

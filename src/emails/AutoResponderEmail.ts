@@ -22,6 +22,16 @@ export const renderAutoResponderEmail = ({
   const displayName = escapeHtml(companyName?.trim() || rawCleanDomain);
   const greeting = recipientName ? `Hi ${escapeHtml(recipientName)},` : 'Hello,';
 
+  // If a full custom HTML email template is provided by the Template Studio, render directly
+  if (
+    customBody &&
+    (customBody.includes('<!DOCTYPE') ||
+      customBody.includes('<html') ||
+      customBody.includes('<table'))
+  ) {
+    return customBody;
+  }
+
   const unescapedBody =
     customBody ||
     `Thank you for getting in touch with us at ${companyName?.trim() || rawCleanDomain}. We have received your message and our team will get back to you shortly.`;

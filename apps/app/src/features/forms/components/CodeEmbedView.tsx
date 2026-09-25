@@ -380,7 +380,7 @@ curl -X POST "${endpointUrl}" \\
         </div>
       </div>
 
-      {/* Template Studio Promo Banner */}
+      {/* Email Template Studio Promo Banner */}
       {onNavigateToStudio && (
         <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
           <div className="flex items-center gap-3">
@@ -388,12 +388,10 @@ curl -X POST "${endpointUrl}" \\
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-xs font-semibold text-white">
-                Visual Drag-and-Drop Form Builder
-              </h4>
+              <h4 className="text-xs font-semibold text-white">Visual Email Template Studio</h4>
               <p className="text-[11px] text-zinc-400">
-                Design custom form templates with drag-and-drop elements, live preview, color
-                themes, and 1-click export.
+                Design custom full HTML confirmation receipts and auto-responder emails sent
+                automatically to your submitters.
               </p>
             </div>
           </div>
@@ -402,7 +400,7 @@ curl -X POST "${endpointUrl}" \\
             onClick={onNavigateToStudio}
             className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-semibold transition shrink-0 self-end sm:self-auto shadow-sm"
           >
-            Open Template Studio &rarr;
+            Email Template Studio &rarr;
           </button>
         </div>
       )}
