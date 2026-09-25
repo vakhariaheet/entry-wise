@@ -5,13 +5,33 @@ import { Navbar } from './components/Navbar';
 import { SubmissionsTable } from './components/SubmissionsTable';
 import { SubmissionDetailModal } from './components/SubmissionDetailModal';
 import { AiPromptModal } from './components/AiPromptModal';
-import { SiteSettingsModal, type TabType } from './components/SiteSettingsModal';
 import { CreateSiteModal } from './components/CreateSiteModal';
 import { WorkspaceModal } from './components/WorkspaceModal';
 import { AuthScreen } from './components/AuthScreen';
+import { SchemaFieldsView } from './components/views/SchemaFieldsView';
+import { ConnectorsView } from './components/views/ConnectorsView';
+import { EmailTemplateView } from './components/views/EmailTemplateView';
+import { CodeEmbedView } from './components/views/CodeEmbedView';
+import { GeneralSettingsView } from './components/views/GeneralSettingsView';
 import { useAuth } from '@clerk/clerk-react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Plus, Globe, Sparkles, Loader2, AlertCircle, Key, ListPlus, SlidersHorizontal } from 'lucide-react';
+import {
+  Plus,
+  Globe,
+  Sparkles,
+  Loader2,
+  AlertCircle,
+  Inbox,
+  SlidersHorizontal,
+  Share2,
+  Mail,
+  Code2,
+  Settings,
+  Copy,
+  Check,
+} from 'lucide-react';
+
+export type DashboardTab = 'submissions' | 'fields' | 'connectors' | 'template' | 'embed' | 'settings';
 
 interface AppProps {
   isClerkConfigured: boolean;
@@ -35,11 +55,13 @@ export const AppContent: React.FC<AppProps> = () => {
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState<boolean>(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // Modals & Settings State
+  // Active View Tab (Native full-page dashboard tabs, no popup)
+  const [activeTab, setActiveTab] = useState<DashboardTab>('submissions');
+  const [copiedEndpoint, setCopiedEndpoint] = useState<boolean>(false);
+
+  // Modals (only for lightweight creation dialogs)
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [showAiPrompt, setShowAiPrompt] = useState<boolean>(false);
-  const [showSiteSettings, setShowSiteSettings] = useState<boolean>(false);
-  const [siteSettingsTab, setSiteSettingsTab] = useState<TabType>('fields');
   const [showCreateSite, setShowCreateSite] = useState<boolean>(false);
 
   // Form Fields Schema State
@@ -215,6 +237,22 @@ export const AppContent: React.FC<AppProps> = () => {
     window.open(api.getExportUrl(currentSite.id), '_blank');
   };
 
+  const handleSiteUpdated = (updated: Site) => {
+    setCurrentSite(updated);
+    setSites((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+  };
+
+  const handleSiteDeleted = (deletedSiteId: string) => {
+    const remaining = sites.filter((s) => s.id !== deletedSiteId);
+    setSites(remaining);
+    if (remaining.length > 0) {
+      setCurrentSite(remaining[0]);
+      setActiveTab('submissions');
+    } else {
+      setCurrentSite(null);
+    }
+  };
+
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-[#09090b] flex flex-col items-center justify-center text-zinc-400 gap-3">
@@ -237,10 +275,12 @@ export const AppContent: React.FC<AppProps> = () => {
         onOpenCreateWorkspace={() => setShowCreateWorkspace(true)}
         sites={sites}
         currentSite={currentSite}
-        onSelectSite={setCurrentSite}
+        onSelectSite={(site) => {
+          setCurrentSite(site);
+        }}
         onOpenCreateSite={() => setShowCreateSite(true)}
         onOpenAiPrompt={() => setShowAiPrompt(true)}
-        onOpenSiteSettings={() => setShowSiteSettings(true)}
+        onOpenSiteSettings={() => setActiveTab('settings')}
       />
 
       {/* Main Dashboard Canvas */}
@@ -287,66 +327,62 @@ export const AppContent: React.FC<AppProps> = () => {
               <span>Create Your First Form</span>
             </button>
           </div>
-        ) : (
+        ) : currentSite && (
           /* Normal Dashboard View with Active Site */
           <>
             {/* Site Header Overview */}
-            <div className="flex flex-col gap-4 pb-6 border-b border-white/[0.08]">
+            <div className="flex flex-col gap-5 pb-2 border-b border-white/[0.08]">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <h1 className="text-xl font-bold tracking-tight text-white">
-                      {currentSite?.name || currentSite?.domain}
+                      {currentSite.name || currentSite.domain}
                     </h1>
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
+                    <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 font-semibold">
                       Live Form
                     </span>
-                    {currentSite?.google_sheets_url && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/5 text-emerald-300">
+                    {currentSite.google_sheets_url && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">
                         Sheets
                       </span>
                     )}
-                    {currentSite?.slack_webhook_url && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-amber-500/20 bg-amber-500/5 text-amber-300">
+                    {currentSite.slack_webhook_url && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border border-amber-500/20 bg-amber-500/10 text-amber-300">
                         Slack
                       </span>
                     )}
-                    {currentSite?.discord_webhook_url && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-indigo-500/20 bg-indigo-500/5 text-indigo-300">
+                    {currentSite.discord_webhook_url && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
                         Discord
                       </span>
                     )}
+                    {currentSite.webhook_url && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">
+                        Webhook
+                      </span>
+                    )}
                   </div>
-                  <p className="text-xs text-zinc-400 font-mono flex items-center gap-2 flex-wrap">
-                    <span>POST https://entrywise.webbound.in/f/{currentSite?.api_key}</span>
+
+                  <div className="text-xs text-zinc-400 font-mono flex items-center gap-2 flex-wrap">
+                    <span>POST https://entrywise.webbound.in/f/{currentSite.api_key}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(`https://entrywise.webbound.in/f/${currentSite.api_key}`);
+                        setCopiedEndpoint(true);
+                        setTimeout(() => setCopiedEndpoint(false), 2000);
+                      }}
+                      className="p-1 rounded hover:bg-white/[0.05] text-zinc-400 hover:text-emerald-400 transition"
+                      title="Copy Ingestion Endpoint"
+                    >
+                      {copiedEndpoint ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
                     <span className="text-zinc-600">|</span>
-                    <span className="text-zinc-500">{currentSite?.domain}</span>
-                  </p>
+                    <span className="text-zinc-500">{currentSite.domain}</span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    onClick={() => {
-                      setSiteSettingsTab('fields');
-                      setShowSiteSettings(true);
-                    }}
-                    className="px-3.5 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-semibold text-emerald-300 transition flex items-center gap-1.5 shadow-sm"
-                  >
-                    <ListPlus className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Edit Form &amp; Fields</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setSiteSettingsTab('general');
-                      setShowSiteSettings(true);
-                    }}
-                    className="px-3.5 py-1.5 rounded-xl border border-white/[0.08] bg-[#121215] hover:bg-white/[0.05] text-xs font-medium text-zinc-300 hover:text-white transition flex items-center gap-1.5"
-                  >
-                    <Key className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Connectors &amp; Settings</span>
-                  </button>
-
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowAiPrompt(true)}
                     className="px-3.5 py-1.5 rounded-xl border border-white/[0.08] bg-[#121215] hover:bg-white/[0.05] text-xs font-medium text-zinc-300 hover:text-white transition flex items-center gap-1.5"
@@ -357,53 +393,103 @@ export const AppContent: React.FC<AppProps> = () => {
                 </div>
               </div>
 
-              {/* Form Schema & Fields Quick Bar */}
-              <div className="flex items-center gap-2 flex-wrap pt-1 text-xs">
-                <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1.5">
-                  <SlidersHorizontal className="w-3 h-3 text-zinc-500" />
-                  <span>Schema Fields ({siteFields.length}):</span>
-                </span>
-                {siteFields.length > 0 ? (
-                  siteFields.map((field) => (
-                    <span
-                      key={field.name}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-white/[0.08] bg-[#121215] text-[11px] font-mono text-zinc-300"
+              {/* Sub-Navigation Tabs (GitHub / Vercel style tabs) */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-1 scrollbar-none">
+                {[
+                  { id: 'submissions' as DashboardTab, label: 'Submissions', icon: Inbox, count: totalSubmissions },
+                  { id: 'fields' as DashboardTab, label: 'Fields & Schema', icon: SlidersHorizontal, count: siteFields.length },
+                  { id: 'connectors' as DashboardTab, label: 'Connectors', icon: Share2 },
+                  { id: 'template' as DashboardTab, label: 'Auto-Responder', icon: Mail },
+                  { id: 'embed' as DashboardTab, label: 'Code & Embed', icon: Code2 },
+                  { id: 'settings' as DashboardTab, label: 'Settings', icon: Settings },
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition whitespace-nowrap focus:outline-none focus-visible:ring-0 ${
+                        isActive
+                          ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold shadow-sm'
+                          : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'
+                      }`}
                     >
-                      <span>{field.name}</span>
-                      <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 font-semibold">
-                        {field.type}
-                      </span>
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-zinc-500 text-[11px] italic">
-                    Dynamic schema (accepts any submitted fields)
-                  </span>
-                )}
-                <button
-                  onClick={() => {
-                    setSiteSettingsTab('fields');
-                    setShowSiteSettings(true);
-                  }}
-                  className="text-[11px] text-emerald-400 hover:text-emerald-300 underline font-medium ml-1 transition"
-                >
-                  {siteFields.length > 0 ? 'Edit Fields' : '+ Configure Fields'}
-                </button>
+                      <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-zinc-500'}`} />
+                      <span>{tab.label}</span>
+                      {tab.count !== undefined && (
+                        <span
+                          className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                            isActive
+                              ? 'bg-emerald-500/20 text-emerald-300'
+                              : 'bg-white/[0.06] text-zinc-400'
+                          }`}
+                        >
+                          {tab.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Submissions Table */}
-            <SubmissionsTable
-              submissions={submissions}
-              total={totalSubmissions}
-              currentStatus={statusFilter}
-              onStatusChange={setStatusFilter}
-              onSelectSubmission={setSelectedSubmission}
-              onUpdateStatus={handleUpdateStatus}
-              onDeleteSubmission={handleDeleteSubmission}
-              onExportCsv={handleExportCsv}
-              isLoading={isLoadingSubmissions}
-            />
+            {/* Tab View Content */}
+            <div className="pt-2">
+              {activeTab === 'submissions' && (
+                <SubmissionsTable
+                  submissions={submissions}
+                  total={totalSubmissions}
+                  currentStatus={statusFilter}
+                  onStatusChange={setStatusFilter}
+                  onSelectSubmission={setSelectedSubmission}
+                  onUpdateStatus={handleUpdateStatus}
+                  onDeleteSubmission={handleDeleteSubmission}
+                  onExportCsv={handleExportCsv}
+                  isLoading={isLoadingSubmissions}
+                />
+              )}
+
+              {activeTab === 'fields' && (
+                <SchemaFieldsView
+                  site={currentSite}
+                  fields={siteFields}
+                  onFieldsUpdated={setSiteFields}
+                  onSiteUpdated={handleSiteUpdated}
+                  onNavigateToEmbed={() => setActiveTab('embed')}
+                />
+              )}
+
+              {activeTab === 'connectors' && (
+                <ConnectorsView
+                  site={currentSite}
+                  onSiteUpdated={handleSiteUpdated}
+                />
+              )}
+
+              {activeTab === 'template' && (
+                <EmailTemplateView
+                  site={currentSite}
+                  onSiteUpdated={handleSiteUpdated}
+                />
+              )}
+
+              {activeTab === 'embed' && (
+                <CodeEmbedView
+                  site={currentSite}
+                  fields={siteFields}
+                />
+              )}
+
+              {activeTab === 'settings' && (
+                <GeneralSettingsView
+                  site={currentSite}
+                  onSiteUpdated={handleSiteUpdated}
+                  onSiteDeleted={handleSiteDeleted}
+                />
+              )}
+            </div>
           </>
         )}
       </main>
@@ -420,21 +506,6 @@ export const AppContent: React.FC<AppProps> = () => {
         <AiPromptModal
           site={currentSite}
           onClose={() => setShowAiPrompt(false)}
-        />
-      )}
-
-      {showSiteSettings && (
-        <SiteSettingsModal
-          site={currentSite}
-          initialTab={siteSettingsTab}
-          onClose={() => setShowSiteSettings(false)}
-          onSiteUpdated={(updated) => {
-            setCurrentSite(updated);
-            setSites((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
-          }}
-          onFieldsUpdated={(updatedFields) => {
-            setSiteFields(updatedFields);
-          }}
         />
       )}
 
