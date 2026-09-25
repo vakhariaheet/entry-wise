@@ -6,27 +6,36 @@ export const siteSchema = z.object({
   id: z.string().openapi({
     description: 'The unique identifier for the site',
     example: 'site_123',
+    format: 'text',
+    pattern: '^[a-zA-Z0-9_-]+$',
   }),
   company_id: z.string().openapi({
     description: 'The ID of the company this site belongs to',
     example: 'company_123',
+    format: 'text',
+    pattern: '^[a-zA-Z0-9_-]+$',
   }),
   domain: z.string().min(1, 'Domain is required').openapi({
     description: 'The domain name of the site',
     example: 'example.com',
+    format: 'text',
   }),
   api_key: z.string().openapi({
     description: 'The API key for the site',
     example: 'ew_live_1234567890abcdef',
+    format: 'text',
+    pattern: '^[a-zA-Z0-9_]+$',
   }),
   admin_email: z.string().email('Invalid email format').openapi({
     description: 'The email address where form submissions are delivered for this site',
     example: 'admin@example.com',
+    format: 'email',
   }),
   timezone: z.string().min(1, 'Timezone is required').default('UTC').openapi({
     description:
       'IANA timezone string used to localise the submission timestamp in notification emails',
     example: 'Asia/Kolkata',
+    format: 'text',
   }),
   auto_responder_enabled: z.union([z.boolean(), z.number()]).default(false).openapi({
     description: 'Whether to send an automatic confirmation email back to the submitter',
@@ -35,28 +44,34 @@ export const siteSchema = z.object({
   auto_responder_subject: z.string().nullable().optional().openapi({
     description: 'Custom subject line for auto-responder email',
     example: 'Thank you for reaching out!',
+    format: 'text',
   }),
   auto_responder_body: z.string().nullable().optional().openapi({
     description: 'Custom message body for auto-responder email',
     example: 'We received your message and will get back to you shortly.',
+    format: 'text',
   }),
   webhook_url: z.string().url().nullable().optional().openapi({
     description:
       'Webhook URL to dispatch real-time submission payloads to (Slack, Discord, Zapier, etc.)',
     example: 'https://hooks.slack.com/services/...',
+    format: 'uri',
   }),
   webhook_secret: z.string().nullable().optional().openapi({
     description: 'Secret key used to compute the HMAC-SHA256 signature in X-EntryWise-Signature',
     example: 'whsec_secret_key_123',
+    format: 'text',
   }),
   turnstile_secret_key: z.string().nullable().optional().openapi({
     description:
       'Cloudflare Turnstile secret key. When provided, cf-turnstile-response is strictly verified.',
     example: '0x4AAAAAA...',
+    format: 'text',
   }),
   created_at: z.string().datetime().openapi({
     description: 'The date and time the site was created',
     example: '2021-01-01T00:00:00Z',
+    format: 'date-time',
   }),
 });
 
@@ -73,6 +88,8 @@ export const getSiteSchema = z.object({
   id: z.string().openapi({
     description: 'The unique identifier for the site',
     example: 'site_123',
+    format: 'text',
+    pattern: '^[a-zA-Z0-9_-]+$',
   }),
 });
 

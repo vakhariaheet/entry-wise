@@ -11,19 +11,26 @@ export const fieldSchema = z.object({
   id: z.string().openapi({
     description: 'The unique identifier for the field',
     example: 'field_123',
+    format: 'text',
+    pattern: '^[a-zA-Z0-9_-]+$',
   }),
   site_id: z.string().openapi({
     description: 'The ID of the site this field belongs to',
     example: 'site_123',
+    format: 'text',
+    pattern: '^[a-zA-Z0-9_-]+$',
   }),
   name: z.string().min(1, 'Field name is required').openapi({
     description: 'The name of the field',
     example: 'firstName',
+    format: 'text',
+    pattern: '^[a-zA-Z0-9_-]+$',
   }),
   type: fieldTypeEnum,
   created_at: z.string().datetime().openapi({
     description: 'The date and time the field was created',
     example: '2021-01-01T00:00:00Z',
+    format: 'date-time',
   }),
 });
 
@@ -41,6 +48,8 @@ export const bulkCreateFieldSchema = z.object({
         name: z.string().min(1, 'Field name is required').openapi({
           description: 'The name of the field',
           example: 'firstName',
+          format: 'text',
+          pattern: '^[a-zA-Z0-9_-]+$',
         }),
         type: fieldTypeEnum,
       })
@@ -61,6 +70,8 @@ export const getFieldSchema = z.object({
   id: z.string().openapi({
     description: 'The unique identifier for the field',
     example: 'field_123',
+    format: 'text',
+    pattern: '^[a-zA-Z0-9_-]+$',
   }),
 });
 

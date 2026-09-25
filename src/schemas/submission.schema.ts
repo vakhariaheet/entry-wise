@@ -11,14 +11,18 @@ export const submissionAttachmentSchema = z.object({
   filename: z.string().openapi({
     description: 'Original name of the uploaded file',
     example: 'resume.pdf',
+    format: 'text',
   }),
   size: z.number().optional().openapi({
     description: 'Size of the file in bytes',
     example: 1048576,
+    format: 'int32',
+    minimum: 0,
   }),
   type: z.string().optional().openapi({
     description: 'MIME type of the file',
     example: 'application/pdf',
+    format: 'text',
   }),
 });
 
@@ -26,10 +30,14 @@ export const submissionRecordSchema = z.object({
   id: z.string().openapi({
     description: 'Unique identifier for the submission',
     example: 'sub_12345678',
+    format: 'text',
+    pattern: '^[a-zA-Z0-9_-]+$',
   }),
   site_id: z.string().openapi({
     description: 'The site this submission belongs to',
     example: 'site_123',
+    format: 'text',
+    pattern: '^[a-zA-Z0-9_-]+$',
   }),
   data: z.record(z.string(), z.any()).openapi({
     description: 'Map of submitted form field key-values',
@@ -38,18 +46,22 @@ export const submissionRecordSchema = z.object({
       email: 'jane@example.com',
       message: 'Hello world',
     },
+    maxProperties: 100,
   }),
   attachments: z.array(submissionAttachmentSchema).optional().openapi({
     description: 'Metadata for file attachments received with the submission',
+    example: [],
   }),
   status: submissionStatusEnum,
   ip_address: z.string().optional().openapi({
     description: 'IP address of the submitter',
     example: '192.0.2.1',
+    format: 'text',
   }),
   created_at: z.string().datetime().openapi({
     description: 'Timestamp when the submission was received',
     example: '2026-09-23T00:00:00Z',
+    format: 'date-time',
   }),
 });
 
@@ -68,6 +80,7 @@ export const listSubmissionsQuerySchema = z.object({
   query: z.string().optional().openapi({
     description: 'Search term across submission data',
     example: 'jane@example.com',
+    format: 'text',
   }),
 });
 

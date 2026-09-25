@@ -15,30 +15,37 @@ export const companySchema = z.object({
   id: z.string().openapi({
     description: 'The unique identifier for the company',
     example: 'company_123',
+    format: 'text',
+    pattern: '^[a-zA-Z0-9_-]+$',
   }),
   name: z.string().min(1, 'Company name is required').openapi({
     description: 'The name of the company',
     example: 'Acme Inc',
+    format: 'text',
   }),
   email_provider: emailProviderEnum.default('cloudflare'),
   email_provider_token: z.string().nullable().optional().openapi({
     description:
       'The API token for the email provider. Not required when using Cloudflare Email Service.',
     example: 're_123456789',
+    format: 'text',
   }),
   from_email: z.string().email('Invalid email format').optional().openapi({
     description:
       'The email address to send from. Fixed to no-reply@entrywise.webbound.in when using Cloudflare Email Service.',
     example: 'info@acme.com',
+    format: 'email',
   }),
   from_name: z.string().min(1).optional().openapi({
     description:
       'The sender display name. Fixed to "EntryWise" when using Cloudflare Email Service.',
     example: 'Acme Inc',
+    format: 'text',
   }),
   created_at: z.string().datetime().openapi({
     description: 'The date and time the company was created',
     example: '2021-01-01T00:00:00Z',
+    format: 'date-time',
   }),
 });
 
@@ -53,6 +60,8 @@ export const deleteCompanySchema = z.object({
   id: z.string().openapi({
     description: 'The unique identifier for the company',
     example: 'company_123',
+    format: 'text',
+    pattern: '^[a-zA-Z0-9_-]+$',
   }),
 });
 
@@ -60,6 +69,8 @@ export const getCompanySchema = z.object({
   id: z.string().openapi({
     description: 'The unique identifier for the company',
     example: 'company_123',
+    format: 'text',
+    pattern: '^[a-zA-Z0-9_-]+$',
   }),
 });
 

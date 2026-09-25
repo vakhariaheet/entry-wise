@@ -28,11 +28,15 @@ export const createApiResponse = <T extends z.ZodTypeAny>(data: T) => {
     status: z.number().openapi({
       description: 'The HTTP status code',
       example: 200,
+      format: 'int32',
+      minimum: 100,
+      maximum: 599,
     }),
     data: data,
     message: z.string().openapi({
       description: 'The message of the response',
       example: 'Success',
+      format: 'text',
     }),
   });
 };
@@ -45,14 +49,21 @@ export const createPaginatedResponse = <T extends z.ZodTypeAny>(itemSchema: T) =
     total_count: z.number().openapi({
       description: 'Total number of items matching the query',
       example: 42,
+      format: 'int32',
+      minimum: 0,
     }),
     limit: z.number().openapi({
       description: 'Maximum number of items per page',
       example: 20,
+      format: 'int32',
+      minimum: 1,
+      maximum: 100,
     }),
     offset: z.number().openapi({
       description: 'Offset of the first item on this page',
       example: 0,
+      format: 'int32',
+      minimum: 0,
     }),
   });
 };

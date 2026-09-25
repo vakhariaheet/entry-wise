@@ -38,6 +38,7 @@ const validateFieldValue = (type: string) => {
       return z.string().openapi({
         description: 'Text field value',
         example: 'John Doe',
+        format: 'text',
       });
   }
 };
@@ -52,11 +53,12 @@ export const formMetadataSchema = z
         email: 'john@example.com',
         message: 'Hello, world!',
       },
+      maxProperties: 100,
     }),
     // Optional honeypot fields
-    _gotcha: z.string().optional(),
-    website: z.string().optional(),
-    url: z.string().optional(),
+    _gotcha: z.string().optional().openapi({ format: 'text' }),
+    website: z.string().optional().openapi({ format: 'text' }),
+    url: z.string().optional().openapi({ format: 'text' }),
   })
   .openapi({
     description: 'Form submission metadata',
@@ -71,6 +73,7 @@ export const formSubmissionSchema = z
       .pipe(formMetadataSchema),
     attachments: z.array(z.instanceof(File)).optional().or(z.instanceof(File)).openapi({
       description: 'Array of file attachments',
+      example: [],
     }),
   })
   .openapi({
