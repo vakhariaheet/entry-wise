@@ -1,0 +1,8 @@
+# 1. Format and lint check with Biome
+bun run check
+
+# 2. Export OpenAPI specification & validate with Vacuum + OWASP ruleset
+bun run security:check
+
+# 3. Automatically stage openapi.json if regenerated
+git add openapi.json
