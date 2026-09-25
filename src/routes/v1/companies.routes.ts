@@ -28,6 +28,10 @@ companiesRouter.get(
     description: 'Retrieve a paginated list of companies',
     tags: ['Companies'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Companies fetched successfully' },
+      401: { description: 'Authentication required' },
+    },
   }),
   listCompanies
 );
@@ -39,6 +43,11 @@ companiesRouter.post(
     description: 'Create a new company with an email delivery provider',
     tags: ['Companies'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      201: { description: 'Company created successfully' },
+      400: { description: 'Invalid company payload' },
+      401: { description: 'Authentication required' },
+    },
   }),
   validator('json', createCompanySchema),
   createCompany
@@ -51,6 +60,10 @@ companiesRouter.get(
     description: 'Get company details by ID',
     tags: ['Companies'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Company fetched successfully' },
+      404: { description: 'Company not found' },
+    },
   }),
   validator('param', z.object({ id: z.string() })),
   getCompany
@@ -63,6 +76,11 @@ companiesRouter.patch(
     description: 'Partially update company properties',
     tags: ['Companies'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Company updated successfully' },
+      400: { description: 'Invalid update payload' },
+      404: { description: 'Company not found' },
+    },
   }),
   validator('param', z.object({ id: z.string() })),
   validator('json', updateCompanySchema),
@@ -76,6 +94,10 @@ companiesRouter.delete(
     description: 'Delete a company and all child sites and fields (cascading)',
     tags: ['Companies'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Company deleted successfully' },
+      404: { description: 'Company not found' },
+    },
   }),
   validator('param', z.object({ id: z.string() })),
   deleteCompany
@@ -88,6 +110,11 @@ companiesRouter.post(
     description: 'Verify company email provider credentials by sending a test message',
     tags: ['Companies'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Test email dispatched successfully' },
+      400: { description: 'Invalid recipient or email delivery failed' },
+      404: { description: 'Company not found' },
+    },
   }),
   validator('param', z.object({ id: z.string() })),
   testCompanyEmail
@@ -101,6 +128,10 @@ companiesRouter.post(
     description: 'Create a new site belonging to this company',
     tags: ['Sites'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      201: { description: 'Site created successfully' },
+      400: { description: 'Invalid site payload' },
+    },
   }),
   validator('param', z.object({ company_id: z.string() })),
   validator('json', createSiteSchema),
@@ -114,6 +145,9 @@ companiesRouter.get(
     description: 'List all sites belonging to this company',
     tags: ['Sites'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Sites fetched successfully' },
+    },
   }),
   validator('param', z.object({ company_id: z.string() })),
   listSites

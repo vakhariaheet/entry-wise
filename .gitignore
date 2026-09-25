@@ -35,3 +35,4 @@ lerna-debug.log*
 # misc
 .DS_Store
 bun.lock
+vacuum-report.html

@@ -30,7 +30,7 @@ sitesRouter.post(
   validator('json', createSiteSchema),
   createSite
 );
-sitesRouter.get('/:company_id/', describeRoute(getSitesDocs), getSites);
+sitesRouter.get('/:company_id', describeRoute(getSitesDocs), getSites);
 sitesRouter.get(
   '/:company_id/:id',
   describeRoute(getSiteDocs),

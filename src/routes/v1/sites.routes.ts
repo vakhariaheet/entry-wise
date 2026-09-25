@@ -47,6 +47,10 @@ sitesRouter.get(
     description: 'Retrieve a paginated list of sites, optionally filtered by company_id',
     tags: ['Sites'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Sites fetched successfully' },
+      401: { description: 'Authentication required' },
+    },
   }),
   listSites
 );
@@ -58,6 +62,11 @@ sitesRouter.post(
     description: 'Create a new site with company_id provided in request body',
     tags: ['Sites'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      201: { description: 'Site created successfully' },
+      400: { description: 'Invalid site payload' },
+      401: { description: 'Authentication required' },
+    },
   }),
   createSite
 );
@@ -69,6 +78,10 @@ sitesRouter.get(
     description: 'Get site details by ID',
     tags: ['Sites'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Site retrieved successfully' },
+      404: { description: 'Site not found' },
+    },
   }),
   validator('param', z.object({ id: z.string() })),
   getSite
@@ -82,6 +95,11 @@ sitesRouter.patch(
       'Partially update site properties (domain, admin email, timezone, auto-responder, webhook, turnstile)',
     tags: ['Sites'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Site updated successfully' },
+      400: { description: 'Invalid update payload' },
+      404: { description: 'Site not found' },
+    },
   }),
   validator('param', z.object({ id: z.string() })),
   validator('json', updateSiteSchema),
@@ -95,6 +113,10 @@ sitesRouter.delete(
     description: 'Delete a site and all its fields and submissions permanently',
     tags: ['Sites'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Site deleted successfully' },
+      404: { description: 'Site not found' },
+    },
   }),
   validator('param', z.object({ id: z.string() })),
   deleteSite
@@ -110,6 +132,10 @@ sitesRouter.get(
     description: 'Get all dynamic field definitions for this site',
     tags: ['Fields'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Fields retrieved successfully' },
+      404: { description: 'Site not found' },
+    },
   }),
   validator('param', z.object({ site_id: z.string() })),
   listFields
@@ -122,6 +148,11 @@ sitesRouter.post(
     description: 'Add a new dynamic field definition to this site',
     tags: ['Fields'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      201: { description: 'Field created successfully' },
+      400: { description: 'Invalid field payload' },
+      404: { description: 'Site not found' },
+    },
   }),
   validator('param', z.object({ site_id: z.string() })),
   validator('json', createFieldSchema),
@@ -135,6 +166,11 @@ sitesRouter.put(
     description: 'Atomically replace all field definitions for this site',
     tags: ['Fields'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Fields replaced successfully' },
+      400: { description: 'Invalid fields payload' },
+      404: { description: 'Site not found' },
+    },
   }),
   validator('param', z.object({ site_id: z.string() })),
   validator('json', bulkCreateFieldSchema),
@@ -148,6 +184,11 @@ sitesRouter.patch(
     description: 'Partially update field name or type',
     tags: ['Fields'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Field updated successfully' },
+      400: { description: 'Invalid update payload' },
+      404: { description: 'Field or site not found' },
+    },
   }),
   validator('param', z.object({ site_id: z.string(), field_id: z.string() })),
   validator('json', updateFieldSchema),
@@ -161,6 +202,10 @@ sitesRouter.delete(
     description: 'Delete a field definition from the site',
     tags: ['Fields'],
     security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Field deleted successfully' },
+      404: { description: 'Field or site not found' },
+    },
   }),
   validator('param', z.object({ site_id: z.string(), field_id: z.string() })),
   deleteField

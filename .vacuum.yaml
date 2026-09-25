@@ -1,0 +1,32 @@
+description: EntryWise OpenAPI & OWASP Top 10 API Security Ruleset
+documentationUrl: https://entrywise.webbound.in/docs
+
+extends:
+  - [vacuum:oas, recommended]
+  - [vacuum:owasp, all]
+
+rules:
+  # EntryWise adheres to Zalando RESTful API Guidelines (Rule 118: snake_case properties)
+  camel-case-properties: off
+
+  # Turn off description duplication warnings on standard API envelope messages
+  description-duplication: off
+
+  # Allow local development server
+  owasp-security-hosts-https-oas3: warn
+
+  # Allow public login/token generation endpoints to accept POST without prior auth token
+  owasp-protection-global-unsafe: warn
+  owasp-protection-global-unsafe-strict: warn
+
+  # String constraints (allow standard unbounded text fields)
+  owasp-string-restricted: warn
+
+  # Cloudflare WAF manages edge rate-limiting headers
+  owasp-rate-limit: warn
+
+  # Error responses defined globally in Zalando Problem Details
+  owasp-define-error-responses-401: warn
+  owasp-define-error-responses-429: warn
+  owasp-define-error-responses-500: warn
+  owasp-define-error-validation: warn

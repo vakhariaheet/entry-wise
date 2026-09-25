@@ -1,7 +1,27 @@
-import { EmailMessage } from 'cloudflare:email';
 import type { EmailAttachment, EmailService, SendEmailParams } from './types';
 
 const CF_FROM_EMAIL = 'no-reply@entrywise.webbound.in';
+
+type EmailMessageClass = new (from: string, to: string, raw: string) => unknown;
+
+let CachedEmailMessage: EmailMessageClass | null = null;
+async function getEmailMessageClass(): Promise<EmailMessageClass> {
+  if (CachedEmailMessage) return CachedEmailMessage;
+  try {
+    const mod = await import('cloudflare:email');
+    CachedEmailMessage = mod.EmailMessage;
+    return mod.EmailMessage;
+  } catch {
+    CachedEmailMessage = class FallbackEmailMessage {
+      constructor(
+        public from: string,
+        public to: string,
+        public raw: string
+      ) {}
+    } as unknown as EmailMessageClass;
+    return CachedEmailMessage;
+  }
+}
 
 function buildMimeMessage(
   fromName: string,
@@ -46,16 +66,22 @@ function buildMimeMessage(
   return lines.join('\r\n');
 }
 
+interface SendEmailBinding {
+  send: (message: unknown) => Promise<{ messageId?: string } | undefined>;
+}
+
 export class CloudflareEmailService implements EmailService {
-  constructor(private binding: any) {}
+  constructor(private binding: SendEmailBinding | unknown) {}
 
   async send(params: SendEmailParams): Promise<{ messageId: string }> {
     const fromEmail = params.from || CF_FROM_EMAIL;
     const fromName = params.fromName || 'EntryWise';
 
+    const emailBinding = this.binding as SendEmailBinding;
+
     // 1. Try structured message format (supported by modern Cloudflare Email Service)
     try {
-      const sendOptions: any = {
+      const sendOptions: Record<string, unknown> = {
         to: params.to,
         from: { email: fromEmail, name: fromName },
         subject: params.subject,
@@ -77,9 +103,17 @@ export class CloudflareEmailService implements EmailService {
         sendOptions.replyTo = params.replyTo;
       }
 
-      const result = await this.binding.send(sendOptions);
-      return { messageId: result?.messageId || `cf_${Date.now()}` };
-    } catch (builderError: any) {
+      const result = await emailBinding.send(sendOptions);
+      return {
+        messageId:
+          result &&
+          typeof result === 'object' &&
+          'messageId' in result &&
+          typeof result.messageId === 'string'
+            ? result.messageId
+            : `cf_${Date.now()}`,
+      };
+    } catch (builderError: unknown) {
       // 2. Fallback to EmailMessage MIME API if binding expects EmailMessage class
       try {
         const rawMime = buildMimeMessage(
@@ -91,22 +125,31 @@ export class CloudflareEmailService implements EmailService {
           params.attachments || [],
           params.replyTo
         );
-        const message = new EmailMessage(fromEmail, params.to, rawMime);
-        await this.binding.send(message);
+        const EmailMsg = await getEmailMessageClass();
+        const message = new EmailMsg(fromEmail, params.to, rawMime);
+        await emailBinding.send(message);
         return { messageId: `cf_${Date.now()}` };
-      } catch (mimeError: any) {
-        const primaryError = builderError || mimeError;
-        const errCode = mimeError?.code || builderError?.code || 'E_SEND_FAILED';
+      } catch (mimeError: unknown) {
+        const errCode =
+          (mimeError && typeof mimeError === 'object' && 'code' in mimeError
+            ? String(mimeError.code)
+            : undefined) ||
+          (builderError && typeof builderError === 'object' && 'code' in builderError
+            ? String(builderError.code)
+            : undefined) ||
+          'E_SEND_FAILED';
         const errMsg =
-          mimeError?.message || builderError?.message || String(mimeError || builderError);
+          (mimeError instanceof Error ? mimeError.message : undefined) ||
+          (builderError instanceof Error ? builderError.message : undefined) ||
+          String(mimeError || builderError);
 
         console.error('Cloudflare SendEmail failed:', {
           code: errCode,
           message: errMsg,
           from: fromEmail,
           to: params.to,
-          builderError: builderError?.message || String(builderError),
-          mimeError: mimeError?.message || String(mimeError),
+          builderError: builderError instanceof Error ? builderError.message : String(builderError),
+          mimeError: mimeError instanceof Error ? mimeError.message : String(mimeError),
         });
 
         throw new Error(`Cloudflare email delivery failed [${errCode}]: ${errMsg}`);

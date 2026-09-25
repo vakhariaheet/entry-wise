@@ -8,7 +8,12 @@
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "check": "biome check --write .",
     "lint": "biome lint .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "openapi:generate": "bun run scripts/export-openapi.ts",
+    "vacuum:lint": "vacuum lint -r .vacuum.yaml openapi.json",
+    "vacuum:report": "vacuum html-report -r .vacuum.yaml openapi.json vacuum-report.html",
+    "vacuum:dashboard": "vacuum dashboard -r .vacuum.yaml openapi.json",
+    "security:check": "bun run openapi:generate && bun run vacuum:lint"
   },
   "dependencies": {
     "@hono/zod-openapi": "^0.19.8",
@@ -29,7 +34,11 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
     "@cloudflare/workers-types": "^4.20250607.0",
+    "@quobix/vacuum": "^0.30.6",
     "@types/node": "^26.6.2",
     "wrangler": "^4.4.0"
-  }
+  },
+  "trustedDependencies": [
+    "@quobix/vacuum"
+  ]
 }

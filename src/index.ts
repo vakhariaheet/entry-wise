@@ -69,7 +69,7 @@ app.get(
           description: 'Production server',
         },
         {
-          url: 'http://localhost:8787',
+          url: 'https://localhost:8787',
           description: 'Local development server',
         },
       ],
@@ -88,6 +88,10 @@ app.get(
         },
         { name: 'Fields', description: 'Dynamic form field schema definitions' },
         { name: 'Authentication', description: 'TOTP authentication and JWT token generation' },
+        { name: 'companies', description: 'Company operations (legacy)' },
+        { name: 'sites', description: 'Site operations (legacy)' },
+        { name: 'fields', description: 'Field operations (legacy)' },
+        { name: 'auth', description: 'Authentication operations (legacy)' },
       ],
       components: {
         securitySchemes: {

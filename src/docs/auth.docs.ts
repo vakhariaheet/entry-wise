@@ -7,6 +7,7 @@ export const getTokenDocs: DescribeRouteOptions = {
   summary: 'Get authentication token',
   description: 'Get a JWT token using TOTP code',
   tags: ['auth'],
+  security: [],
   responses: {
     200: {
       description: 'Token generated successfully',
