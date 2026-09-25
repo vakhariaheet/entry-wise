@@ -41,7 +41,7 @@ export const bulkCreateFieldSchema = z.object({
             example: 'firstName',
         }),
         type: fieldTypeEnum,
-    })).min(1, 'At least one field is required').openapi({
+    })).openapi({
         description: 'Array of fields to create',
         example: [
             { name: 'firstName', type: 'text' },

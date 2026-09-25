@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import type { Site } from '../types';
+import React, { useState, useEffect } from 'react';
+import type { Site, FormField, FieldType } from '../types';
 import {
   X,
   Copy,
@@ -20,30 +20,55 @@ import {
   ChevronUp,
   Loader2,
   CheckCircle2,
+  ListPlus,
+  Trash2,
+  Plus,
 } from 'lucide-react';
 import { api } from '../services/api';
 
 interface SiteSettingsModalProps {
   site: Site | null;
+  initialTab?: TabType;
   onClose: () => void;
   onSiteUpdated: (updatedSite: Site) => void;
+  onFieldsUpdated?: (fields: FormField[]) => void;
 }
 
-type TabType = 'general' | 'notifications' | 'connectors' | 'template';
+export type TabType = 'fields' | 'general' | 'notifications' | 'connectors' | 'template';
 
-export const SiteSettingsModal: React.FC<SiteSettingsModalProps> = ({ site, onClose, onSiteUpdated }) => {
+export const SiteSettingsModal: React.FC<SiteSettingsModalProps> = ({
+  site,
+  initialTab = 'fields',
+  onClose,
+  onSiteUpdated,
+  onFieldsUpdated,
+}) => {
   if (!site) return null;
 
-  const [activeTab, setActiveTab] = useState<TabType>('general');
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedEndpoint, setCopiedEndpoint] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
+  const [copiedFormSnippet, setCopiedFormSnippet] = useState(false);
   const [showAppsScriptGuide, setShowAppsScriptGuide] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
+  const [snippetFormat, setSnippetFormat] = useState<'html' | 'react'>('html');
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Form Fields State
+  const [fields, setFields] = useState<FormField[]>([]);
+  const [isLoadingFields, setIsLoadingFields] = useState(false);
+  const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldType, setNewFieldType] = useState<FieldType>('text');
 
   // General & Security
   const [name, setName] = useState(site.name || '');
@@ -76,6 +101,59 @@ export const SiteSettingsModal: React.FC<SiteSettingsModalProps> = ({ site, onCl
 
   const endpointUrl = `https://entrywise.webbound.in/f/${site.api_key}`;
 
+  // Fetch defined fields on mount
+  useEffect(() => {
+    const fetchFields = async () => {
+      setIsLoadingFields(true);
+      try {
+        const fetched = await api.listFields(site.id);
+        if (fetched.length > 0) {
+          setFields(fetched);
+        } else {
+          // Provide default starter fields if none defined yet
+          setFields([
+            { name: 'name', type: 'text' },
+            { name: 'email', type: 'email' },
+            { name: 'message', type: 'text' },
+          ]);
+        }
+      } catch (err) {
+        console.error('Failed to load fields:', err);
+        setFields([
+          { name: 'name', type: 'text' },
+          { name: 'email', type: 'email' },
+          { name: 'message', type: 'text' },
+        ]);
+      } finally {
+        setIsLoadingFields(false);
+      }
+    };
+    fetchFields();
+  }, [site.id]);
+
+  const handleAddField = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = newFieldName.trim().replace(/\s+/g, '_');
+    if (!cleanName) return;
+
+    if (fields.some((f) => f.name.toLowerCase() === cleanName.toLowerCase())) {
+      setErrorMessage(`Field with name '${cleanName}' already exists.`);
+      return;
+    }
+
+    setFields([...fields, { name: cleanName, type: newFieldType }]);
+    setNewFieldName('');
+    setErrorMessage(null);
+  };
+
+  const handleRemoveField = (fieldName: string) => {
+    setFields(fields.filter((f) => f.name !== fieldName));
+  };
+
+  const handleApplyPreset = (presetFields: Array<{ name: string; type: FieldType }>) => {
+    setFields(presetFields);
+  };
+
   const handleCopyEndpoint = () => {
     navigator.clipboard.writeText(endpointUrl);
     setCopiedEndpoint(true);
@@ -102,6 +180,7 @@ export const SiteSettingsModal: React.FC<SiteSettingsModalProps> = ({ site, onCl
     setErrorMessage(null);
 
     try {
+      // 1. Update site details
       const updated = await api.updateSite(site.id, {
         name: name.trim() || domain,
         domain: domain.trim(),
@@ -119,6 +198,16 @@ export const SiteSettingsModal: React.FC<SiteSettingsModalProps> = ({ site, onCl
         auto_responder_body: autoResponderBody.trim() || null,
       });
 
+      // 2. Persist fields schema
+      const updatedFields = await api.replaceFields(
+        site.id,
+        fields.map((f) => ({ name: f.name, type: f.type }))
+      );
+
+      if (onFieldsUpdated) {
+        onFieldsUpdated(updatedFields);
+      }
+
       onSiteUpdated(updated);
       setSaveSuccess(true);
       setTimeout(() => {
@@ -126,14 +215,92 @@ export const SiteSettingsModal: React.FC<SiteSettingsModalProps> = ({ site, onCl
         onClose();
       }, 1200);
     } catch (err: any) {
-      console.error('Failed to update site settings:', err);
-      setErrorMessage(err.message || 'Failed to update site settings');
+      console.error('Failed to update form settings:', err);
+      setErrorMessage(err.message || 'Failed to update form settings');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Live interpolated body for preview
+  // Generate HTML or React code snippet matching the configured fields
+  const generateSnippet = () => {
+    if (snippetFormat === 'html') {
+      const fieldInputs = fields
+        .map((f) => {
+          if (f.name.toLowerCase() === 'message' || f.name.toLowerCase().includes('body')) {
+            return `    <label for="${f.name}">${f.name}</label>\n    <textarea id="${f.name}" name="${f.name}" required></textarea>`;
+          }
+          if (f.type === 'file') {
+            return `    <label for="${f.name}">${f.name}</label>\n    <input type="file" id="${f.name}" name="${f.name}" />`;
+          }
+          return `    <label for="${f.name}">${f.name}</label>\n    <input type="${f.type}" id="${f.name}" name="${f.name}" required />`;
+        })
+        .join('\n\n');
+
+      const isMultipart = fields.some((f) => f.type === 'file');
+
+      return `<!-- Native HTML Form for ${name || site.domain} -->
+<form action="${endpointUrl}" method="POST"${isMultipart ? ' enctype="multipart/form-data"' : ''}>
+  <!-- Anti-spam honeypot (keep hidden from human users) -->
+  <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" />
+
+${fieldInputs}
+
+  <button type="submit">Submit Form</button>
+</form>`;
+    } else {
+      const stateInit = fields.map((f) => `    ${f.name}: '',`).join('\n');
+      const inputElements = fields
+        .map((f) => {
+          if (f.name.toLowerCase() === 'message' || f.name.toLowerCase().includes('body')) {
+            return `      <textarea\n        placeholder="${f.name}"\n        value={formData.${f.name}}\n        onChange={(e) => setFormData({ ...formData, ${f.name}: e.target.value })}\n        required\n      />`;
+          }
+          return `      <input\n        type="${f.type}"\n        placeholder="${f.name}"\n        value={formData.${f.name}}\n        onChange={(e) => setFormData({ ...formData, ${f.name}: e.target.value })}\n        required\n      />`;
+        })
+        .join('\n');
+
+      return `// React Component for ${name || site.domain}
+import React, { useState } from 'react';
+
+export function ContactForm() {
+  const [formData, setFormData] = useState({
+${stateInit}
+  });
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus('submitting');
+    try {
+      const res = await fetch('${endpointUrl}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) throw new Error('Submission failed');
+      setStatus('success');
+    } catch {
+      setStatus('error');
+    }
+  };
+
+  if (status === 'success') {
+    return <p>Thank you! Your submission has been received.</p>;
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+${inputElements}
+      <button type="submit" disabled={status === 'submitting'}>
+        {status === 'submitting' ? 'Submitting...' : 'Submit'}
+      </button>
+    </form>
+  );
+}`;
+    }
+  };
+
+  // Live interpolated body for email preview
   const previewBody = (autoResponderBody || 'Thank you for reaching out!')
     .replace(/{{\s*name\s*}}/gi, 'Alex Taylor')
     .replace(/{{\s*email\s*}}/gi, 'alex@example.com')
@@ -191,7 +358,7 @@ function doPost(e) {
                   {site.domain}
                 </span>
               </h3>
-              <p className="text-[11px] text-zinc-400">Configure security, notifications, connectors, and email templates</p>
+              <p className="text-[11px] text-zinc-400">Manage form fields, endpoints, notifications, connectors, and email templates</p>
             </div>
           </div>
           <button
@@ -203,11 +370,24 @@ function doPost(e) {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center border-b border-white/[0.08] bg-[#0e0e11] px-6 gap-2">
+        <div className="flex items-center border-b border-white/[0.08] bg-[#0e0e11] px-6 gap-2 overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => setActiveTab('fields')}
+            className={`flex items-center gap-2 py-3 px-3 text-xs font-medium border-b-2 transition whitespace-nowrap ${
+              activeTab === 'fields'
+                ? 'border-emerald-500 text-emerald-400 font-semibold'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <ListPlus className="w-3.5 h-3.5" />
+            <span>Form Fields &amp; Schema</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setActiveTab('general')}
-            className={`flex items-center gap-2 py-3 px-3 text-xs font-medium border-b-2 transition ${
+            className={`flex items-center gap-2 py-3 px-3 text-xs font-medium border-b-2 transition whitespace-nowrap ${
               activeTab === 'general'
                 ? 'border-emerald-500 text-emerald-400 font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
@@ -220,7 +400,7 @@ function doPost(e) {
           <button
             type="button"
             onClick={() => setActiveTab('notifications')}
-            className={`flex items-center gap-2 py-3 px-3 text-xs font-medium border-b-2 transition ${
+            className={`flex items-center gap-2 py-3 px-3 text-xs font-medium border-b-2 transition whitespace-nowrap ${
               activeTab === 'notifications'
                 ? 'border-emerald-500 text-emerald-400 font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
@@ -233,7 +413,7 @@ function doPost(e) {
           <button
             type="button"
             onClick={() => setActiveTab('connectors')}
-            className={`flex items-center gap-2 py-3 px-3 text-xs font-medium border-b-2 transition ${
+            className={`flex items-center gap-2 py-3 px-3 text-xs font-medium border-b-2 transition whitespace-nowrap ${
               activeTab === 'connectors'
                 ? 'border-emerald-500 text-emerald-400 font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
@@ -246,7 +426,7 @@ function doPost(e) {
           <button
             type="button"
             onClick={() => setActiveTab('template')}
-            className={`flex items-center gap-2 py-3 px-3 text-xs font-medium border-b-2 transition ${
+            className={`flex items-center gap-2 py-3 px-3 text-xs font-medium border-b-2 transition whitespace-nowrap ${
               activeTab === 'template'
                 ? 'border-emerald-500 text-emerald-400 font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
@@ -265,7 +445,214 @@ function doPost(e) {
             </div>
           )}
 
-          {/* TAB 1: General & Security */}
+          {/* TAB 1: Form Fields & Schema */}
+          {activeTab === 'fields' && (
+            <div className="space-y-6">
+              {/* Form Friendly Name & Domain Header */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border border-white/[0.08] bg-[#09090b]">
+                <div>
+                  <label className="block text-zinc-300 font-medium mb-1">Form Name</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Contact Us Form"
+                    className="w-full bg-[#121215] border border-white/[0.08] rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-zinc-500 transition"
+                  />
+                  <p className="text-[11px] text-zinc-500 mt-1">Display title shown in your dashboard and notification subjects.</p>
+                </div>
+                <div>
+                  <label className="block text-zinc-300 font-medium mb-1">Associated Website Domain</label>
+                  <input
+                    type="text"
+                    required
+                    value={domain}
+                    onChange={(e) => setDomain(e.target.value)}
+                    className="w-full bg-[#121215] border border-white/[0.08] rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-zinc-500 transition font-mono"
+                  />
+                  <p className="text-[11px] text-zinc-500 mt-1">Domain origin verified during incoming submissions.</p>
+                </div>
+              </div>
+
+              {/* Fields Builder & Snippet Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left: Defined Fields List */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-zinc-200">Form Fields ({fields.length})</h4>
+                      <p className="text-[11px] text-zinc-400">Define the input fields your form will collect.</p>
+                    </div>
+
+                    {/* Quick Presets */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleApplyPreset([
+                            { name: 'name', type: 'text' },
+                            { name: 'email', type: 'email' },
+                            { name: 'message', type: 'text' },
+                          ])
+                        }
+                        className="px-2 py-1 rounded-lg border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-[10px] text-zinc-300 transition"
+                      >
+                        Contact
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleApplyPreset([
+                            { name: 'fullName', type: 'text' },
+                            { name: 'email', type: 'email' },
+                            { name: 'phone', type: 'phone' },
+                            { name: 'company', type: 'text' },
+                            { name: 'budget', type: 'text' },
+                          ])
+                        }
+                        className="px-2 py-1 rounded-lg border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-[10px] text-zinc-300 transition"
+                      >
+                        Lead Gen
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleApplyPreset([
+                            { name: 'name', type: 'text' },
+                            { name: 'email', type: 'email' },
+                            { name: 'resume', type: 'file' },
+                            { name: 'portfolio', type: 'url' },
+                          ])
+                        }
+                        className="px-2 py-1 rounded-lg border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] text-[10px] text-zinc-300 transition"
+                      >
+                        Careers
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* List of current fields */}
+                  <div className="rounded-xl border border-white/[0.08] bg-[#09090b] divide-y divide-white/[0.04] overflow-hidden max-h-56 overflow-y-auto">
+                    {isLoadingFields ? (
+                      <div className="p-4 text-center text-zinc-500">
+                        <Loader2 className="w-4 h-4 animate-spin mx-auto mb-1" />
+                        <span>Loading fields...</span>
+                      </div>
+                    ) : fields.length === 0 ? (
+                      <div className="p-6 text-center text-zinc-500">
+                        No fields defined yet. Add your first field below.
+                      </div>
+                    ) : (
+                      fields.map((field, idx) => (
+                        <div key={field.name + idx} className="p-3 flex items-center justify-between hover:bg-white/[0.02] transition">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-mono text-zinc-500 w-4">{idx + 1}.</span>
+                            <span className="font-mono text-zinc-200 text-xs font-semibold">{field.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-white/[0.08] bg-white/[0.04] text-emerald-400 uppercase">
+                              {field.type}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveField(field.name)}
+                              className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition"
+                              title="Delete field"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Add Field Inline Form */}
+                  <div className="p-3 rounded-xl border border-white/[0.08] bg-[#09090b] space-y-2">
+                    <div className="font-semibold text-zinc-300 text-[11px]">Add New Field</div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="field_name (e.g. phone, budget)"
+                        value={newFieldName}
+                        onChange={(e) => setNewFieldName(e.target.value)}
+                        className="flex-1 bg-[#121215] border border-white/[0.08] rounded-xl px-3 py-2 text-zinc-200 font-mono text-xs focus:outline-none focus:border-zinc-500 transition"
+                      />
+                      <select
+                        value={newFieldType}
+                        onChange={(e) => setNewFieldType(e.target.value as FieldType)}
+                        className="bg-[#121215] border border-white/[0.08] rounded-xl px-3 py-2 text-zinc-200 text-xs focus:outline-none focus:border-zinc-500 transition"
+                      >
+                        <option value="text">text</option>
+                        <option value="email">email</option>
+                        <option value="phone">phone</option>
+                        <option value="url">url</option>
+                        <option value="file">file (attachment)</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleAddField}
+                        className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white text-black font-semibold text-xs hover:bg-zinc-200 transition"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Live Form Snippet Generator */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-zinc-200">Generated Form Code</h4>
+                      <p className="text-[11px] text-zinc-400">Copy &amp; paste this snippet straight into your app.</p>
+                    </div>
+                    <div className="flex items-center gap-1 bg-[#09090b] p-0.5 rounded-lg border border-white/[0.08]">
+                      <button
+                        type="button"
+                        onClick={() => setSnippetFormat('html')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
+                          snippetFormat === 'html' ? 'bg-white/[0.1] text-white' : 'text-zinc-500 hover:text-zinc-300'
+                        }`}
+                      >
+                        HTML Form
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSnippetFormat('react')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
+                          snippetFormat === 'react' ? 'bg-white/[0.1] text-white' : 'text-zinc-500 hover:text-zinc-300'
+                        }`}
+                      >
+                        React JSX
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <pre className="p-4 bg-[#09090b] rounded-xl border border-white/[0.08] text-[11px] text-zinc-300 font-mono overflow-x-auto max-h-72 leading-relaxed">
+                      {generateSnippet()}
+                    </pre>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(generateSnippet());
+                        setCopiedFormSnippet(true);
+                        setTimeout(() => setCopiedFormSnippet(false), 2000);
+                      }}
+                      className="absolute top-3 right-3 px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-xs text-white flex items-center gap-1.5 backdrop-blur-sm transition"
+                    >
+                      {copiedFormSnippet ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedFormSnippet ? 'Copied!' : 'Copy Code'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: General & Security */}
           {activeTab === 'general' && (
             <div className="space-y-6">
               {/* Form Endpoint */}
@@ -290,14 +677,14 @@ function doPost(e) {
                   </button>
                 </div>
                 <p className="text-[11px] text-zinc-400">
-                  Point any native HTML form: <code className="text-zinc-300 font-mono">&lt;form action="{endpointUrl}" method="POST"&gt;</code>. Works instantly without code.
+                  Point any native HTML form: <code className="text-zinc-300 font-mono">&lt;form action="{endpointUrl}" method="POST"&gt;</code>. Works instantly without client-side JavaScript.
                 </p>
               </div>
 
               {/* Form Friendly Name & Domain */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-zinc-300 font-medium mb-1">Form Name</label>
+                  <label className="block text-zinc-300 font-medium mb-1">Form Friendly Name</label>
                   <input
                     type="text"
                     value={name}
@@ -371,7 +758,7 @@ function doPost(e) {
             </div>
           )}
 
-          {/* TAB 2: Notification Routing */}
+          {/* TAB 3: Notification Routing */}
           {activeTab === 'notifications' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between p-4 rounded-xl border border-white/[0.08] bg-[#09090b]">
@@ -422,7 +809,7 @@ function doPost(e) {
             </div>
           )}
 
-          {/* TAB 3: Connectors */}
+          {/* TAB 4: Connectors */}
           {activeTab === 'connectors' && (
             <div className="space-y-6">
               {/* Google Sheets Connector */}
@@ -553,7 +940,7 @@ function doPost(e) {
             </div>
           )}
 
-          {/* TAB 4: Email Template Studio */}
+          {/* TAB 5: Email Template Studio */}
           {activeTab === 'template' && (
             <div className="space-y-6">
               {/* Enable Toggle */}

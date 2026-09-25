@@ -15,9 +15,9 @@ export const replaceFields = async (c: Context<{ Bindings: Env }>) => {
             return sendProblemDetails(c, 400, 'site_id path parameter is required');
         }
 
-        if (!body.fields || !Array.isArray(body.fields) || body.fields.length === 0) {
-            return sendProblemDetails(c, 422, 'fields array cannot be empty', {
-                invalidParams: [{ name: 'fields', reason: 'At least one field is required' }],
+        if (!body.fields || !Array.isArray(body.fields)) {
+            return sendProblemDetails(c, 422, 'fields must be an array', {
+                invalidParams: [{ name: 'fields', reason: 'fields must be an array' }],
             });
         }
 
@@ -28,6 +28,12 @@ export const replaceFields = async (c: Context<{ Bindings: Env }>) => {
 
         if (!siteExists?.length) {
             return sendProblemDetails(c, 404, `Site with ID '${siteId}' not found`);
+        }
+
+        // If array is empty, delete all fields and return empty array
+        if (body.fields.length === 0) {
+            await c.env.DB.prepare(`DELETE FROM fields WHERE site_id = ?`).bind(siteId).run();
+            return sendOk(c, []);
         }
 
         // Check for duplicate names in the payload

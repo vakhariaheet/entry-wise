@@ -15,6 +15,16 @@ export interface Submission {
   created_at: string;
 }
 
+export type FieldType = 'text' | 'email' | 'phone' | 'url' | 'file';
+
+export interface FormField {
+  id?: string;
+  site_id?: string;
+  name: string;
+  type: FieldType;
+  created_at?: string;
+}
+
 export interface Site {
   id: string;
   company_id: string;

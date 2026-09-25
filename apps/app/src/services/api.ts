@@ -1,4 +1,4 @@
-import type { Site, Submission, Company } from '../types';
+import type { Site, Submission, Company, FormField, FieldType } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://entrywise.webbound.in/v1';
 
@@ -129,6 +129,58 @@ class ApiService {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || err.message || `Failed to delete site (HTTP ${res.status})`);
+    }
+  }
+
+  // Form Fields
+  async listFields(siteId: string): Promise<FormField[]> {
+    const res = await fetch(`${API_BASE}/sites/${siteId}/fields`, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || `Failed to fetch fields (HTTP ${res.status})`);
+    }
+    const json = await res.json();
+    return json.data || json || [];
+  }
+
+  async replaceFields(siteId: string, fields: Array<{ name: string; type: FieldType }>): Promise<FormField[]> {
+    const res = await fetch(`${API_BASE}/sites/${siteId}/fields`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ fields }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || `Failed to update fields (HTTP ${res.status})`);
+    }
+    const json = await res.json();
+    return json.data || json || [];
+  }
+
+  async createField(siteId: string, field: { name: string; type: FieldType }): Promise<FormField> {
+    const res = await fetch(`${API_BASE}/sites/${siteId}/fields`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(field),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || `Failed to create field (HTTP ${res.status})`);
+    }
+    const json = await res.json();
+    return json.data || json;
+  }
+
+  async deleteField(siteId: string, fieldId: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/sites/${siteId}/fields/${fieldId}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || `Failed to delete field (HTTP ${res.status})`);
     }
   }
 
