@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
-import type { Submission } from '../types';
-import { Search, Download, Trash2, CheckCircle2, Archive, AlertTriangle, ShieldCheck } from 'lucide-react';
+import {
+  AlertTriangle,
+  Archive,
+  CheckCircle2,
+  Download,
+  Search,
+  ShieldCheck,
+  Trash2,
+} from 'lucide-react';
+import type React from 'react';
+import { useState } from 'react';
+import type { Submission } from '@/types';
 
 interface SubmissionsTableProps {
   submissions: Submission[];
@@ -37,13 +46,29 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   const getStatusBadge = (status: Submission['status']) => {
     switch (status) {
       case 'new':
-        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> New</span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> New
+          </span>
+        );
       case 'read':
-        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-500/20">Read</span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-500/10 text-zinc-400 border border-zinc-500/20">
+            Read
+          </span>
+        );
       case 'archived':
-        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">Archived</span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            Archived
+          </span>
+        );
       case 'spam':
-        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">Spam</span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+            Spam
+          </span>
+        );
     }
   };
 
@@ -138,15 +163,21 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                     </div>
                     <div className="text-zinc-300 font-medium">No submissions in this view</div>
                     <p className="text-xs text-zinc-500 max-w-sm mx-auto">
-                      Form submissions sent to this site will automatically appear here with spam scores and attachments.
+                      Form submissions sent to this site will automatically appear here with spam
+                      scores and attachments.
                     </p>
                   </td>
                 </tr>
               ) : (
                 filteredSubmissions.map((sub) => {
-                  const senderName = sub.data.name || sub.data.fullName || sub.data.author || 'Anonymous';
+                  const senderName =
+                    sub.data.name || sub.data.fullName || sub.data.author || 'Anonymous';
                   const senderEmail = sub.data.email || sub.data.from || '';
-                  const messagePreview = sub.data.message || sub.data.body || sub.data.inquiry || JSON.stringify(sub.data);
+                  const messagePreview =
+                    sub.data.message ||
+                    sub.data.body ||
+                    sub.data.inquiry ||
+                    JSON.stringify(sub.data);
 
                   return (
                     <tr
@@ -154,12 +185,12 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                       onClick={() => onSelectSubmission(sub)}
                       className="hover:bg-white/[0.02] cursor-pointer transition"
                     >
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {getStatusBadge(sub.status)}
-                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">{getStatusBadge(sub.status)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="font-semibold text-white">{senderName}</div>
-                        {senderEmail && <div className="text-[11px] text-zinc-400 font-mono">{senderEmail}</div>}
+                        {senderEmail && (
+                          <div className="text-[11px] text-zinc-400 font-mono">{senderEmail}</div>
+                        )}
                       </td>
                       <td className="px-4 py-3 max-w-xs sm:max-w-md truncate">
                         <span className="text-zinc-300">{messagePreview}</span>
@@ -170,7 +201,10 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                       <td className="px-4 py-3 whitespace-nowrap text-zinc-400 font-mono text-[11px]">
                         {formatDate(sub.created_at)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                      <td
+                        className="px-4 py-3 whitespace-nowrap text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="inline-flex items-center gap-1 text-zinc-400">
                           {sub.status === 'new' && (
                             <button
@@ -218,7 +252,9 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
 
         {/* Table Footer */}
         <div className="px-4 py-3 border-t border-white/[0.06] bg-[#0c0c0e] flex items-center justify-between text-xs text-zinc-500 font-mono">
-          <span>Showing {filteredSubmissions.length} of {submissions.length} submissions</span>
+          <span>
+            Showing {filteredSubmissions.length} of {submissions.length} submissions
+          </span>
           <span className="flex items-center gap-1.5 text-emerald-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
             Cloudflare D1 Replicated

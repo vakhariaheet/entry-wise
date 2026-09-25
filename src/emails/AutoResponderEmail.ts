@@ -1,32 +1,34 @@
 import { escapeHtml } from '../utils/escapeHtml';
 
 export interface AutoResponderEmailProps {
-    siteDomain: string;
-    companyName?: string;
-    recipientName?: string;
-    customBody?: string | null;
-    customSubject?: string | null;
-    submissionId?: string;
-    timezone?: string;
+  siteDomain: string;
+  companyName?: string;
+  recipientName?: string;
+  customBody?: string | null;
+  customSubject?: string | null;
+  submissionId?: string;
+  timezone?: string;
 }
 
 export const renderAutoResponderEmail = ({
-    siteDomain,
-    companyName,
-    recipientName,
-    customBody,
-    timezone = 'UTC',
+  siteDomain,
+  companyName,
+  recipientName,
+  customBody,
+  timezone = 'UTC',
 }: AutoResponderEmailProps): string => {
-    const rawCleanDomain = siteDomain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
-    const cleanDomain = escapeHtml(rawCleanDomain);
-    const displayName = escapeHtml(companyName?.trim() || rawCleanDomain);
-    const greeting = recipientName ? `Hi ${escapeHtml(recipientName)},` : 'Hello,';
-    
-    const unescapedBody = customBody || `Thank you for getting in touch with us at ${companyName?.trim() || rawCleanDomain}. We have received your message and our team will get back to you shortly.`;
-    const messageBodySafe = escapeHtml(unescapedBody).replace(/\n/g, '<br/>');
-    const returnUrl = `https://${encodeURIComponent(rawCleanDomain)}`;
+  const rawCleanDomain = siteDomain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
+  const cleanDomain = escapeHtml(rawCleanDomain);
+  const displayName = escapeHtml(companyName?.trim() || rawCleanDomain);
+  const greeting = recipientName ? `Hi ${escapeHtml(recipientName)},` : 'Hello,';
 
-    return `<!DOCTYPE html>
+  const unescapedBody =
+    customBody ||
+    `Thank you for getting in touch with us at ${companyName?.trim() || rawCleanDomain}. We have received your message and our team will get back to you shortly.`;
+  const messageBodySafe = escapeHtml(unescapedBody).replace(/\n/g, '<br/>');
+  const returnUrl = `https://${encodeURIComponent(rawCleanDomain)}`;
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">

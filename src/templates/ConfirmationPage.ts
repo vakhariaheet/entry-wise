@@ -1,24 +1,24 @@
 export interface ConfirmationPageProps {
-    companyName?: string;
-    siteDomain: string;
-    submissionId?: string;
-    submittedAt?: string;
-    returnUrl?: string;
+  companyName?: string;
+  siteDomain: string;
+  submissionId?: string;
+  submittedAt?: string;
+  returnUrl?: string;
 }
 
 export const renderConfirmationPage = ({
-    companyName,
-    siteDomain,
-    submissionId,
-    submittedAt,
-    returnUrl,
+  companyName,
+  siteDomain,
+  submissionId,
+  submittedAt,
+  returnUrl,
 }: ConfirmationPageProps): string => {
-    const displayName = companyName?.trim() || siteDomain;
-    const cleanDomain = siteDomain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
-    const targetReturnUrl = returnUrl || `https://${cleanDomain}`;
-    const displayDate = submittedAt || new Date().toUTCString();
+  const displayName = companyName?.trim() || siteDomain;
+  const cleanDomain = siteDomain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
+  const targetReturnUrl = returnUrl || `https://${cleanDomain}`;
+  const displayDate = submittedAt || new Date().toUTCString();
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -375,7 +375,9 @@ export const renderConfirmationPage = ({
                         </span>
                     </span>
                 </div>
-                ${submissionId ? `
+                ${
+                  submissionId
+                    ? `
                 <div class="receipt-row">
                     <span class="receipt-label">Reference ID</span>
                     <span class="receipt-value">
@@ -384,7 +386,9 @@ export const renderConfirmationPage = ({
                         </span>
                     </span>
                 </div>
-                ` : ''}
+                `
+                    : ''
+                }
                 <div class="receipt-row">
                     <span class="receipt-label">Time</span>
                     <span class="receipt-value">${displayDate}</span>

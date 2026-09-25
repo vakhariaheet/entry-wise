@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
-import type { Site, FieldType } from '../types';
 import {
-  X,
-  Plus,
-  Globe,
-  Loader2,
-  Trash2,
-  SlidersHorizontal,
   ChevronDown,
   ChevronUp,
+  Globe,
+  Loader2,
+  Plus,
+  SlidersHorizontal,
+  Trash2,
+  X,
 } from 'lucide-react';
-import { api } from '../services/api';
+import type React from 'react';
+import { useState } from 'react';
+import { api } from '@/lib';
+import type { FieldType, Site } from '@/types';
 
 interface CreateSiteModalProps {
   onClose: () => void;
@@ -79,9 +80,14 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
     setError(null);
 
     try {
-      const cleanedDomain = domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
+      const cleanedDomain = domain
+        .replace(/^https?:\/\//, '')
+        .replace(/\/.*$/, '')
+        .trim();
       if (!cleanedDomain) {
-        throw new Error('Please enter a valid primary website domain (e.g. acme.com or localhost:3000)');
+        throw new Error(
+          'Please enter a valid primary website domain (e.g. acme.com or localhost:3000)'
+        );
       }
 
       // 1. Create site record
@@ -121,7 +127,9 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-semibold text-white">Create New Form</h3>
-              <p className="text-[11px] text-zinc-400">Configure form identity and custom input fields</p>
+              <p className="text-[11px] text-zinc-400">
+                Configure form identity and custom input fields
+              </p>
             </div>
           </div>
           <button
@@ -143,9 +151,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
           {/* Section 1: Form Name & Domain */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-zinc-300 font-medium mb-1">
-                Form Friendly Name
-              </label>
+              <label className="block text-zinc-300 font-medium mb-1">Form Friendly Name</label>
               <input
                 type="text"
                 placeholder="e.g. Contact Us Form"
@@ -170,9 +176,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
                 onChange={(e) => setDomain(e.target.value)}
                 className="w-full bg-[#09090b] border border-white/[0.08] rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-zinc-500 transition font-mono"
               />
-              <p className="text-[10px] text-zinc-500 mt-1">
-                Origin allowed to submit data.
-              </p>
+              <p className="text-[10px] text-zinc-500 mt-1">Origin allowed to submit data.</p>
             </div>
           </div>
 
@@ -260,7 +264,8 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
             <div className="rounded-lg border border-white/[0.06] bg-[#09090b] divide-y divide-white/[0.04] max-h-44 overflow-y-auto">
               {fields.length === 0 ? (
                 <div className="p-4 text-center text-zinc-500 text-[11px]">
-                  No fields defined. Form will accept all arbitrary incoming fields, or add fields below.
+                  No fields defined. Form will accept all arbitrary incoming fields, or add fields
+                  below.
                 </div>
               ) : (
                 fields.map((field, idx) => (

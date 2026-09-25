@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
-import type { Site, FormField } from '../../types';
-import {
-  Code2,
-  Copy,
-  Check,
-} from 'lucide-react';
+import { Check, Code2, Copy } from 'lucide-react';
+import type React from 'react';
+import { useState } from 'react';
+import type { FormField, Site } from '@/types';
 
 interface CodeEmbedViewProps {
   site: Site;
@@ -60,9 +57,7 @@ ${fieldInputs || '  <input type="text" name="name" placeholder="Your Name" requi
   <button type="submit">Send Message</button>
 </form>`;
     } else if (snippetFormat === 'react') {
-      const stateInit = fields
-        .map((f) => `    ${f.name}: '',`)
-        .join('\n');
+      const stateInit = fields.map((f) => `    ${f.name}: '',`).join('\n');
 
       const inputElements = fields
         .map((f) => {
@@ -103,7 +98,7 @@ ${stateInit || "    name: '',\n    email: '',"}
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-${inputElements || "      <input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />"}
+${inputElements || '      <input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />'}
       <button type="submit" disabled={status === 'submitting'}>
         {status === 'submitting' ? 'Submitting...' : 'Submit'}
       </button>
@@ -178,7 +173,8 @@ curl -X POST "${endpointUrl}" \\
           <div>
             <h3 className="text-sm font-semibold text-white">Integration Snippet Studio</h3>
             <p className="text-xs text-zinc-400 mt-0.5">
-              Copy and paste this snippet directly into your code. It reflects your active schema fields.
+              Copy and paste this snippet directly into your code. It reflects your active schema
+              fields.
             </p>
           </div>
 
@@ -228,7 +224,11 @@ curl -X POST "${endpointUrl}" \\
               <span className="w-3 h-3 rounded-full bg-amber-500/80"></span>
               <span className="w-3 h-3 rounded-full bg-emerald-500/80"></span>
               <span className="text-xs font-mono text-zinc-400 ml-2">
-                {snippetFormat === 'html' ? 'index.html' : snippetFormat === 'react' ? 'ContactForm.tsx' : 'submit.sh'}
+                {snippetFormat === 'html'
+                  ? 'index.html'
+                  : snippetFormat === 'react'
+                    ? 'ContactForm.tsx'
+                    : 'submit.sh'}
               </span>
             </div>
 
@@ -237,7 +237,11 @@ curl -X POST "${endpointUrl}" \\
               onClick={handleCopyCode}
               className="px-3.5 py-1.5 bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.1] rounded-lg text-xs text-white flex items-center gap-1.5 transition font-medium"
             >
-              {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copiedCode ? (
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
               <span>{copiedCode ? 'Copied to Clipboard!' : 'Copy Code'}</span>
             </button>
           </div>
@@ -254,7 +258,8 @@ curl -X POST "${endpointUrl}" \\
               <span>🛡️ Anti-Spam Honeypot</span>
             </div>
             <p className="text-[11px] text-zinc-400 leading-relaxed">
-              Includes a hidden <code className="text-zinc-300 font-mono">_gotcha</code> input. Spambots filling it are silently discarded.
+              Includes a hidden <code className="text-zinc-300 font-mono">_gotcha</code> input.
+              Spambots filling it are silently discarded.
             </p>
           </div>
           <div className="p-4 rounded-xl border border-white/[0.06] bg-[#0e0f13] space-y-1">
@@ -262,7 +267,9 @@ curl -X POST "${endpointUrl}" \\
               <span>📎 File Attachments</span>
             </div>
             <p className="text-[11px] text-zinc-400 leading-relaxed">
-              Forms with files use <code className="text-zinc-300 font-mono">enctype="multipart/form-data"</code>. Max 25MB per submission uploaded to R2 / S3.
+              Forms with files use{' '}
+              <code className="text-zinc-300 font-mono">enctype="multipart/form-data"</code>. Max
+              25MB per submission uploaded to R2 / S3.
             </p>
           </div>
           <div className="p-4 rounded-xl border border-white/[0.06] bg-[#0e0f13] space-y-1">
@@ -270,7 +277,11 @@ curl -X POST "${endpointUrl}" \\
               <span>↩️ Custom Redirection</span>
             </div>
             <p className="text-[11px] text-zinc-400 leading-relaxed">
-              Add <code className="text-zinc-300 font-mono">&lt;input name="_redirect" value="/thanks"&gt;</code> to redirect users after submitting.
+              Add{' '}
+              <code className="text-zinc-300 font-mono">
+                &lt;input name="_redirect" value="/thanks"&gt;
+              </code>{' '}
+              to redirect users after submitting.
             </p>
           </div>
         </div>

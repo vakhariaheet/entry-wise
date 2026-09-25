@@ -20,7 +20,7 @@ console.log(`
 `);
 
 export default {
-    port: PORT,
-    hostname: HOST,
-    fetch: app.fetch,
+  port: PORT,
+  hostname: HOST,
+  fetch: app.fetch,
 };

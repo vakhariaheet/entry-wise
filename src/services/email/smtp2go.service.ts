@@ -1,4 +1,4 @@
-import { EmailService, SendEmailParams } from './types';
+import type { EmailService, SendEmailParams } from './types';
 
 interface SMTP2GOResponse {
   request_id: string;
@@ -18,44 +18,47 @@ interface SMTP2GOSuccessData {
 }
 
 class Smtp2GoEmailService implements EmailService {
-    private readonly SMTP2GO_API = 'https://api.smtp2go.com/v3/email/send';
-    
-    constructor(private readonly apiKey: string) {}
+  private readonly SMTP2GO_API = 'https://api.smtp2go.com/v3/email/send';
 
-    async send(params: SendEmailParams): Promise<void> {
-        const { from, fromName, to, subject, html, replyTo, attachments = [] } = params;
+  constructor(private readonly apiKey: string) {}
 
-        const payload: Record<string, any> = {
-            sender: `${fromName} <${from}>`,
-            to: [to],
-            subject,
-            html_body: html,
-            attachments: attachments.length > 0 ? attachments.map(file => ({
-                filename: file.filename,
-                fileblob: file.content,
-                mimetype: file.type ?? 'application/octet-stream',
-            })) : undefined
-        };
+  async send(params: SendEmailParams): Promise<void> {
+    const { from, fromName, to, subject, html, replyTo, attachments = [] } = params;
 
-        if (replyTo) {
-            payload.custom_headers = [{ header: 'Reply-To', value: replyTo }];
-        }
+    const payload: Record<string, any> = {
+      sender: `${fromName} <${from}>`,
+      to: [to],
+      subject,
+      html_body: html,
+      attachments:
+        attachments.length > 0
+          ? attachments.map((file) => ({
+              filename: file.filename,
+              fileblob: file.content,
+              mimetype: file.type ?? 'application/octet-stream',
+            }))
+          : undefined,
+    };
 
-        const response = await fetch(this.SMTP2GO_API, {
-            method: 'POST',
-            headers: {
-                'X-Smtp2go-Api-Key': this.apiKey,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        }).then<Promise<SMTP2GOResponse>>(res => res.json() as Promise<SMTP2GOResponse>);
-
-        if ('error_code' in response.data) {
-            const error: SMTP2GOErrorResponse = response.data;
-            throw new Error(`SMTP2GO API error (${response.request_id}): ${JSON.stringify(error)}`);
-        }
+    if (replyTo) {
+      payload.custom_headers = [{ header: 'Reply-To', value: replyTo }];
     }
+
+    const response = await fetch(this.SMTP2GO_API, {
+      method: 'POST',
+      headers: {
+        'X-Smtp2go-Api-Key': this.apiKey,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    }).then<Promise<SMTP2GOResponse>>((res) => res.json() as Promise<SMTP2GOResponse>);
+
+    if ('error_code' in response.data) {
+      const error: SMTP2GOErrorResponse = response.data;
+      throw new Error(`SMTP2GO API error (${response.request_id}): ${JSON.stringify(error)}`);
+    }
+  }
 }
 
 export { Smtp2GoEmailService };

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "check": "biome check --write .",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
     "preview": "vite preview"
   },
   "dependencies": {

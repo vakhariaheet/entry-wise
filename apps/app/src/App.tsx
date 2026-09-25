@@ -1,37 +1,45 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import type { Site, Submission, Company, FormField } from './types';
-import { api } from './services/api';
-import { Navbar } from './components/Navbar';
-import { SubmissionsTable } from './components/SubmissionsTable';
-import { SubmissionDetailModal } from './components/SubmissionDetailModal';
-import { AiPromptModal } from './components/AiPromptModal';
-import { CreateSiteModal } from './components/CreateSiteModal';
-import { WorkspaceModal } from './components/WorkspaceModal';
-import { AuthScreen } from './components/AuthScreen';
-import { SchemaFieldsView } from './components/views/SchemaFieldsView';
-import { ConnectorsView } from './components/views/ConnectorsView';
-import { EmailTemplateView } from './components/views/EmailTemplateView';
-import { CodeEmbedView } from './components/views/CodeEmbedView';
-import { GeneralSettingsView } from './components/views/GeneralSettingsView';
 import { useAuth } from '@clerk/clerk-react';
-import { Routes, Route, Navigate } from 'react-router-dom';
 import {
-  Plus,
-  Globe,
-  Sparkles,
-  Loader2,
   AlertCircle,
-  Inbox,
-  SlidersHorizontal,
-  Share2,
-  Mail,
-  Code2,
-  Settings,
-  Copy,
   Check,
+  Code2,
+  Copy,
+  Globe,
+  Inbox,
+  Loader2,
+  Mail,
+  Plus,
+  Settings,
+  Share2,
+  SlidersHorizontal,
+  Sparkles,
 } from 'lucide-react';
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navbar } from '@/components/navigation';
+import { AiPromptModal } from '@/features/ai';
+import { AuthScreen } from '@/features/auth';
+import {
+  CodeEmbedView,
+  ConnectorsView,
+  CreateSiteModal,
+  EmailTemplateView,
+  GeneralSettingsView,
+  SchemaFieldsView,
+} from '@/features/forms';
+import { SubmissionDetailModal, SubmissionsTable } from '@/features/submissions';
+import { WorkspaceModal } from '@/features/workspaces';
+import { api } from '@/lib';
+import type { Company, FormField, Site, Submission } from '@/types';
 
-export type DashboardTab = 'submissions' | 'fields' | 'connectors' | 'template' | 'embed' | 'settings';
+export type DashboardTab =
+  | 'submissions'
+  | 'fields'
+  | 'connectors'
+  | 'template'
+  | 'embed'
+  | 'settings';
 
 interface AppProps {
   isClerkConfigured: boolean;
@@ -143,7 +151,7 @@ export const AppContent: React.FC<AppProps> = () => {
     if (isSignedIn) {
       loadSites();
     }
-  }, [isSignedIn, currentWorkspace, loadSites]);
+  }, [isSignedIn, loadSites]);
 
   // 4. Fetch Submissions for the active site
   const loadSubmissions = useCallback(async () => {
@@ -175,7 +183,7 @@ export const AppContent: React.FC<AppProps> = () => {
     if (currentSite) {
       loadSubmissions();
     }
-  }, [currentSite, statusFilter, loadSubmissions]);
+  }, [currentSite, loadSubmissions]);
 
   // 5. Fetch Defined Form Fields for the active site
   const loadFields = useCallback(async () => {
@@ -204,9 +212,7 @@ export const AppContent: React.FC<AppProps> = () => {
     if (!currentSite) return;
     try {
       await api.patchSubmissionStatus(currentSite.id, id, status);
-      setSubmissions((prev) =>
-        prev.map((sub) => (sub.id === id ? { ...sub, status } : sub))
-      );
+      setSubmissions((prev) => prev.map((sub) => (sub.id === id ? { ...sub, status } : sub)));
       if (selectedSubmission?.id === id) {
         setSelectedSubmission((prev) => (prev ? { ...prev, status } : null));
       }
@@ -293,7 +299,10 @@ export const AppContent: React.FC<AppProps> = () => {
               <span>{apiError}</span>
             </div>
             <button
-              onClick={() => { loadSites(); if (currentSite) loadSubmissions(); }}
+              onClick={() => {
+                loadSites();
+                if (currentSite) loadSubmissions();
+              }}
               className="text-xs underline hover:text-white"
             >
               Retry
@@ -305,7 +314,9 @@ export const AppContent: React.FC<AppProps> = () => {
         {isLoadingSites ? (
           <div className="py-24 text-center space-y-3">
             <Loader2 className="w-6 h-6 text-emerald-400 animate-spin mx-auto" />
-            <div className="text-xs text-zinc-400 font-mono">Fetching your forms from Cloudflare D1...</div>
+            <div className="text-xs text-zinc-400 font-mono">
+              Fetching your forms from Cloudflare D1...
+            </div>
           </div>
         ) : sites.length === 0 ? (
           /* Empty state when the user has 0 sites registered */
@@ -314,9 +325,12 @@ export const AppContent: React.FC<AppProps> = () => {
               <Globe className="w-6 h-6 text-emerald-400" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-lg font-bold text-white tracking-tight">No forms registered in this workspace</h2>
+              <h2 className="text-lg font-bold text-white tracking-tight">
+                No forms registered in this workspace
+              </h2>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                Create your first form to generate an endpoint URL, connect Google Sheets or Slack, customize email templates, and start capturing submissions.
+                Create your first form to generate an endpoint URL, connect Google Sheets or Slack,
+                customize email templates, and start capturing submissions.
               </p>
             </div>
             <button
@@ -327,170 +341,179 @@ export const AppContent: React.FC<AppProps> = () => {
               <span>Create Your First Form</span>
             </button>
           </div>
-        ) : currentSite && (
-          /* Normal Dashboard View with Active Site */
-          <>
-            {/* Site Header Overview */}
-            <div className="flex flex-col gap-5 pb-2 border-b border-white/[0.08]">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <h1 className="text-xl font-bold tracking-tight text-white">
-                      {currentSite.name || currentSite.domain}
-                    </h1>
-                    <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 font-semibold">
-                      Live Form
-                    </span>
-                    {currentSite.google_sheets_url && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">
-                        Sheets
+        ) : (
+          currentSite && (
+            /* Normal Dashboard View with Active Site */
+            <>
+              {/* Site Header Overview */}
+              <div className="flex flex-col gap-5 pb-2 border-b border-white/[0.08]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h1 className="text-xl font-bold tracking-tight text-white">
+                        {currentSite.name || currentSite.domain}
+                      </h1>
+                      <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 font-semibold">
+                        Live Form
                       </span>
-                    )}
-                    {currentSite.slack_webhook_url && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border border-amber-500/20 bg-amber-500/10 text-amber-300">
-                        Slack
-                      </span>
-                    )}
-                    {currentSite.discord_webhook_url && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-                        Discord
-                      </span>
-                    )}
-                    {currentSite.webhook_url && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">
-                        Webhook
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="text-xs text-zinc-400 font-mono flex items-center gap-2 flex-wrap">
-                    <span>POST https://entrywise.webbound.in/f/{currentSite.api_key}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(`https://entrywise.webbound.in/f/${currentSite.api_key}`);
-                        setCopiedEndpoint(true);
-                        setTimeout(() => setCopiedEndpoint(false), 2000);
-                      }}
-                      className="p-1 rounded hover:bg-white/[0.05] text-zinc-400 hover:text-emerald-400 transition"
-                      title="Copy Ingestion Endpoint"
-                    >
-                      {copiedEndpoint ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                    <span className="text-zinc-600">|</span>
-                    <span className="text-zinc-500">{currentSite.domain}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowAiPrompt(true)}
-                    className="px-3.5 py-1.5 rounded-xl border border-white/[0.08] bg-[#121215] hover:bg-white/[0.05] text-xs font-medium text-zinc-300 hover:text-white transition flex items-center gap-1.5"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Copy AI Prompt</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Sub-Navigation Tabs (GitHub / Vercel style tabs) */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-1 scrollbar-none">
-                {[
-                  { id: 'submissions' as DashboardTab, label: 'Submissions', icon: Inbox, count: totalSubmissions },
-                  { id: 'fields' as DashboardTab, label: 'Fields & Schema', icon: SlidersHorizontal, count: siteFields.length },
-                  { id: 'connectors' as DashboardTab, label: 'Connectors', icon: Share2 },
-                  { id: 'template' as DashboardTab, label: 'Auto-Responder', icon: Mail },
-                  { id: 'embed' as DashboardTab, label: 'Code & Embed', icon: Code2 },
-                  { id: 'settings' as DashboardTab, label: 'Settings', icon: Settings },
-                ].map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition whitespace-nowrap focus:outline-none focus-visible:ring-0 ${
-                        isActive
-                          ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold shadow-sm'
-                          : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'
-                      }`}
-                    >
-                      <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-zinc-500'}`} />
-                      <span>{tab.label}</span>
-                      {tab.count !== undefined && (
-                        <span
-                          className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                            isActive
-                              ? 'bg-emerald-500/20 text-emerald-300'
-                              : 'bg-white/[0.06] text-zinc-400'
-                          }`}
-                        >
-                          {tab.count}
+                      {currentSite.google_sheets_url && (
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">
+                          Sheets
                         </span>
                       )}
+                      {currentSite.slack_webhook_url && (
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border border-amber-500/20 bg-amber-500/10 text-amber-300">
+                          Slack
+                        </span>
+                      )}
+                      {currentSite.discord_webhook_url && (
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
+                          Discord
+                        </span>
+                      )}
+                      {currentSite.webhook_url && (
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">
+                          Webhook
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-xs text-zinc-400 font-mono flex items-center gap-2 flex-wrap">
+                      <span>POST https://entrywise.webbound.in/f/{currentSite.api_key}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            `https://entrywise.webbound.in/f/${currentSite.api_key}`
+                          );
+                          setCopiedEndpoint(true);
+                          setTimeout(() => setCopiedEndpoint(false), 2000);
+                        }}
+                        className="p-1 rounded hover:bg-white/[0.05] text-zinc-400 hover:text-emerald-400 transition"
+                        title="Copy Ingestion Endpoint"
+                      >
+                        {copiedEndpoint ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                      <span className="text-zinc-600">|</span>
+                      <span className="text-zinc-500">{currentSite.domain}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowAiPrompt(true)}
+                      className="px-3.5 py-1.5 rounded-xl border border-white/[0.08] bg-[#121215] hover:bg-white/[0.05] text-xs font-medium text-zinc-300 hover:text-white transition flex items-center gap-1.5"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Copy AI Prompt</span>
                     </button>
-                  );
-                })}
+                  </div>
+                </div>
+
+                {/* Sub-Navigation Tabs (GitHub / Vercel style tabs) */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-1 scrollbar-none">
+                  {[
+                    {
+                      id: 'submissions' as DashboardTab,
+                      label: 'Submissions',
+                      icon: Inbox,
+                      count: totalSubmissions,
+                    },
+                    {
+                      id: 'fields' as DashboardTab,
+                      label: 'Fields & Schema',
+                      icon: SlidersHorizontal,
+                      count: siteFields.length,
+                    },
+                    { id: 'connectors' as DashboardTab, label: 'Connectors', icon: Share2 },
+                    { id: 'template' as DashboardTab, label: 'Auto-Responder', icon: Mail },
+                    { id: 'embed' as DashboardTab, label: 'Code & Embed', icon: Code2 },
+                    { id: 'settings' as DashboardTab, label: 'Settings', icon: Settings },
+                  ].map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition whitespace-nowrap focus:outline-none focus-visible:ring-0 ${
+                          isActive
+                            ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold shadow-sm'
+                            : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'
+                        }`}
+                      >
+                        <Icon
+                          className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-zinc-500'}`}
+                        />
+                        <span>{tab.label}</span>
+                        {tab.count !== undefined && (
+                          <span
+                            className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                              isActive
+                                ? 'bg-emerald-500/20 text-emerald-300'
+                                : 'bg-white/[0.06] text-zinc-400'
+                            }`}
+                          >
+                            {tab.count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* Tab View Content */}
-            <div className="pt-2">
-              {activeTab === 'submissions' && (
-                <SubmissionsTable
-                  submissions={submissions}
-                  total={totalSubmissions}
-                  currentStatus={statusFilter}
-                  onStatusChange={setStatusFilter}
-                  onSelectSubmission={setSelectedSubmission}
-                  onUpdateStatus={handleUpdateStatus}
-                  onDeleteSubmission={handleDeleteSubmission}
-                  onExportCsv={handleExportCsv}
-                  isLoading={isLoadingSubmissions}
-                />
-              )}
+              {/* Tab View Content */}
+              <div className="pt-2">
+                {activeTab === 'submissions' && (
+                  <SubmissionsTable
+                    submissions={submissions}
+                    total={totalSubmissions}
+                    currentStatus={statusFilter}
+                    onStatusChange={setStatusFilter}
+                    onSelectSubmission={setSelectedSubmission}
+                    onUpdateStatus={handleUpdateStatus}
+                    onDeleteSubmission={handleDeleteSubmission}
+                    onExportCsv={handleExportCsv}
+                    isLoading={isLoadingSubmissions}
+                  />
+                )}
 
-              {activeTab === 'fields' && (
-                <SchemaFieldsView
-                  site={currentSite}
-                  fields={siteFields}
-                  onFieldsUpdated={setSiteFields}
-                  onSiteUpdated={handleSiteUpdated}
-                  onNavigateToEmbed={() => setActiveTab('embed')}
-                />
-              )}
+                {activeTab === 'fields' && (
+                  <SchemaFieldsView
+                    site={currentSite}
+                    fields={siteFields}
+                    onFieldsUpdated={setSiteFields}
+                    onSiteUpdated={handleSiteUpdated}
+                    onNavigateToEmbed={() => setActiveTab('embed')}
+                  />
+                )}
 
-              {activeTab === 'connectors' && (
-                <ConnectorsView
-                  site={currentSite}
-                  onSiteUpdated={handleSiteUpdated}
-                />
-              )}
+                {activeTab === 'connectors' && (
+                  <ConnectorsView site={currentSite} onSiteUpdated={handleSiteUpdated} />
+                )}
 
-              {activeTab === 'template' && (
-                <EmailTemplateView
-                  site={currentSite}
-                  onSiteUpdated={handleSiteUpdated}
-                />
-              )}
+                {activeTab === 'template' && (
+                  <EmailTemplateView site={currentSite} onSiteUpdated={handleSiteUpdated} />
+                )}
 
-              {activeTab === 'embed' && (
-                <CodeEmbedView
-                  site={currentSite}
-                  fields={siteFields}
-                />
-              )}
+                {activeTab === 'embed' && <CodeEmbedView site={currentSite} fields={siteFields} />}
 
-              {activeTab === 'settings' && (
-                <GeneralSettingsView
-                  site={currentSite}
-                  onSiteUpdated={handleSiteUpdated}
-                  onSiteDeleted={handleSiteDeleted}
-                />
-              )}
-            </div>
-          </>
+                {activeTab === 'settings' && (
+                  <GeneralSettingsView
+                    site={currentSite}
+                    onSiteUpdated={handleSiteUpdated}
+                    onSiteDeleted={handleSiteDeleted}
+                  />
+                )}
+              </div>
+            </>
+          )
         )}
       </main>
 
@@ -502,12 +525,7 @@ export const AppContent: React.FC<AppProps> = () => {
         onDeleteSubmission={handleDeleteSubmission}
       />
 
-      {showAiPrompt && (
-        <AiPromptModal
-          site={currentSite}
-          onClose={() => setShowAiPrompt(false)}
-        />
-      )}
+      {showAiPrompt && <AiPromptModal site={currentSite} onClose={() => setShowAiPrompt(false)} />}
 
       {showCreateSite && (
         <CreateSiteModal

@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
-import { Env } from '../../types/env';
-import { submitForm } from '../../controllers/v1/submissions/submitForm';
-import { corsMiddleware, verifyDomain, rateLimiter } from '../../middleware/publicAuth';
 import { describeRoute } from 'hono-openapi';
+import { submitForm } from '../../controllers/v1/submissions/submitForm';
 import { submitFormDocs } from '../../docs/submission.docs';
+import { corsMiddleware, rateLimiter, verifyDomain } from '../../middleware/publicAuth';
+import type { Env } from '../../types/env';
 
 const submissionsRouter = new Hono<{ Bindings: Env }>();
 
@@ -13,16 +13,8 @@ submissionsRouter.use('*', verifyDomain);
 submissionsRouter.use('*', rateLimiter);
 
 // Primary public submission endpoints (both root and /:key)
-submissionsRouter.post(
-    '/',
-    describeRoute(submitFormDocs),
-    submitForm
-);
+submissionsRouter.post('/', describeRoute(submitFormDocs), submitForm);
 
-submissionsRouter.post(
-    '/:key',
-    describeRoute(submitFormDocs),
-    submitForm
-);
+submissionsRouter.post('/:key', describeRoute(submitFormDocs), submitForm);
 
 export default submissionsRouter;

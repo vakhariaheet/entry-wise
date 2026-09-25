@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import type { Site } from '../../types';
-import { api } from '../../services/api';
 import {
-  Mail,
-  Sparkles,
-  Monitor,
-  Smartphone,
-  CheckCircle2,
-  Check,
-  Loader2,
-  Save,
   AlertCircle,
+  Check,
+  CheckCircle2,
+  Loader2,
+  Mail,
+  Monitor,
+  Save,
+  Smartphone,
+  Sparkles,
 } from 'lucide-react';
+import React, { useState } from 'react';
+import { api } from '@/lib';
+import type { Site } from '@/types';
 
 interface EmailTemplateViewProps {
   site: Site;
@@ -26,7 +26,9 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
   const [notificationEmails, setNotificationEmails] = useState(site.notification_emails || '');
 
   // Auto-responder state
-  const [autoResponderEnabled, setAutoResponderEnabled] = useState(Boolean(site.auto_responder_enabled));
+  const [autoResponderEnabled, setAutoResponderEnabled] = useState(
+    Boolean(site.auto_responder_enabled)
+  );
   const [autoResponderSubject, setAutoResponderSubject] = useState(
     site.auto_responder_subject || 'We received your message — {{domain}}'
   );
@@ -41,7 +43,9 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   React.useEffect(() => {
-    setNotifyOnSubmission(site.notify_on_submission === undefined ? true : Boolean(site.notify_on_submission));
+    setNotifyOnSubmission(
+      site.notify_on_submission === undefined ? true : Boolean(site.notify_on_submission)
+    );
     setNotificationEmails(site.notification_emails || '');
     setAutoResponderEnabled(Boolean(site.auto_responder_enabled));
     setAutoResponderSubject(site.auto_responder_subject || 'We received your message — {{domain}}');
@@ -110,7 +114,8 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
             <span>Email Routing &amp; Auto-Responder</span>
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            Configure real-time team submission alerts and customize automated branded receipts sent to submitters.
+            Configure real-time team submission alerts and customize automated branded receipts sent
+            to submitters.
           </p>
         </div>
 
@@ -180,16 +185,20 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                 className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 transition font-mono leading-relaxed"
               />
               <p className="text-[11px] text-zinc-500 mt-1">
-                Separate multiple recipient emails with commas. If left empty, alerts route to your primary account email.
+                Separate multiple recipient emails with commas. If left empty, alerts route to your
+                primary account email.
               </p>
             </div>
 
             <div className="p-4 rounded-xl border border-white/[0.08] bg-[#0c0d10] flex items-start gap-3">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-semibold text-zinc-200 text-xs">Direct Submitter Reply-To Enabled</h4>
+                <h4 className="font-semibold text-zinc-200 text-xs">
+                  Direct Submitter Reply-To Enabled
+                </h4>
                 <p className="text-[11px] text-zinc-400 mt-0.5">
-                  When you click &quot;Reply&quot; to any submission alert in Gmail, Outlook, or Apple Mail, your email client will automatically address the submitter directly.
+                  When you click &quot;Reply&quot; to any submission alert in Gmail, Outlook, or
+                  Apple Mail, your email client will automatically address the submitter directly.
                 </p>
               </div>
             </div>
@@ -206,7 +215,8 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
               <span>Submitter Auto-Responder Email</span>
             </h3>
             <p className="text-xs text-zinc-400 mt-0.5">
-              Sends an automated, branded confirmation receipt email to the user right after they submit.
+              Sends an automated, branded confirmation receipt email to the user right after they
+              submit.
             </p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
@@ -230,16 +240,18 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                   Insert dynamic template variables:
                 </label>
                 <div className="flex flex-wrap gap-1.5">
-                  {['{{name}}', '{{email}}', '{{company}}', '{{domain}}', '{{submission_id}}'].map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => handleInsertVariable(tag, 'body')}
-                      className="px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-mono transition"
-                    >
-                      + {tag}
-                    </button>
-                  ))}
+                  {['{{name}}', '{{email}}', '{{company}}', '{{domain}}', '{{submission_id}}'].map(
+                    (tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => handleInsertVariable(tag, 'body')}
+                        className="px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-mono transition"
+                      >
+                        + {tag}
+                      </button>
+                    )
+                  )}
                 </div>
               </div>
 
@@ -270,7 +282,8 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                   className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 transition leading-relaxed font-sans"
                 />
                 <p className="text-[11px] text-zinc-500 mt-1.5">
-                  Safe HTML encoding is enforced. Paragraph breaks are styled cleanly with zero layout shift.
+                  Safe HTML encoding is enforced. Paragraph breaks are styled cleanly with zero
+                  layout shift.
                 </p>
               </div>
             </div>
@@ -278,13 +291,17 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
             {/* Right: Live Responsive Preview */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-zinc-300">Live Rendered Email Preview</label>
+                <label className="text-xs font-semibold text-zinc-300">
+                  Live Rendered Email Preview
+                </label>
                 <div className="flex items-center gap-1 bg-[#0a0a0d] p-1 rounded-xl border border-white/[0.08]">
                   <button
                     type="button"
                     onClick={() => setPreviewDevice('desktop')}
                     className={`p-1.5 rounded-lg transition ${
-                      previewDevice === 'desktop' ? 'bg-white/[0.1] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                      previewDevice === 'desktop'
+                        ? 'bg-white/[0.1] text-white shadow-sm'
+                        : 'text-zinc-500 hover:text-zinc-300'
                     }`}
                     title="Desktop Preview"
                   >
@@ -294,7 +311,9 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                     type="button"
                     onClick={() => setPreviewDevice('mobile')}
                     className={`p-1.5 rounded-lg transition ${
-                      previewDevice === 'mobile' ? 'bg-white/[0.1] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                      previewDevice === 'mobile'
+                        ? 'bg-white/[0.1] text-white shadow-sm'
+                        : 'text-zinc-500 hover:text-zinc-300'
                     }`}
                     title="Mobile Preview"
                   >
@@ -311,7 +330,9 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
               >
                 {/* Email Header */}
                 <div className="p-4 bg-white border-b border-zinc-200 text-center">
-                  <div className="font-bold text-sm tracking-tight text-zinc-900">{site.name || site.domain}</div>
+                  <div className="font-bold text-sm tracking-tight text-zinc-900">
+                    {site.name || site.domain}
+                  </div>
                   <div className="text-[11px] text-zinc-500">{site.domain}</div>
                 </div>
 

@@ -1,7 +1,15 @@
-import React from 'react';
-import type { Site, Company } from '../types';
-import { Sparkles, Globe, Plus, ExternalLink, Settings, Building2, ChevronDown } from 'lucide-react';
 import { UserButton } from '@clerk/clerk-react';
+import {
+  Building2,
+  ChevronDown,
+  ExternalLink,
+  Globe,
+  Plus,
+  Settings,
+  Sparkles,
+} from 'lucide-react';
+import type React from 'react';
+import type { Company, Site } from '@/types';
 
 interface NavbarProps {
   workspaces: Company[];
@@ -34,9 +42,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Left: Brand & Switchers */}
         <div className="flex items-center gap-4 sm:gap-6">
           <a href="https://entrywise.webbound.in" className="flex items-center gap-2.5 group">
-            <img src="https://entrywise.webbound.in/assets/logo.png" alt="Logo" className="w-7 h-7 rounded-lg border border-white/[0.1]" />
-            <span className="font-bold text-sm tracking-tight text-white hidden sm:inline">EntryWise</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-zinc-400">0.2.0</span>
+            <img
+              src="https://entrywise.webbound.in/assets/logo.png"
+              alt="Logo"
+              className="w-7 h-7 rounded-lg border border-white/[0.1]"
+            />
+            <span className="font-bold text-sm tracking-tight text-white hidden sm:inline">
+              EntryWise
+            </span>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-zinc-400">
+              0.2.0
+            </span>
           </a>
 
           <div className="h-4 w-[1px] bg-white/[0.1] hidden sm:block"></div>
@@ -45,7 +61,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="relative group">
             <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition text-xs font-medium text-zinc-200">
               <Building2 className="w-3.5 h-3.5 text-zinc-400" />
-              <span className="max-w-[120px] truncate">{currentWorkspace ? currentWorkspace.name : 'Workspace'}</span>
+              <span className="max-w-[120px] truncate">
+                {currentWorkspace ? currentWorkspace.name : 'Workspace'}
+              </span>
               <ChevronDown className="w-3 h-3 text-zinc-500" />
             </button>
 
@@ -59,11 +77,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                     key={ws.id}
                     onClick={() => onSelectWorkspace(ws)}
                     className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-white/[0.04] transition ${
-                      currentWorkspace?.id === ws.id ? 'text-emerald-400 font-semibold bg-emerald-500/5' : 'text-zinc-300'
+                      currentWorkspace?.id === ws.id
+                        ? 'text-emerald-400 font-semibold bg-emerald-500/5'
+                        : 'text-zinc-300'
                     }`}
                   >
                     <span className="truncate">{ws.name}</span>
-                    {currentWorkspace?.id === ws.id && <span className="text-[10px] font-mono">Active</span>}
+                    {currentWorkspace?.id === ws.id && (
+                      <span className="text-[10px] font-mono">Active</span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -83,7 +105,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="relative group">
             <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition text-xs font-medium text-zinc-200">
               <Globe className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="max-w-[140px] truncate">{currentSite ? (currentSite.name || currentSite.domain) : (sites.length > 0 ? 'Select Form' : 'No Forms')}</span>
+              <span className="max-w-[140px] truncate">
+                {currentSite
+                  ? currentSite.name || currentSite.domain
+                  : sites.length > 0
+                    ? 'Select Form'
+                    : 'No Forms'}
+              </span>
               <ChevronDown className="w-3 h-3 text-zinc-500" />
             </button>
 
@@ -97,14 +125,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                     key={site.id}
                     onClick={() => onSelectSite(site)}
                     className={`w-full text-left px-3 py-2 text-xs flex flex-col hover:bg-white/[0.04] transition ${
-                      currentSite?.id === site.id ? 'text-emerald-400 font-semibold bg-emerald-500/5' : 'text-zinc-300'
+                      currentSite?.id === site.id
+                        ? 'text-emerald-400 font-semibold bg-emerald-500/5'
+                        : 'text-zinc-300'
                     }`}
                   >
                     <div className="flex items-center justify-between w-full">
                       <span className="truncate">{site.name || site.domain}</span>
-                      {currentSite?.id === site.id && <span className="text-[10px] font-mono text-emerald-400">Active</span>}
+                      {currentSite?.id === site.id && (
+                        <span className="text-[10px] font-mono text-emerald-400">Active</span>
+                      )}
                     </div>
-                    <span className="text-[10px] text-zinc-500 font-mono truncate">{site.domain}</span>
+                    <span className="text-[10px] text-zinc-500 font-mono truncate">
+                      {site.domain}
+                    </span>
                   </button>
                 ))}
               </div>

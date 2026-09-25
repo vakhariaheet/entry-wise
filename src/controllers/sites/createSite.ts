@@ -1,53 +1,58 @@
-import { Context } from 'hono';
-import { Env } from '../../types/env';
-import { sendResponse } from '../../utils/sendResponse';
-import { CreateSiteBody, Site } from '../../types/site';
+import type { Context } from 'hono';
+import type { Env } from '../../types/env';
+import type { CreateSiteBody, Site } from '../../types/site';
 import { generateApiKey } from '../../utils/generateApiKey';
+import { sendResponse } from '../../utils/sendResponse';
 
 export const createSite = async (c: Context<{ Bindings: Env }>) => {
-    try {
-        const companyId = c.req.param('company_id');
-        const body = await c.req.json<CreateSiteBody>();
-        const id = `site_${crypto.randomUUID()}`;
+  try {
+    const companyId = c.req.param('company_id');
+    const body = await c.req.json<CreateSiteBody>();
+    const id = `site_${crypto.randomUUID()}`;
 
-        if (!companyId || !body.domain || !body.admin_email || !body.timezone) {
-            return sendResponse(c, 400, null, 'Missing required fields: domain, admin_email, timezone');
-        }
+    if (!companyId || !body.domain || !body.admin_email || !body.timezone) {
+      return sendResponse(c, 400, null, 'Missing required fields: domain, admin_email, timezone');
+    }
 
-        // Check if company exists
-        const { results: companyExists } = await c.env.DB.prepare(`
+    // Check if company exists
+    const { results: companyExists } = await c.env.DB.prepare(`
             SELECT id FROM companies WHERE id = ?
-        `).bind(companyId).all();
+        `)
+      .bind(companyId)
+      .all();
 
-        if (!companyExists?.length) {
-            return sendResponse(c, 404, null, 'Company not found');
-        }
+    if (!companyExists?.length) {
+      return sendResponse(c, 404, null, 'Company not found');
+    }
 
-        // Check if domain already exists
-        const { results: domainExists } = await c.env.DB.prepare(`
+    // Check if domain already exists
+    const { results: domainExists } = await c.env.DB.prepare(`
             SELECT id FROM sites WHERE domain = ?
-        `).bind(body.domain).all();
+        `)
+      .bind(body.domain)
+      .all();
 
-        if (domainExists?.length) {
-            return sendResponse(c, 400, null, 'Domain already exists');
-        }
+    if (domainExists?.length) {
+      return sendResponse(c, 400, null, 'Domain already exists');
+    }
 
-        const api_key = await generateApiKey();
+    const api_key = await generateApiKey();
 
-        const { success, results } = await c.env.DB.prepare(`
+    const { success, results } = await c.env.DB.prepare(`
             INSERT INTO sites (id, company_id, domain, api_key, admin_email, timezone)
             VALUES (?, ?, ?, ?, ?, ?)
             RETURNING *
-        `).bind(id, companyId, body.domain, api_key, body.admin_email, body.timezone)
-        .run<Site>();
+        `)
+      .bind(id, companyId, body.domain, api_key, body.admin_email, body.timezone)
+      .run<Site>();
 
-        if (!success || !results?.length) {
-            return sendResponse(c, 500, null, 'Failed to create site');
-        }
-
-        return sendResponse(c, 201, results[0], 'Site created successfully');
-    } catch (error) {
-        console.error('Error creating site:', error);
-        return sendResponse(c, 500, null, 'Internal server error');
+    if (!success || !results?.length) {
+      return sendResponse(c, 500, null, 'Failed to create site');
     }
+
+    return sendResponse(c, 201, results[0], 'Site created successfully');
+  } catch (error) {
+    console.error('Error creating site:', error);
+    return sendResponse(c, 500, null, 'Internal server error');
+  }
 };

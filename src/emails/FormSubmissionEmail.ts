@@ -1,49 +1,54 @@
 import { escapeHtml } from '../utils/escapeHtml';
 
 interface FormSubmissionEmailProps {
-    siteDomain: string;
-    formData: {
-        [key: string]: string;
-    };
-    companyName: string;
-    timezone?: string;
-    submissionId?: string;
-    attachments?: { filename: string }[];
+  siteDomain: string;
+  formData: {
+    [key: string]: string;
+  };
+  companyName: string;
+  timezone?: string;
+  submissionId?: string;
+  attachments?: { filename: string }[];
 }
 
 export const renderFormSubmissionEmail = ({
-    siteDomain,
-    formData,
-    companyName,
-    timezone = 'UTC',
-    submissionId: providedSubId,
-    attachments = []
+  siteDomain,
+  formData,
+  companyName,
+  timezone = 'UTC',
+  submissionId: providedSubId,
+  attachments = [],
 }: FormSubmissionEmailProps): string => {
-    let currentDate = new Date().toUTCString();
-    try {
-        currentDate = new Date().toLocaleString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-            timeZone: timezone || 'UTC',
-        });
-    } catch {
-        currentDate = new Date().toUTCString();
-    }
+  let currentDate = new Date().toUTCString();
+  try {
+    currentDate = new Date().toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: timezone || 'UTC',
+    });
+  } catch {
+    currentDate = new Date().toUTCString();
+  }
 
-    const safeDomain = escapeHtml(siteDomain);
-    const safeSubmissionId = escapeHtml(providedSubId || `#EW-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`);
-    const safeCompanyName = escapeHtml(companyName);
+  const safeDomain = escapeHtml(siteDomain);
+  const safeSubmissionId = escapeHtml(
+    providedSubId ||
+      `#EW-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999999)).padStart(6, '0')}`
+  );
+  const safeCompanyName = escapeHtml(companyName);
 
-    const formFields = Object.entries(formData)
-        .map(([key, value]) => {
-            const safeKey = escapeHtml(key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()));
-            const safeValue = escapeHtml(String(value ?? ''));
-            const isLong = safeValue.length > 100;
-            return `
+  const formFields = Object.entries(formData)
+    .map(([key, value]) => {
+      const safeKey = escapeHtml(
+        key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())
+      );
+      const safeValue = escapeHtml(String(value ?? ''));
+      const isLong = safeValue.length > 100;
+      return `
             <tr>
                 <td style="padding: 16px 20px; border-bottom: 1px solid #f3f4f6; vertical-align: top;">
                     <table cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -59,16 +64,21 @@ export const renderFormSubmissionEmail = ({
                 </td>
             </tr>
         `;
-        }).join('');
+    })
+    .join('');
 
-    const attachmentsSection = attachments.length > 0 ? `
+  const attachmentsSection =
+    attachments.length > 0
+      ? `
         <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; margin-top: 24px;">
             <tr>
                 <td style="color: #4f46e5; font-size: 15px; font-weight: 600; padding: 14px 20px; background-color: #f8fafc; border-bottom: 1px solid #e5e7eb;">
                     Attachments (${attachments.length})
                 </td>
             </tr>
-            ${attachments.map(({ filename }) => `
+            ${attachments
+              .map(
+                ({ filename }) => `
                 <tr>
                     <td style="padding: 12px 20px; border-bottom: 1px solid #f3f4f6;">
                         <table cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -80,11 +90,14 @@ export const renderFormSubmissionEmail = ({
                         </table>
                     </td>
                 </tr>
-            `).join('')}
+            `
+              )
+              .join('')}
         </table>
-    ` : '';
+    `
+      : '';
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">

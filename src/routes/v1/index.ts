@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { Env } from '../../types/env';
+import type { Env } from '../../types/env';
 import authRoutes from '../auth.routes';
 import companiesRoutes from './companies.routes';
 import sitesRoutes from './sites.routes';

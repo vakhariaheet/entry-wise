@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import type { Site, FormField, FieldType } from '../../types';
-import { api } from '../../services/api';
 import {
-  SlidersHorizontal,
-  Plus,
-  Trash2,
-  Code2,
+  AlertCircle,
   ArrowRight,
   Check,
+  Code2,
   Loader2,
+  Plus,
   Save,
-  AlertCircle,
+  SlidersHorizontal,
+  Trash2,
 } from 'lucide-react';
+import React, { useState } from 'react';
+import { api } from '@/lib';
+import type { FieldType, FormField, Site } from '@/types';
 
 interface SchemaFieldsViewProps {
   site: Site;
@@ -131,7 +131,9 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
             <span>Form Schema &amp; Fields</span>
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            Define and structure the expected inputs for <span className="text-zinc-200 font-mono font-medium">{site.domain}</span>. Incoming submissions are mapped to this schema.
+            Define and structure the expected inputs for{' '}
+            <span className="text-zinc-200 font-mono font-medium">{site.domain}</span>. Incoming
+            submissions are mapped to this schema.
           </p>
         </div>
 
@@ -180,7 +182,9 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
             placeholder="e.g. Contact Us Form"
             className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/40 transition"
           />
-          <p className="text-[11px] text-zinc-500 mt-1.5">Display name visible in your dashboard, email subjects, and alerts.</p>
+          <p className="text-[11px] text-zinc-500 mt-1.5">
+            Display name visible in your dashboard, email subjects, and alerts.
+          </p>
         </div>
 
         <div>
@@ -195,7 +199,9 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
             placeholder="acme.com or localhost:3000"
             className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 font-mono placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/40 transition"
           />
-          <p className="text-[11px] text-zinc-500 mt-1.5">Origin domain verified during form submission ingestion.</p>
+          <p className="text-[11px] text-zinc-500 mt-1.5">
+            Origin domain verified during form submission ingestion.
+          </p>
         </div>
       </div>
 
@@ -210,7 +216,8 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
               </span>
             </h3>
             <p className="text-xs text-zinc-400 mt-0.5">
-              These fields map to form inputs and are automatically populated in CSV exports and webhook payloads.
+              These fields map to form inputs and are automatically populated in CSV exports and
+              webhook payloads.
             </p>
           </div>
 
@@ -287,7 +294,8 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
             <div className="p-8 text-center space-y-1.5">
               <div className="text-sm font-semibold text-zinc-300">No fields defined yet</div>
               <p className="text-xs text-zinc-500 max-w-md mx-auto leading-relaxed">
-                This form operates in dynamic schema mode (accepts all submitted JSON keys). Add fields below to specify standard inputs and generate code snippets.
+                This form operates in dynamic schema mode (accepts all submitted JSON keys). Add
+                fields below to specify standard inputs and generate code snippets.
               </p>
             </div>
           ) : (
@@ -298,7 +306,9 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
               >
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-mono text-zinc-500 w-6">#{idx + 1}</span>
-                  <span className="font-mono text-sm font-semibold text-zinc-100">{field.name}</span>
+                  <span className="font-mono text-sm font-semibold text-zinc-100">
+                    {field.name}
+                  </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span
@@ -323,7 +333,10 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
         </div>
 
         {/* Add Field Inline Bar */}
-        <form onSubmit={handleAddField} className="p-4 rounded-xl border border-white/[0.08] bg-[#0c0d10] space-y-3">
+        <form
+          onSubmit={handleAddField}
+          className="p-4 rounded-xl border border-white/[0.08] bg-[#0c0d10] space-y-3"
+        >
           <div className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
             <Plus className="w-3.5 h-3.5 text-emerald-400" />
             <span>Add Custom Field</span>

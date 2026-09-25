@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import type { Site } from '../types';
-import { X, Copy, Check, Sparkles } from 'lucide-react';
+import { Check, Copy, Sparkles, X } from 'lucide-react';
+import type React from 'react';
+import { useState } from 'react';
+import type { Site } from '@/types';
 
 interface AiPromptModalProps {
   site: Site | null;
@@ -98,7 +99,8 @@ const submitForm = async (formData: { name: string; email: string; message: stri
 
         {/* Subtitle & Site Context */}
         <div className="px-6 pt-4 text-xs text-zinc-400">
-          Pre-populated with live credentials for <span className="text-white font-semibold">{siteDomain}</span>.
+          Pre-populated with live credentials for{' '}
+          <span className="text-white font-semibold">{siteDomain}</span>.
         </div>
 
         {/* Snippet Tabs */}
@@ -134,7 +136,11 @@ const submitForm = async (formData: { name: string; email: string; message: stri
             onClick={handleCopy}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] text-white text-xs font-medium transition"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-zinc-400" />}
+            {copied ? (
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <Copy className="w-3.5 h-3.5 text-zinc-400" />
+            )}
             <span>{copied ? 'Copied!' : 'Copy Code'}</span>
           </button>
         </div>

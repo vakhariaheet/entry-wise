@@ -1,5 +1,5 @@
-import React from 'react';
 import { SignIn, SignUp } from '@clerk/clerk-react';
+import type React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 interface AuthScreenProps {
@@ -29,9 +29,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, isClerkConfigured 
       card: 'bg-[#121215] border border-white/[0.08] shadow-2xl text-white rounded-2xl p-6 sm:p-8',
       headerTitle: 'text-white text-lg font-bold tracking-tight',
       headerSubtitle: 'text-zinc-400 text-xs',
-      socialButtonsBlockButton: 'bg-white/[0.04] border border-white/[0.08] text-zinc-200 hover:bg-white/[0.08] text-xs font-medium rounded-xl py-2.5 transition',
-      formButtonPrimary: 'bg-white text-black hover:bg-zinc-200 font-semibold text-xs py-2.5 rounded-xl transition shadow-sm',
-      formFieldInput: 'bg-[#09090b] border border-white/[0.08] text-white text-xs rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 py-2.5 transition',
+      socialButtonsBlockButton:
+        'bg-white/[0.04] border border-white/[0.08] text-zinc-200 hover:bg-white/[0.08] text-xs font-medium rounded-xl py-2.5 transition',
+      formButtonPrimary:
+        'bg-white text-black hover:bg-zinc-200 font-semibold text-xs py-2.5 rounded-xl transition shadow-sm',
+      formFieldInput:
+        'bg-[#09090b] border border-white/[0.08] text-white text-xs rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 py-2.5 transition',
       formFieldLabel: 'text-zinc-300 text-xs font-medium',
       footerActionLink: 'text-emerald-400 hover:text-emerald-300 font-medium',
       footerActionText: 'text-zinc-400 text-xs',
@@ -40,7 +43,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, isClerkConfigured 
       dividerLine: 'bg-white/[0.08]',
       dividerText: 'text-zinc-500 text-[11px] uppercase tracking-wider',
       otpCodeFieldInputs: 'gap-2 my-3',
-      otpCodeFieldInput: 'bg-[#09090b] border border-white/[0.15] text-white text-lg font-mono rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 h-12 text-center',
+      otpCodeFieldInput:
+        'bg-[#09090b] border border-white/[0.15] text-white text-lg font-mono rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 h-12 text-center',
       formResendCodeLink: 'text-emerald-400 hover:text-emerald-300 text-xs font-medium',
       alert: 'bg-red-500/10 border border-red-500/20 text-red-300 rounded-xl p-3 text-xs mb-4',
       alertText: 'text-red-300 text-xs',
@@ -98,7 +102,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, isClerkConfigured 
             <div className="p-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 text-amber-300 text-xs space-y-2 text-center w-full">
               <div className="font-semibold">Clerk Publishable Key Missing</div>
               <p className="text-zinc-400">
-                Please set <code className="text-white font-mono">VITE_CLERK_PUBLISHABLE_KEY</code> in <code className="text-white font-mono">apps/app/.env</code> to enable authentication.
+                Please set <code className="text-white font-mono">VITE_CLERK_PUBLISHABLE_KEY</code>{' '}
+                in <code className="text-white font-mono">apps/app/.env</code> to enable
+                authentication.
               </p>
             </div>
           ) : isSignUp ? (

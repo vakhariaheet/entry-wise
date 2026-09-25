@@ -1,13 +1,23 @@
-import { Context } from "hono";
+import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { z } from "zod";
-import { ProblemDetails, InvalidParam } from '../schemas/problemDetails.schema';
+import { z } from 'zod';
+import type { InvalidParam, ProblemDetails } from '../schemas/problemDetails.schema';
 
 // HTTP Status codes type
 export type HttpStatus =
-  | 200 | 201 | 204  // Success
-  | 400 | 401 | 403 | 404 | 409 | 422 | 429  // Client Errors
-  | 500 | 502 | 503; // Server Errors
+  | 200
+  | 201
+  | 204 // Success
+  | 400
+  | 401
+  | 403
+  | 404
+  | 409
+  | 422
+  | 429 // Client Errors
+  | 500
+  | 502
+  | 503; // Server Errors
 
 export const createApiResponse = <T extends z.ZodTypeAny>(data: T) => {
   return z.object({
@@ -98,15 +108,19 @@ export const sendProblemDetails = (
   }
 ): Response => {
   const title = options?.title || statusMessages[status] || 'Error';
-  const type = options?.type || `https://entrywise.webbound.in/problems/${problemTypeSlugs[status] || 'error'}`;
-  
+  const type =
+    options?.type ||
+    `https://entrywise.webbound.in/problems/${problemTypeSlugs[status] || 'error'}`;
+
   const problem: ProblemDetails = {
     type,
     title,
     status,
     detail,
     ...(options?.instance ? { instance: options.instance } : {}),
-    ...(options?.invalidParams && options.invalidParams.length > 0 ? { invalid_params: options.invalidParams } : {}),
+    ...(options?.invalidParams && options.invalidParams.length > 0
+      ? { invalid_params: options.invalidParams }
+      : {}),
   };
 
   const headers: Record<string, string> = {
@@ -126,11 +140,7 @@ export const sendProblemDetails = (
 /**
  * Zalando RESTful Guideline: 201 Created with Location header
  */
-export const sendCreated = <T = any>(
-  c: Context,
-  data: T,
-  location?: string
-): Response => {
+export const sendCreated = <T = any>(c: Context, data: T, location?: string): Response => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };

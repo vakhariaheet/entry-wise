@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
-import type { Site } from '../../types';
-import { api } from '../../services/api';
 import {
-  FileSpreadsheet,
-  MessageSquare,
-  Radio,
-  Webhook,
-  Code2,
-  Copy,
+  AlertCircle,
   Check,
   ChevronDown,
   ChevronUp,
+  Code2,
+  Copy,
+  FileSpreadsheet,
   Loader2,
+  MessageSquare,
+  Radio,
   Save,
-  AlertCircle,
   Share2,
+  Webhook,
 } from 'lucide-react';
+import React, { useState } from 'react';
+import { api } from '@/lib';
+import type { Site } from '@/types';
 
 interface ConnectorsViewProps {
   site: Site;
@@ -116,7 +116,8 @@ function doPost(e) {
             </span>
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            Automatically route incoming submissions to your external databases, team chat apps, and custom APIs via Cloudflare Queues.
+            Automatically route incoming submissions to your external databases, team chat apps, and
+            custom APIs via Cloudflare Queues.
           </p>
         </div>
 
@@ -163,7 +164,9 @@ function doPost(e) {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white">Google Sheets Auto-Append</h3>
-                <p className="text-xs text-zinc-400">Syncs form rows to your spreadsheet in real time.</p>
+                <p className="text-xs text-zinc-400">
+                  Syncs form rows to your spreadsheet in real time.
+                </p>
               </div>
             </div>
             {googleSheetsUrl ? (
@@ -199,15 +202,26 @@ function doPost(e) {
             className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-medium pt-1"
           >
             <Code2 className="w-4 h-4" />
-            <span>{showAppsScriptGuide ? 'Hide Google Apps Script template' : 'View free 30-second Google Apps Script setup'}</span>
-            {showAppsScriptGuide ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            <span>
+              {showAppsScriptGuide
+                ? 'Hide Google Apps Script template'
+                : 'View free 30-second Google Apps Script setup'}
+            </span>
+            {showAppsScriptGuide ? (
+              <ChevronUp className="w-3.5 h-3.5" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5" />
+            )}
           </button>
 
           {showAppsScriptGuide && (
             <div className="p-4 rounded-xl border border-white/[0.06] bg-[#0a0a0d] space-y-3">
               <p className="text-xs text-zinc-400 leading-relaxed">
-                1. Open your Google Sheet &rarr; Extensions &rarr; Apps Script.<br />
-                2. Paste the script below &rarr; Deploy &rarr; New Deployment &rarr; Web App (Access: Anyone).<br />
+                1. Open your Google Sheet &rarr; Extensions &rarr; Apps Script.
+                <br />
+                2. Paste the script below &rarr; Deploy &rarr; New Deployment &rarr; Web App
+                (Access: Anyone).
+                <br />
                 3. Copy the generated Web App URL and paste it into the field above!
               </p>
               <div className="relative">
@@ -223,7 +237,11 @@ function doPost(e) {
                   }}
                   className="absolute top-2.5 right-2.5 px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-xs text-white flex items-center gap-1.5 transition"
                 >
-                  {copiedScript ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedScript ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
                   <span>{copiedScript ? 'Copied' : 'Copy Script'}</span>
                 </button>
               </div>
@@ -240,7 +258,9 @@ function doPost(e) {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white">Slack Channel Alerts</h3>
-                <p className="text-xs text-zinc-400">Sends formatted block cards to your team's Slack channel.</p>
+                <p className="text-xs text-zinc-400">
+                  Sends formatted block cards to your team's Slack channel.
+                </p>
               </div>
             </div>
             {slackWebhookUrl ? (
@@ -266,7 +286,8 @@ function doPost(e) {
               className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-amber-500/50 transition font-mono"
             />
             <p className="text-[11px] text-zinc-500 mt-1.5">
-              Create an incoming webhook in your Slack App Directory and paste the full webhook URL here.
+              Create an incoming webhook in your Slack App Directory and paste the full webhook URL
+              here.
             </p>
           </div>
         </div>
@@ -280,7 +301,9 @@ function doPost(e) {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white">Discord Channel Webhook</h3>
-                <p className="text-xs text-zinc-400">Dispatches emerald embed cards to your Discord server.</p>
+                <p className="text-xs text-zinc-400">
+                  Dispatches emerald embed cards to your Discord server.
+                </p>
               </div>
             </div>
             {discordWebhookUrl ? (
@@ -306,7 +329,8 @@ function doPost(e) {
               className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500/50 transition font-mono"
             />
             <p className="text-[11px] text-zinc-500 mt-1.5">
-              In Discord: Server Settings &rarr; Integrations &rarr; Webhooks &rarr; Copy Webhook URL.
+              In Discord: Server Settings &rarr; Integrations &rarr; Webhooks &rarr; Copy Webhook
+              URL.
             </p>
           </div>
         </div>
@@ -319,8 +343,12 @@ function doPost(e) {
                 <Webhook className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-white">Custom Webhook (HMAC-SHA256 Signed)</h3>
-                <p className="text-xs text-zinc-400">Dispatches signed JSON payloads directly to your custom backend or microservice.</p>
+                <h3 className="text-sm font-semibold text-white">
+                  Custom Webhook (HMAC-SHA256 Signed)
+                </h3>
+                <p className="text-xs text-zinc-400">
+                  Dispatches signed JSON payloads directly to your custom backend or microservice.
+                </p>
               </div>
             </div>
             {webhookUrl ? (
@@ -336,7 +364,9 @@ function doPost(e) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-zinc-300 text-xs font-semibold mb-1.5">Webhook Endpoint URL</label>
+              <label className="block text-zinc-300 text-xs font-semibold mb-1.5">
+                Webhook Endpoint URL
+              </label>
               <input
                 type="url"
                 placeholder="https://api.yourdomain.com/webhooks/entrywise"
@@ -346,7 +376,9 @@ function doPost(e) {
               />
             </div>
             <div>
-              <label className="block text-zinc-300 text-xs font-semibold mb-1.5">HMAC Signing Secret Key (Optional)</label>
+              <label className="block text-zinc-300 text-xs font-semibold mb-1.5">
+                HMAC Signing Secret Key (Optional)
+              </label>
               <input
                 type="password"
                 placeholder="whsec_..."
@@ -358,7 +390,10 @@ function doPost(e) {
           </div>
 
           <p className="text-[11px] text-zinc-500">
-            Delivered with header <code className="text-zinc-400 font-mono">X-EntryWise-Signature: sha256=...</code>, complete SSRF protection (blocking internal IP ranges), and 5-second timeout with automated Cloudflare Queue retry.
+            Delivered with header{' '}
+            <code className="text-zinc-400 font-mono">X-EntryWise-Signature: sha256=...</code>,
+            complete SSRF protection (blocking internal IP ranges), and 5-second timeout with
+            automated Cloudflare Queue retry.
           </p>
         </div>
       </div>

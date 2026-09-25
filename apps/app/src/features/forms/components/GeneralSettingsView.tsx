@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import type { Site } from '../../types';
-import { api } from '../../services/api';
 import {
-  Settings,
-  Copy,
+  AlertCircle,
   Check,
-  ShieldAlert,
+  Copy,
   Loader2,
   Save,
-  AlertCircle,
+  Settings,
+  ShieldAlert,
   Trash2,
 } from 'lucide-react';
+import React, { useState } from 'react';
+import { api } from '@/lib';
+import type { Site } from '@/types';
 
 interface GeneralSettingsViewProps {
   site: Site;
@@ -104,7 +104,8 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
             <span>Form Settings &amp; Security</span>
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            Manage domain origin restrictions, API access keys, spam bot challenges, and lifecycle settings.
+            Manage domain origin restrictions, API access keys, spam bot challenges, and lifecycle
+            settings.
           </p>
         </div>
 
@@ -145,7 +146,9 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
         <h3 className="text-sm font-semibold text-white">Form Identity</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Form Friendly Name</label>
+            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+              Form Friendly Name
+            </label>
             <input
               type="text"
               value={name}
@@ -155,7 +158,9 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Primary Domain</label>
+            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+              Primary Domain
+            </label>
             <input
               type="text"
               required
@@ -185,7 +190,11 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
             onClick={handleCopyKey}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-white transition whitespace-nowrap text-xs font-medium"
           >
-            {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            {copiedKey ? (
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
             <span>{copiedKey ? 'Copied' : 'Copy Key'}</span>
           </button>
         </div>
@@ -208,15 +217,20 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
           className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 font-mono focus:outline-none focus:border-emerald-500/50 transition"
         />
         <p className="text-[11px] text-zinc-500">
-          Leave blank to default to the primary domain. Set to <code className="text-zinc-400 font-mono">*</code> to permit all origins (useful during frontend development and Vercel/Netlify preview branches).
+          Leave blank to default to the primary domain. Set to{' '}
+          <code className="text-zinc-400 font-mono">*</code> to permit all origins (useful during
+          frontend development and Vercel/Netlify preview branches).
         </p>
       </div>
 
       {/* Cloudflare Turnstile */}
       <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-3 shadow-lg">
-        <h3 className="text-sm font-semibold text-white">Cloudflare Turnstile Anti-Bot Protection</h3>
+        <h3 className="text-sm font-semibold text-white">
+          Cloudflare Turnstile Anti-Bot Protection
+        </h3>
         <p className="text-xs text-zinc-400">
-          Enforce seamless, invisible CAPTCHA verification to block spambots before they touch your backend or queues.
+          Enforce seamless, invisible CAPTCHA verification to block spambots before they touch your
+          backend or queues.
         </p>
         <input
           type="password"
@@ -226,7 +240,8 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
           className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 font-mono focus:outline-none focus:border-emerald-500/50 transition"
         />
         <p className="text-[11px] text-zinc-500">
-          When configured, incoming POST requests require a valid <code className="text-zinc-400 font-mono">cf-turnstile-response</code> token.
+          When configured, incoming POST requests require a valid{' '}
+          <code className="text-zinc-400 font-mono">cf-turnstile-response</code> token.
         </p>
       </div>
 
@@ -239,7 +254,8 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
           <div>
             <h3 className="text-sm font-semibold text-red-400">Danger Zone: Delete Form</h3>
             <p className="text-xs text-zinc-400">
-              Permanently delete this form and all its associated submissions, field definitions, and connectors.
+              Permanently delete this form and all its associated submissions, field definitions,
+              and connectors.
             </p>
           </div>
         </div>
@@ -256,7 +272,11 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
         ) : (
           <div className="p-4 rounded-xl border border-red-500/30 bg-[#0c0d10] space-y-3">
             <p className="text-xs text-red-300 font-medium leading-relaxed">
-              This action cannot be undone. To confirm, please type <span className="font-mono font-bold text-white bg-red-500/20 px-1.5 py-0.5 rounded">{site.domain}</span> below:
+              This action cannot be undone. To confirm, please type{' '}
+              <span className="font-mono font-bold text-white bg-red-500/20 px-1.5 py-0.5 rounded">
+                {site.domain}
+              </span>{' '}
+              below:
             </p>
 
             <input

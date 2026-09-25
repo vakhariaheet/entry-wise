@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import type { Company } from '../types';
-import { X, Building2, Plus, Loader2 } from 'lucide-react';
-import { api } from '../services/api';
+import { Building2, Loader2, Plus, X } from 'lucide-react';
+import type React from 'react';
+import { useState } from 'react';
+import { api } from '@/lib';
+import type { Company } from '@/types';
 
 interface WorkspaceModalProps {
   onClose: () => void;
@@ -10,7 +11,9 @@ interface WorkspaceModalProps {
 
 export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose, onWorkspaceCreated }) => {
   const [name, setName] = useState('');
-  const [emailProvider, setEmailProvider] = useState<'cloudflare' | 'resend' | 'mailersend' | 'mailtrap' | 'smtp2go'>('cloudflare');
+  const [emailProvider, setEmailProvider] = useState<
+    'cloudflare' | 'resend' | 'mailersend' | 'mailtrap' | 'smtp2go'
+  >('cloudflare');
   const [fromName, setFromName] = useState('');
   const [fromEmail, setFromEmail] = useState('');
   const [providerToken, setProviderToken] = useState('');
@@ -28,7 +31,9 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose, onWorks
         email_provider: emailProvider,
         from_name: fromName.trim() || undefined,
         from_email: fromEmail.trim() || undefined,
-        ...(emailProvider !== 'cloudflare' && providerToken ? { email_provider_token: providerToken.trim() } : {}),
+        ...(emailProvider !== 'cloudflare' && providerToken
+          ? { email_provider_token: providerToken.trim() }
+          : {}),
       } as any);
 
       onWorkspaceCreated(created);
@@ -100,7 +105,9 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose, onWorks
           {emailProvider !== 'cloudflare' && (
             <>
               <div>
-                <label className="block text-zinc-300 font-medium mb-1">Provider API Key / Token</label>
+                <label className="block text-zinc-300 font-medium mb-1">
+                  Provider API Key / Token
+                </label>
                 <input
                   type="password"
                   required
