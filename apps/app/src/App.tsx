@@ -27,6 +27,7 @@ import {
   EmailTemplateView,
   GeneralSettingsView,
   SchemaFieldsView,
+  TemplateStudioView,
 } from '@/features/forms';
 import { SubmissionDetailModal, SubmissionsTable } from '@/features/submissions';
 import { WorkspaceModal } from '@/features/workspaces';
@@ -35,6 +36,7 @@ import type { Company, FormField, Site, Submission } from '@/types';
 
 export type DashboardTab =
   | 'submissions'
+  | 'template-studio'
   | 'fields'
   | 'connectors'
   | 'template'
@@ -429,6 +431,11 @@ export const AppContent: React.FC<AppProps> = () => {
                       count: totalSubmissions,
                     },
                     {
+                      id: 'template-studio' as DashboardTab,
+                      label: 'Template Studio',
+                      icon: Sparkles,
+                    },
+                    {
                       id: 'fields' as DashboardTab,
                       label: 'Fields & Schema',
                       icon: SlidersHorizontal,
@@ -512,7 +519,21 @@ export const AppContent: React.FC<AppProps> = () => {
                   <EmailTemplateView site={currentSite} onSiteUpdated={handleSiteUpdated} />
                 )}
 
-                {activeTab === 'embed' && <CodeEmbedView site={currentSite} fields={siteFields} />}
+                {activeTab === 'template-studio' && (
+                  <TemplateStudioView
+                    site={currentSite}
+                    fields={siteFields}
+                    onFieldsUpdated={setSiteFields}
+                  />
+                )}
+
+                {activeTab === 'embed' && (
+                  <CodeEmbedView
+                    site={currentSite}
+                    fields={siteFields}
+                    onNavigateToStudio={() => setActiveTab('template-studio')}
+                  />
+                )}
 
                 {activeTab === 'settings' && (
                   <GeneralSettingsView
