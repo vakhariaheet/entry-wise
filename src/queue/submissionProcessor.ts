@@ -4,12 +4,16 @@ import { dispatchDiscordNotification } from '../services/connectors/discord';
 import { dispatchGoogleSheets } from '../services/connectors/googleSheets';
 import { dispatchSlackNotification } from '../services/connectors/slack';
 import { type EmailAttachment, EmailServiceFactory } from '../services/email';
+import type { Company } from '../types/company';
 import type { Env } from '../types/env';
 import type { SubmissionQueueMessage } from '../types/queue';
+import type { Site } from '../types/site';
 import { decrypt } from '../utils/encryption';
 import { dispatchWebhook } from '../utils/webhook';
 
-function recipientListFirst(site: any): string | undefined {
+function recipientListFirst(
+  site: Pick<Site, 'notification_emails'> & { admin_email?: string }
+): string | undefined {
   if (site.notification_emails) {
     const first = site.notification_emails.split(/[,;\n]/)[0]?.trim();
     if (first && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(first)) return first;
@@ -39,7 +43,9 @@ export async function processSubmissionDelivery(
 
   try {
     // 1. Fetch Site Configuration
-    const site = await env.DB.prepare('SELECT * FROM sites WHERE id = ?').bind(siteId).first<any>();
+    const site = await env.DB.prepare('SELECT * FROM sites WHERE id = ?')
+      .bind(siteId)
+      .first<Site>();
     if (!site) {
       console.error(
         `[Queue Processor] Site '${siteId}' not found for submission '${submissionId}'`
@@ -50,7 +56,7 @@ export async function processSubmissionDelivery(
     // 2. Fetch Company Configuration
     const company = await env.DB.prepare('SELECT * FROM companies WHERE id = ?')
       .bind(companyId)
-      .first<any>();
+      .first<Company>();
     if (!company) {
       console.error(`[Queue Processor] Company '${companyId}' not found for site '${siteId}'`);
       return { success: false, errors: [`Company '${companyId}' not found`] };
@@ -61,9 +67,9 @@ export async function processSubmissionDelivery(
     if (company.email_provider_token && env.ENCRYPTION_KEY) {
       try {
         decryptedApiKey = await decrypt(company.email_provider_token, env.ENCRYPTION_KEY);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('[Queue Processor] Decryption error:', err);
-        errors.push(`Decryption error: ${err.message}`);
+        errors.push(`Decryption error: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
@@ -80,7 +86,7 @@ export async function processSubmissionDelivery(
       type: f.mime_type || f.type || 'application/octet-stream',
     }));
 
-    const deliveryTasks: Promise<any>[] = [];
+    const deliveryTasks: Promise<unknown>[] = [];
 
     // 4. Admin Notification Email
     if (site.notify_on_submission !== 0) {
@@ -198,7 +204,11 @@ export async function processSubmissionDelivery(
             domain: site.domain,
             submission_id: submissionId,
             data: fields,
-            attachments: savedAttachmentMeta,
+            attachments: savedAttachmentMeta?.map((f) => ({
+              filename: f.filename || f.name || 'attachment',
+              size: f.size,
+              type: f.mime_type || f.type,
+            })),
           },
           site.webhook_secret
         ).catch((err) => {
@@ -255,11 +265,14 @@ export async function processSubmissionDelivery(
 
     await Promise.allSettled(deliveryTasks);
     return { success: errors.length === 0, errors };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(
       `[Queue Processor] Unexpected failure processing submission '${submissionId}':`,
       err
     );
-    return { success: false, errors: [err.message || 'Unknown processing error'] };
+    return {
+      success: false,
+      errors: [err instanceof Error ? err.message : 'Unknown processing error'],
+    };
   }
 }

@@ -11,7 +11,7 @@ export class ResendEmailService implements EmailService {
   async send(params: SendEmailParams) {
     const { from, fromName, to, subject, html, replyTo, attachments = [] } = params;
 
-    return await this.client.emails.send({
+    const result = await this.client.emails.send({
       from: `${fromName} <${from}>`,
       to,
       subject,
@@ -23,5 +23,11 @@ export class ResendEmailService implements EmailService {
         contentType: file.type ?? 'application/octet-stream',
       })),
     });
+
+    if (result.error) {
+      throw new Error(`Resend error: ${result.error.message || JSON.stringify(result.error)}`);
+    }
+
+    return result.data;
   }
 }

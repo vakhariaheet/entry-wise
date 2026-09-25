@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import type { JwtAuthPayload } from '../../../types/auth';
 import type { CreateCompanyBody } from '../../../types/company';
 import type { Env } from '../../../types/env';
 import { encrypt } from '../../../utils/encryption';
@@ -9,7 +10,7 @@ const CF_FROM_NAME = 'EntryWise';
 
 export const createCompany = async (c: Context<{ Bindings: Env }>) => {
   try {
-    const jwtPayload = c.get('jwtPayload') as any;
+    const jwtPayload = c.get('jwtPayload') as JwtAuthPayload | undefined;
     const userId = jwtPayload?.user_id || null;
 
     const body = (await c.req.json()) as CreateCompanyBody;
@@ -32,6 +33,25 @@ export const createCompany = async (c: Context<{ Bindings: Env }>) => {
       });
     }
 
+    if (
+      !isCloudflare &&
+      (!body.from_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.from_email.trim()))
+    ) {
+      return sendProblemDetails(
+        c,
+        422,
+        'A valid from_email is required for third-party email providers (e.g. notifications@yourdomain.com)',
+        {
+          invalidParams: [
+            {
+              name: 'from_email',
+              reason: 'Valid verified sender email address is required',
+            },
+          ],
+        }
+      );
+    }
+
     if (!isCloudflare && !body.email_provider_token) {
       return sendProblemDetails(
         c,
@@ -43,8 +63,10 @@ export const createCompany = async (c: Context<{ Bindings: Env }>) => {
       );
     }
 
-    const fromEmail = isCloudflare ? CF_FROM_EMAIL : (body.from_email ?? CF_FROM_EMAIL);
-    const fromName = isCloudflare ? body.from_name || body.name || CF_FROM_NAME : body.from_name!;
+    const fromEmail = isCloudflare ? CF_FROM_EMAIL : body.from_email?.trim() || CF_FROM_EMAIL;
+    const fromName = isCloudflare
+      ? body.from_name || body.name || CF_FROM_NAME
+      : body.from_name?.trim() || CF_FROM_NAME;
     const encryptedToken = body.email_provider_token
       ? await encrypt(body.email_provider_token, c.env.ENCRYPTION_KEY)
       : null;

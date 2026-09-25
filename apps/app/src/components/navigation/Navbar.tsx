@@ -16,6 +16,7 @@ interface NavbarProps {
   currentWorkspace: Company | null;
   onSelectWorkspace: (workspace: Company) => void;
   onOpenCreateWorkspace: () => void;
+  onOpenEditWorkspace?: () => void;
   sites: Site[];
   currentSite: Site | null;
   onSelectSite: (site: Site) => void;
@@ -29,6 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentWorkspace,
   onSelectWorkspace,
   onOpenCreateWorkspace,
+  onOpenEditWorkspace,
   sites,
   currentSite,
   onSelectSite,
@@ -93,7 +95,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
                 ))}
               </div>
-              <div className="pt-1.5 mt-1 border-t border-white/[0.06]">
+              <div className="pt-1.5 mt-1 border-t border-white/[0.06] space-y-0.5">
+                {currentWorkspace && onOpenEditWorkspace && (
+                  <button
+                    type="button"
+                    onClick={onOpenEditWorkspace}
+                    className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:text-white flex items-center gap-2 hover:bg-white/[0.04] transition font-medium"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Workspace &amp; Email Engine</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={onOpenCreateWorkspace}

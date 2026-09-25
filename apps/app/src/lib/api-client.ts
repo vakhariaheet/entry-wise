@@ -84,6 +84,25 @@ class ApiService {
     }
   }
 
+  async testCompanyEmail(
+    id: string,
+    recipientEmail?: string
+  ): Promise<{ success: boolean; message: string; provider?: string }> {
+    const res = await fetch(`${API_BASE}/companies/${id}/test-email`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ recipient_email: recipientEmail }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(
+        err.detail || err.message || `Failed to send test email (HTTP ${res.status})`
+      );
+    }
+    const json = await res.json();
+    return json.data || json;
+  }
+
   // Sites (Forms)
   async listSites(companyId?: string): Promise<Site[]> {
     const url = companyId

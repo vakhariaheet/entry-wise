@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import { getConnInfo } from 'hono/cloudflare-workers';
 import { processSubmissionDelivery } from '../../../queue/submissionProcessor';
+import type { EmailAttachment } from '../../../services/email';
 import { renderConfirmationPage } from '../../../templates/ConfirmationPage';
 import type { Env } from '../../../types/env';
 import type { SubmissionQueueMessage } from '../../../types/queue';
@@ -383,7 +384,7 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
 
       return c.html(
         renderConfirmationPage({
-          companyName: site.name || company.name || site.domain,
+          companyName: site.name || site.domain,
           siteDomain: site.domain,
           submissionId,
           submittedAt: submittedAtFormatted,

@@ -52,6 +52,7 @@ export const AppContent: React.FC<AppProps> = () => {
   const [workspaces, setWorkspaces] = useState<Company[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Company | null>(null);
   const [showCreateWorkspace, setShowCreateWorkspace] = useState<boolean>(false);
+  const [showEditWorkspace, setShowEditWorkspace] = useState<boolean>(false);
 
   // Forms / Sites state
   const [sites, setSites] = useState<Site[]>([]);
@@ -279,6 +280,7 @@ export const AppContent: React.FC<AppProps> = () => {
         currentWorkspace={currentWorkspace}
         onSelectWorkspace={setCurrentWorkspace}
         onOpenCreateWorkspace={() => setShowCreateWorkspace(true)}
+        onOpenEditWorkspace={() => setShowEditWorkspace(true)}
         sites={sites}
         currentSite={currentSite}
         onSelectSite={(site) => {
@@ -498,7 +500,12 @@ export const AppContent: React.FC<AppProps> = () => {
                 )}
 
                 {activeTab === 'connectors' && (
-                  <ConnectorsView site={currentSite} onSiteUpdated={handleSiteUpdated} />
+                  <ConnectorsView
+                    site={currentSite}
+                    onSiteUpdated={handleSiteUpdated}
+                    workspace={currentWorkspace}
+                    onConfigureEmailEngine={() => setShowEditWorkspace(true)}
+                  />
                 )}
 
                 {activeTab === 'template' && (
@@ -548,6 +555,19 @@ export const AppContent: React.FC<AppProps> = () => {
           onWorkspaceCreated={(newWorkspace) => {
             setWorkspaces((prev) => [newWorkspace, ...prev]);
             setCurrentWorkspace(newWorkspace);
+          }}
+        />
+      )}
+
+      {showEditWorkspace && currentWorkspace && (
+        <WorkspaceModal
+          initialWorkspace={currentWorkspace}
+          onClose={() => setShowEditWorkspace(false)}
+          onWorkspaceUpdated={(updatedWorkspace) => {
+            setCurrentWorkspace(updatedWorkspace);
+            setWorkspaces((prev) =>
+              prev.map((w) => (w.id === updatedWorkspace.id ? updatedWorkspace : w))
+            );
           }}
         />
       )}

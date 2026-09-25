@@ -1,20 +1,20 @@
 import type { EmailService, SendEmailParams } from './types';
 
-interface SMTP2GOResponse {
-  request_id: string;
-  data: SMTP2GOSuccessData | SMTP2GOErrorResponse;
-}
-
 interface SMTP2GOErrorResponse {
-  error_code: string;
-  error: string;
+  error_code?: string;
+  error?: string;
 }
 
 interface SMTP2GOSuccessData {
-  succeeded: number;
-  failed: number;
-  failures: any[];
-  email_id: string;
+  succeeded?: number;
+  failed?: number;
+  failures?: unknown[];
+  email_id?: string;
+}
+
+interface SMTP2GOResponse {
+  request_id?: string;
+  data?: (SMTP2GOSuccessData & SMTP2GOErrorResponse) | null;
 }
 
 class Smtp2GoEmailService implements EmailService {
@@ -25,7 +25,7 @@ class Smtp2GoEmailService implements EmailService {
   async send(params: SendEmailParams): Promise<void> {
     const { from, fromName, to, subject, html, replyTo, attachments = [] } = params;
 
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       sender: `${fromName} <${from}>`,
       to: [to],
       subject,
@@ -44,7 +44,7 @@ class Smtp2GoEmailService implements EmailService {
       payload.custom_headers = [{ header: 'Reply-To', value: replyTo }];
     }
 
-    const response = await fetch(this.SMTP2GO_API, {
+    const res = await fetch(this.SMTP2GO_API, {
       method: 'POST',
       headers: {
         'X-Smtp2go-Api-Key': this.apiKey,
@@ -52,11 +52,14 @@ class Smtp2GoEmailService implements EmailService {
         Accept: 'application/json',
       },
       body: JSON.stringify(payload),
-    }).then<Promise<SMTP2GOResponse>>((res) => res.json() as Promise<SMTP2GOResponse>);
+    });
 
-    if ('error_code' in response.data) {
-      const error: SMTP2GOErrorResponse = response.data;
-      throw new Error(`SMTP2GO API error (${response.request_id}): ${JSON.stringify(error)}`);
+    const response = (await res.json().catch(() => ({}))) as SMTP2GOResponse;
+
+    if (!res.ok || (response?.data && 'error_code' in response.data)) {
+      const errorMsg =
+        response?.data?.error || response?.data?.error_code || `SMTP2GO API error (${res.status})`;
+      throw new Error(`SMTP2GO delivery failed: ${errorMsg}`);
     }
   }
 }

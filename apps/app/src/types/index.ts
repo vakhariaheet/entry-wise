@@ -56,6 +56,7 @@ export interface Company {
   email_provider: string;
   from_email: string;
   from_name: string;
+  email_provider_token?: string | null;
   user_id?: string | null;
   created_at: string;
 }

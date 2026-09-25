@@ -7,22 +7,31 @@ import {
   Copy,
   FileSpreadsheet,
   Loader2,
+  Mail,
   MessageSquare,
   Radio,
   Save,
+  Settings,
   Share2,
   Webhook,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { api } from '@/lib';
-import type { Site } from '@/types';
+import type { Company, Site } from '@/types';
 
 interface ConnectorsViewProps {
   site: Site;
   onSiteUpdated: (site: Site) => void;
+  workspace?: Company | null;
+  onConfigureEmailEngine?: () => void;
 }
 
-export const ConnectorsView: React.FC<ConnectorsViewProps> = ({ site, onSiteUpdated }) => {
+export const ConnectorsView: React.FC<ConnectorsViewProps> = ({
+  site,
+  onSiteUpdated,
+  workspace,
+  onConfigureEmailEngine,
+}) => {
   const [googleSheetsUrl, setGoogleSheetsUrl] = useState(site.google_sheets_url || '');
   const [slackWebhookUrl, setSlackWebhookUrl] = useState(site.slack_webhook_url || '');
   const [discordWebhookUrl, setDiscordWebhookUrl] = useState(site.discord_webhook_url || '');
@@ -96,7 +105,10 @@ function doPost(e) {
     }
   };
 
+  const provider = workspace?.email_provider || 'cloudflare';
+
   const activeCount = [
+    true, // Email Delivery Engine is always active
     Boolean(googleSheetsUrl),
     Boolean(slackWebhookUrl),
     Boolean(discordWebhookUrl),
@@ -155,6 +167,58 @@ function doPost(e) {
 
       {/* Grid of Connectors */}
       <div className="grid grid-cols-1 gap-5">
+        {/* Email Delivery Engine (Cloudflare / Resend / MailerSend / Mailtrap / SMTP2GO) */}
+        <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-4 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <Mail className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <span>Email Delivery Engine</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 font-semibold uppercase">
+                    {provider}
+                  </span>
+                </h3>
+                <p className="text-xs text-zinc-400">
+                  {provider === 'cloudflare'
+                    ? 'Cloudflare Managed Email (Zero Config). Alerts and receipts are delivered from no-reply@entrywise.webbound.in.'
+                    : `Custom ${provider.toUpperCase()} provider connected. Sending from ${workspace?.from_name || 'EntryWise'} <${workspace?.from_email || 'configured email'}>.`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={onConfigureEmailEngine}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] text-xs font-medium text-white transition"
+              >
+                <Settings className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Configure Engine / BYOK</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl border border-white/[0.06] bg-[#0a0a0d] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-zinc-400">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+              <span>
+                Want to send from your own domain via <strong>Resend</strong>,{' '}
+                <strong>MailerSend</strong>, or <strong>SMTP2GO</strong>?
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={onConfigureEmailEngine}
+              className="text-xs text-emerald-400 hover:text-emerald-300 font-medium whitespace-nowrap self-start sm:self-auto"
+            >
+              Switch Provider &rarr;
+            </button>
+          </div>
+        </div>
+
         {/* Google Sheets */}
         <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-4 shadow-lg">
           <div className="flex items-center justify-between">

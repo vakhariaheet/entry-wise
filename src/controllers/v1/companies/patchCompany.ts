@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import type { JwtAuthPayload } from '../../../types/auth';
 import type { UpdateCompanyBody } from '../../../types/company';
 import type { Env } from '../../../types/env';
 import { encrypt } from '../../../utils/encryption';
@@ -11,14 +12,14 @@ export const patchCompany = async (c: Context<{ Bindings: Env }>) => {
       return sendProblemDetails(c, 400, 'Company ID path parameter is required');
     }
 
-    const jwtPayload = c.get('jwtPayload') as any;
+    const jwtPayload = c.get('jwtPayload') as JwtAuthPayload | undefined;
     const body = (await c.req.json()) as UpdateCompanyBody;
 
-    let checkSql = `SELECT id, email_provider, user_id FROM companies WHERE id = ?`;
-    const checkParams: any[] = [id];
+    let checkSql = 'SELECT id, email_provider, user_id FROM companies WHERE id = ?';
+    const checkParams: (string | number)[] = [id];
 
     if (jwtPayload?.role === 'clerk_user' && jwtPayload?.user_id) {
-      checkSql += ` AND user_id = ?`;
+      checkSql += ' AND user_id = ?';
       checkParams.push(jwtPayload.user_id);
     }
 
@@ -34,28 +35,43 @@ export const patchCompany = async (c: Context<{ Bindings: Env }>) => {
     const newProvider = body.email_provider ?? currentProvider;
     const isCloudflare = newProvider === 'cloudflare';
 
-    // If changing to a third-party provider, token is required
+    // If changing to a third-party provider, token is required unless already set
     if (!isCloudflare && body.email_provider && !body.email_provider_token) {
-      return sendProblemDetails(
-        c,
-        422,
-        'email_provider_token is required when changing to a third-party provider',
-        {
-          invalidParams: [
-            { name: 'email_provider_token', reason: 'Token required for third-party provider' },
-          ],
-        }
-      );
+      // Check if existing token exists
+      const existing = results[0];
+      if (existing.email_provider === 'cloudflare') {
+        return sendProblemDetails(
+          c,
+          422,
+          'email_provider_token is required when switching to a third-party provider',
+          {
+            invalidParams: [
+              { name: 'email_provider_token', reason: 'Token required for third-party provider' },
+            ],
+          }
+        );
+      }
     }
 
-    const updateBody: Record<string, any> = { ...body };
-    if (isCloudflare) {
-      delete updateBody.from_email;
-      delete updateBody.from_name;
+    if (
+      !isCloudflare &&
+      body.from_email &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.from_email.trim())
+    ) {
+      return sendProblemDetails(c, 422, 'Invalid sender email format', {
+        invalidParams: [{ name: 'from_email', reason: 'Must be a valid email address' }],
+      });
+    }
+
+    const updateBody: Record<string, unknown> = { ...body };
+    if (isCloudflare && body.email_provider === 'cloudflare') {
+      updateBody.from_email = 'no-reply@entrywise.webbound.in';
+      updateBody.from_name = body.name || results[0].id || 'EntryWise';
+      updateBody.email_provider_token = null;
     }
     if (body.email_provider_token) {
       updateBody.email_provider_token = await encrypt(
-        body.email_provider_token,
+        body.email_provider_token.trim(),
         c.env.ENCRYPTION_KEY
       );
     }

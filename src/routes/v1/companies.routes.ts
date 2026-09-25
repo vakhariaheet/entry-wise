@@ -7,6 +7,7 @@ import { deleteCompany } from '../../controllers/v1/companies/deleteCompany';
 import { getCompany } from '../../controllers/v1/companies/getCompany';
 import { listCompanies } from '../../controllers/v1/companies/listCompanies';
 import { patchCompany } from '../../controllers/v1/companies/patchCompany';
+import { testCompanyEmail } from '../../controllers/v1/companies/testCompanyEmail';
 import { createSite } from '../../controllers/v1/sites/createSite';
 import { listSites } from '../../controllers/v1/sites/listSites';
 import { verifyAuth } from '../../middleware/auth';
@@ -78,6 +79,18 @@ companiesRouter.delete(
   }),
   validator('param', z.object({ id: z.string() })),
   deleteCompany
+);
+
+companiesRouter.post(
+  '/:id/test-email',
+  describeRoute({
+    summary: 'Send test email',
+    description: 'Verify company email provider credentials by sending a test message',
+    tags: ['Companies'],
+    security: [{ bearerAuth: [] }],
+  }),
+  validator('param', z.object({ id: z.string() })),
+  testCompanyEmail
 );
 
 // Nested sites sub-resource: /v1/companies/{company_id}/sites
