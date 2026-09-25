@@ -45,6 +45,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
             <span className="text-xs font-mono text-white font-semibold">{submission.id}</span>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition"
           >
@@ -107,7 +108,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
               <div className="space-y-2">
                 {submission.attachments.map((att, idx) => (
                   <a
-                    key={idx}
+                    key={att.url || att.filename || `${att.name}-${idx}`}
                     href={att.url}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -135,6 +136,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
                 Raw JSON
               </h4>
               <button
+                type="button"
                 onClick={handleCopyJson}
                 className="flex items-center gap-1 text-[11px] font-mono text-zinc-400 hover:text-white transition"
               >
@@ -157,6 +159,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
           <div className="flex items-center gap-2">
             {submission.status !== 'read' && (
               <button
+                type="button"
                 onClick={() => {
                   onUpdateStatus(submission.id, 'read');
                   onClose();
@@ -169,6 +172,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
             )}
             {submission.status !== 'archived' && (
               <button
+                type="button"
                 onClick={() => {
                   onUpdateStatus(submission.id, 'archived');
                   onClose();
@@ -181,6 +185,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
             )}
             {submission.status !== 'spam' && (
               <button
+                type="button"
                 onClick={() => {
                   onUpdateStatus(submission.id, 'spam');
                   onClose();
@@ -194,6 +199,7 @@ export const SubmissionDetailModal: React.FC<SubmissionDetailModalProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={() => {
               onDeleteSubmission(submission.id);
               onClose();

@@ -102,15 +102,15 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
       if (fields.length > 0) {
         try {
           await api.replaceFields(newSite.id, fields);
-        } catch (fieldErr: any) {
+        } catch (fieldErr: unknown) {
           console.warn('Failed to save initial fields:', fieldErr);
         }
       }
 
       onSiteCreated(newSite);
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to register form');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to register form');
     } finally {
       setIsSubmitting(false);
     }
@@ -133,6 +133,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition"
           >
@@ -151,8 +152,14 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
           {/* Section 1: Form Name & Domain */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-zinc-300 font-medium mb-1">Form Friendly Name</label>
+              <label
+                htmlFor="create-form-name-input"
+                className="block text-zinc-300 font-medium mb-1"
+              >
+                Form Friendly Name
+              </label>
               <input
+                id="create-form-name-input"
                 type="text"
                 placeholder="e.g. Contact Us Form"
                 value={name}
@@ -165,10 +172,14 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-zinc-300 font-medium mb-1">
+              <label
+                htmlFor="create-form-domain-input"
+                className="block text-zinc-300 font-medium mb-1"
+              >
                 Primary Website Domain <span className="text-emerald-400">*</span>
               </label>
               <input
+                id="create-form-domain-input"
                 type="text"
                 required
                 placeholder="acme.com or localhost:3000"
@@ -270,7 +281,7 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
               ) : (
                 fields.map((field, idx) => (
                   <div
-                    key={field.name + idx}
+                    key={field.name}
                     className="px-3 py-2 flex items-center justify-between hover:bg-white/[0.02] transition"
                   >
                     <div className="flex items-center gap-2">
@@ -357,10 +368,14 @@ export const CreateSiteModal: React.FC<CreateSiteModalProps> = ({
 
             {showAdvanced && (
               <div className="mt-3 p-3 rounded-xl border border-white/[0.08] bg-[#09090b] space-y-2 animate-in fade-in duration-150">
-                <label className="block text-zinc-300 font-medium">
+                <label
+                  htmlFor="create-form-notification-emails-input"
+                  className="block text-zinc-300 font-medium"
+                >
                   Notification Recipient Emails
                 </label>
                 <input
+                  id="create-form-notification-emails-input"
                   type="text"
                   placeholder="team@acme.com, alerts@acme.com"
                   value={notificationEmails}

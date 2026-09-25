@@ -88,9 +88,9 @@ function doPost(e) {
       onSiteUpdated(updated);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to update connectors:', err);
-      setErrorMessage(err.message || 'Failed to update connectors');
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to update connectors');
     } finally {
       setIsSaving(false);
     }
@@ -181,10 +181,14 @@ function doPost(e) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+            <label
+              htmlFor="sheets-url-input"
+              className="block text-xs font-semibold text-zinc-300 mb-1.5"
+            >
               Google Apps Script Web App URL or Zapier / Make Webhook
             </label>
             <input
+              id="sheets-url-input"
               type="url"
               placeholder="https://script.google.com/macros/s/.../exec"
               value={googleSheetsUrl}
@@ -275,10 +279,14 @@ function doPost(e) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+            <label
+              htmlFor="slack-url-input"
+              className="block text-xs font-semibold text-zinc-300 mb-1.5"
+            >
               Slack Incoming Webhook URL
             </label>
             <input
+              id="slack-url-input"
               type="url"
               placeholder="https://hooks.slack.com/services/..."
               value={slackWebhookUrl}
@@ -318,10 +326,14 @@ function doPost(e) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+            <label
+              htmlFor="discord-url-input"
+              className="block text-xs font-semibold text-zinc-300 mb-1.5"
+            >
               Discord Webhook URL
             </label>
             <input
+              id="discord-url-input"
               type="url"
               placeholder="https://discord.com/api/webhooks/..."
               value={discordWebhookUrl}
@@ -364,10 +376,14 @@ function doPost(e) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-zinc-300 text-xs font-semibold mb-1.5">
+              <label
+                htmlFor="custom-webhook-url-input"
+                className="block text-zinc-300 text-xs font-semibold mb-1.5"
+              >
                 Webhook Endpoint URL
               </label>
               <input
+                id="custom-webhook-url-input"
                 type="url"
                 placeholder="https://api.yourdomain.com/webhooks/entrywise"
                 value={webhookUrl}
@@ -376,10 +392,14 @@ function doPost(e) {
               />
             </div>
             <div>
-              <label className="block text-zinc-300 text-xs font-semibold mb-1.5">
+              <label
+                htmlFor="custom-webhook-secret-input"
+                className="block text-zinc-300 text-xs font-semibold mb-1.5"
+              >
                 HMAC Signing Secret Key (Optional)
               </label>
               <input
+                id="custom-webhook-secret-input"
                 type="password"
                 placeholder="whsec_..."
                 value={webhookSecret}

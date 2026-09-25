@@ -1,7 +1,7 @@
 export interface Submission {
   id: string;
   site_id: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   attachments?: Array<{
     filename?: string;
     name?: string;

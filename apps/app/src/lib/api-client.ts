@@ -107,7 +107,7 @@ class ApiService {
     notification_emails?: string;
     timezone?: string;
     company_id?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   }): Promise<Site> {
     const res = await fetch(`${API_BASE}/sites`, {
       method: 'POST',

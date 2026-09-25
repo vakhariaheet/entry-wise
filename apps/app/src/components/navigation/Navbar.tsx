@@ -59,7 +59,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Workspace Switcher */}
           <div className="relative group">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition text-xs font-medium text-zinc-200">
+            <button
+              type="button"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition text-xs font-medium text-zinc-200"
+            >
               <Building2 className="w-3.5 h-3.5 text-zinc-400" />
               <span className="max-w-[120px] truncate">
                 {currentWorkspace ? currentWorkspace.name : 'Workspace'}
@@ -75,6 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {workspaces.map((ws) => (
                   <button
                     key={ws.id}
+                    type="button"
                     onClick={() => onSelectWorkspace(ws)}
                     className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-white/[0.04] transition ${
                       currentWorkspace?.id === ws.id
@@ -91,6 +95,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
               <div className="pt-1.5 mt-1 border-t border-white/[0.06]">
                 <button
+                  type="button"
                   onClick={onOpenCreateWorkspace}
                   className="w-full text-left px-3 py-1.5 text-xs text-zinc-400 hover:text-white flex items-center gap-2 hover:bg-white/[0.04] transition"
                 >
@@ -103,7 +108,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Form / Site Switcher */}
           <div className="relative group">
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition text-xs font-medium text-zinc-200">
+            <button
+              type="button"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] transition text-xs font-medium text-zinc-200"
+            >
               <Globe className="w-3.5 h-3.5 text-emerald-400" />
               <span className="max-w-[140px] truncate">
                 {currentSite
@@ -123,6 +131,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {sites.map((site) => (
                   <button
                     key={site.id}
+                    type="button"
                     onClick={() => onSelectSite(site)}
                     className={`w-full text-left px-3 py-2 text-xs flex flex-col hover:bg-white/[0.04] transition ${
                       currentSite?.id === site.id
@@ -144,6 +153,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
               <div className="pt-1.5 mt-1 border-t border-white/[0.06]">
                 <button
+                  type="button"
                   onClick={onOpenCreateSite}
                   className="w-full text-left px-3 py-1.5 text-xs text-zinc-400 hover:text-white flex items-center gap-2 hover:bg-white/[0.04] transition"
                 >
@@ -159,6 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-3">
           {currentSite && (
             <button
+              type="button"
               onClick={onOpenAiPrompt}
               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-medium transition shadow-sm"
             >
@@ -169,6 +180,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {currentSite && (
             <button
+              type="button"
               onClick={onOpenSiteSettings}
               className="p-2 rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.06] text-zinc-300 hover:text-white transition"
               title="Form Settings, Connectors &amp; Templates"

@@ -37,24 +37,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
-      "suspicious": {
-        "noExplicitAny": "off",
-        "noArrayIndexKey": "off"
-      },
-      "style": {
-        "noNonNullAssertion": "off"
-      },
-      "correctness": {
-        "noUnusedVariables": "warn",
-        "useExhaustiveDependencies": "warn"
-      },
-      "a11y": {
-        "useKeyWithClickEvents": "off",
-        "useButtonType": "off",
-        "noLabelWithoutControl": "off",
-        "noSvgWithoutTitle": "off"
-      }
+      "recommended": true
     }
   },
   "javascript": {

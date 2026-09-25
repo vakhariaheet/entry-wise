@@ -90,6 +90,7 @@ const submitForm = async (formData: { name: string; email: string; message: stri
             <h3 className="text-sm font-semibold text-white">Universal AI Integration Prompt</h3>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition"
           >
@@ -107,24 +108,28 @@ const submitForm = async (formData: { name: string; email: string; message: stri
         <div className="px-6 pt-4 flex items-center justify-between">
           <div className="flex items-center bg-[#09090b] p-0.5 rounded-lg border border-white/[0.06] text-xs font-medium">
             <button
+              type="button"
               onClick={() => setActiveTab('prompt')}
               className={`px-3 py-1.5 rounded-md transition ${activeTab === 'prompt' ? 'bg-zinc-800 text-white font-semibold' : 'text-zinc-400 hover:text-white'}`}
             >
               Cursor / Claude Prompt
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('fetch')}
               className={`px-3 py-1.5 rounded-md transition ${activeTab === 'fetch' ? 'bg-zinc-800 text-white font-semibold' : 'text-zinc-400 hover:text-white'}`}
             >
               fetch() API
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('html')}
               className={`px-3 py-1.5 rounded-md transition ${activeTab === 'html' ? 'bg-zinc-800 text-white font-semibold' : 'text-zinc-400 hover:text-white'}`}
             >
               HTML &lt;form&gt;
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('curl')}
               className={`px-3 py-1.5 rounded-md transition ${activeTab === 'curl' ? 'bg-zinc-800 text-white font-semibold' : 'text-zinc-400 hover:text-white'}`}
             >
@@ -133,6 +138,7 @@ const submitForm = async (formData: { name: string; email: string; message: stri
           </div>
 
           <button
+            type="button"
             onClick={handleCopy}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] text-white text-xs font-medium transition"
           >
@@ -156,6 +162,7 @@ const submitForm = async (formData: { name: string; email: string; message: stri
         <div className="px-6 py-3 border-t border-white/[0.08] bg-[#0c0c0e] flex items-center justify-between text-xs text-zinc-500">
           <span>Works natively with Next.js, Remix, Astro, Svelte, Vue, and plain HTML.</span>
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-1.5 rounded-lg text-xs font-medium bg-white text-black hover:bg-zinc-200 transition"
           >

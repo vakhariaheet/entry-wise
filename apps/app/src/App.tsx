@@ -108,7 +108,7 @@ export const AppContent: React.FC<AppProps> = () => {
           return fetchedWorkspaces[0];
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load workspaces:', err);
     }
   }, [isSignedIn, getToken]);
@@ -139,9 +139,9 @@ export const AppContent: React.FC<AppProps> = () => {
       } else {
         setCurrentSite(null);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load sites:', err);
-      setApiError(err.message || 'Failed to load sites from backend');
+      setApiError(err instanceof Error ? err.message : 'Failed to load sites from backend');
     } finally {
       setIsLoadingSites(false);
     }
@@ -171,9 +171,9 @@ export const AppContent: React.FC<AppProps> = () => {
       });
       setSubmissions(res.data);
       setTotalSubmissions(res.total);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load submissions:', err);
-      setApiError(err.message || 'Failed to load submissions from backend');
+      setApiError(err instanceof Error ? err.message : 'Failed to load submissions from backend');
     } finally {
       setIsLoadingSubmissions(false);
     }
@@ -216,9 +216,9 @@ export const AppContent: React.FC<AppProps> = () => {
       if (selectedSubmission?.id === id) {
         setSelectedSubmission((prev) => (prev ? { ...prev, status } : null));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to update status:', err);
-      alert(`Error updating status: ${err.message}`);
+      alert(`Error updating status: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -232,9 +232,9 @@ export const AppContent: React.FC<AppProps> = () => {
       if (selectedSubmission?.id === id) {
         setSelectedSubmission(null);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to delete submission:', err);
-      alert(`Error deleting submission: ${err.message}`);
+      alert(`Error deleting submission: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -299,6 +299,7 @@ export const AppContent: React.FC<AppProps> = () => {
               <span>{apiError}</span>
             </div>
             <button
+              type="button"
               onClick={() => {
                 loadSites();
                 if (currentSite) loadSubmissions();
@@ -334,6 +335,7 @@ export const AppContent: React.FC<AppProps> = () => {
               </p>
             </div>
             <button
+              type="button"
               onClick={() => setShowCreateSite(true)}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-black text-xs font-semibold hover:bg-zinc-200 transition shadow-lg shadow-white/5"
             >
@@ -405,6 +407,7 @@ export const AppContent: React.FC<AppProps> = () => {
 
                   <div className="flex items-center gap-2">
                     <button
+                      type="button"
                       onClick={() => setShowAiPrompt(true)}
                       className="px-3.5 py-1.5 rounded-xl border border-white/[0.08] bg-[#121215] hover:bg-white/[0.05] text-xs font-medium text-zinc-300 hover:text-white transition flex items-center gap-1.5"
                     >

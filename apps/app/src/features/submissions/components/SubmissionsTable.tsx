@@ -95,6 +95,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
           {(['all', 'new', 'read', 'archived', 'spam'] as const).map((st) => (
             <button
               key={st}
+              type="button"
               onClick={() => onStatusChange(st)}
               className={`px-3 py-1.5 rounded-lg capitalize transition ${
                 currentStatus === st
@@ -121,6 +122,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onExportCsv}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-[#121215] hover:bg-white/[0.05] text-xs font-medium text-zinc-300 hover:text-white transition"
             title="Export CSV (RFC 4180)"
@@ -170,20 +172,33 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                 </tr>
               ) : (
                 filteredSubmissions.map((sub) => {
-                  const senderName =
-                    sub.data.name || sub.data.fullName || sub.data.author || 'Anonymous';
-                  const senderEmail = sub.data.email || sub.data.from || '';
-                  const messagePreview =
-                    sub.data.message ||
-                    sub.data.body ||
-                    sub.data.inquiry ||
-                    JSON.stringify(sub.data);
+                  const senderName = String(
+                    sub.data.name || sub.data.fullName || sub.data.author || 'Anonymous'
+                  );
+                  const senderEmail = sub.data.email
+                    ? String(sub.data.email)
+                    : sub.data.from
+                      ? String(sub.data.from)
+                      : '';
+                  const rawMessage = sub.data.message || sub.data.body || sub.data.inquiry;
+                  const messagePreview = rawMessage
+                    ? typeof rawMessage === 'object'
+                      ? JSON.stringify(rawMessage)
+                      : String(rawMessage)
+                    : JSON.stringify(sub.data);
 
                   return (
                     <tr
                       key={sub.id}
                       onClick={() => onSelectSubmission(sub)}
-                      className="hover:bg-white/[0.02] cursor-pointer transition"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onSelectSubmission(sub);
+                        }
+                      }}
+                      tabIndex={0}
+                      className="hover:bg-white/[0.02] cursor-pointer transition focus:outline-none focus:bg-white/[0.04]"
                     >
                       <td className="px-4 py-3 whitespace-nowrap">{getStatusBadge(sub.status)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -204,10 +219,12 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                       <td
                         className="px-4 py-3 whitespace-nowrap text-right"
                         onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
                       >
                         <div className="inline-flex items-center gap-1 text-zinc-400">
                           {sub.status === 'new' && (
                             <button
+                              type="button"
                               onClick={() => onUpdateStatus(sub.id, 'read')}
                               title="Mark Read"
                               className="p-1 hover:text-white hover:bg-white/[0.06] rounded transition"
@@ -217,6 +234,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                           )}
                           {sub.status !== 'archived' && (
                             <button
+                              type="button"
                               onClick={() => onUpdateStatus(sub.id, 'archived')}
                               title="Archive"
                               className="p-1 hover:text-purple-400 hover:bg-white/[0.06] rounded transition"
@@ -226,6 +244,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                           )}
                           {sub.status !== 'spam' && (
                             <button
+                              type="button"
                               onClick={() => onUpdateStatus(sub.id, 'spam')}
                               title="Mark Spam"
                               className="p-1 hover:text-amber-400 hover:bg-white/[0.06] rounded transition"
@@ -234,6 +253,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                             </button>
                           )}
                           <button
+                            type="button"
                             onClick={() => onDeleteSubmission(sub.id)}
                             title="Delete Permanently"
                             className="p-1 hover:text-red-400 hover:bg-white/[0.06] rounded transition"

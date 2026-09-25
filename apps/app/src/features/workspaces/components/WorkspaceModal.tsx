@@ -34,12 +34,12 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose, onWorks
         ...(emailProvider !== 'cloudflare' && providerToken
           ? { email_provider_token: providerToken.trim() }
           : {}),
-      } as any);
+      });
 
       onWorkspaceCreated(created);
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to create workspace');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create workspace');
     } finally {
       setIsSubmitting(false);
     }
@@ -55,6 +55,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose, onWorks
             <h3 className="text-sm font-semibold text-white">Create New Workspace</h3>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition"
           >
@@ -71,8 +72,11 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose, onWorks
           )}
 
           <div>
-            <label className="block text-zinc-300 font-medium mb-1">Workspace Name</label>
+            <label htmlFor="workspace-name-input" className="block text-zinc-300 font-medium mb-1">
+              Workspace Name
+            </label>
             <input
+              id="workspace-name-input"
               type="text"
               required
               placeholder="e.g. Acme Corp, Marketing Agency"
@@ -83,10 +87,20 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose, onWorks
           </div>
 
           <div>
-            <label className="block text-zinc-300 font-medium mb-1">Email Delivery Engine</label>
+            <label
+              htmlFor="workspace-email-provider-select"
+              className="block text-zinc-300 font-medium mb-1"
+            >
+              Email Delivery Engine
+            </label>
             <select
+              id="workspace-email-provider-select"
               value={emailProvider}
-              onChange={(e) => setEmailProvider(e.target.value as any)}
+              onChange={(e) =>
+                setEmailProvider(
+                  e.target.value as 'cloudflare' | 'resend' | 'mailersend' | 'mailtrap' | 'smtp2go'
+                )
+              }
               className="w-full bg-[#09090b] border border-white/[0.08] rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-zinc-500 transition"
             >
               <option value="cloudflare">Cloudflare Managed Email (Zero Config)</option>
@@ -105,10 +119,14 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose, onWorks
           {emailProvider !== 'cloudflare' && (
             <>
               <div>
-                <label className="block text-zinc-300 font-medium mb-1">
+                <label
+                  htmlFor="workspace-provider-token-input"
+                  className="block text-zinc-300 font-medium mb-1"
+                >
                   Provider API Key / Token
                 </label>
                 <input
+                  id="workspace-provider-token-input"
                   type="password"
                   required
                   placeholder="re_... or api key"
@@ -120,8 +138,14 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose, onWorks
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-zinc-300 font-medium mb-1">Sender Name</label>
+                  <label
+                    htmlFor="workspace-sender-name-input"
+                    className="block text-zinc-300 font-medium mb-1"
+                  >
+                    Sender Name
+                  </label>
                   <input
+                    id="workspace-sender-name-input"
                     type="text"
                     required
                     placeholder="Acme Support"
@@ -131,8 +155,14 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ onClose, onWorks
                   />
                 </div>
                 <div>
-                  <label className="block text-zinc-300 font-medium mb-1">Sender Email</label>
+                  <label
+                    htmlFor="workspace-sender-email-input"
+                    className="block text-zinc-300 font-medium mb-1"
+                  >
+                    Sender Email
+                  </label>
                   <input
+                    id="workspace-sender-email-input"
                     type="email"
                     required
                     placeholder="hello@acme.com"

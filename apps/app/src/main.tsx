@@ -26,16 +26,19 @@ const ClerkProviderWithRouter = ({ children }: { children: React.ReactNode }) =>
   );
 };
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      {isClerkConfigured ? (
-        <ClerkProviderWithRouter>
-          <App isClerkConfigured={true} />
-        </ClerkProviderWithRouter>
-      ) : (
-        <App isClerkConfigured={false} />
-      )}
-    </BrowserRouter>
-  </React.StrictMode>
-);
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <BrowserRouter>
+        {isClerkConfigured ? (
+          <ClerkProviderWithRouter>
+            <App isClerkConfigured={true} />
+          </ClerkProviderWithRouter>
+        ) : (
+          <App isClerkConfigured={false} />
+        )}
+      </BrowserRouter>
+    </React.StrictMode>
+  );
+}

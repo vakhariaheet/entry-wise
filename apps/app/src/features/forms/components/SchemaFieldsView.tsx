@@ -98,9 +98,9 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
       onSiteUpdated(updatedSite);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to update form schema:', err);
-      setErrorMessage(err.message || 'Failed to update form schema');
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to update form schema');
     } finally {
       setIsSaving(false);
     }
@@ -172,10 +172,14 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
       {/* Form Profile Details */}
       <div className="p-5 rounded-2xl border border-white/[0.08] bg-[#121318] grid grid-cols-1 md:grid-cols-2 gap-5 shadow-lg">
         <div>
-          <label className="block text-xs font-semibold text-zinc-200 mb-1.5">
+          <label
+            htmlFor="schema-form-name-input"
+            className="block text-xs font-semibold text-zinc-200 mb-1.5"
+          >
             Form Friendly Name
           </label>
           <input
+            id="schema-form-name-input"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -188,10 +192,14 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-zinc-200 mb-1.5">
+          <label
+            htmlFor="schema-domain-input"
+            className="block text-xs font-semibold text-zinc-200 mb-1.5"
+          >
             Associated Website Domain
           </label>
           <input
+            id="schema-domain-input"
             type="text"
             required
             value={domain}
@@ -301,7 +309,7 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
           ) : (
             localFields.map((field, idx) => (
               <div
-                key={field.name + idx}
+                key={field.name}
                 className="px-4 py-3 flex items-center justify-between hover:bg-white/[0.02] transition group"
               >
                 <div className="flex items-center gap-3">

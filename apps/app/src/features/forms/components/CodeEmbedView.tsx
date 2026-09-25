@@ -142,7 +142,10 @@ curl -X POST "${endpointUrl}" \\
       {/* Universal Ingestion Endpoint */}
       <div className="p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] space-y-3 shadow-lg">
         <div className="flex items-center justify-between">
-          <label className="block font-semibold text-emerald-400 uppercase tracking-wider text-xs">
+          <label
+            htmlFor="universal-endpoint-input"
+            className="block font-semibold text-emerald-400 uppercase tracking-wider text-xs"
+          >
             Universal Form Ingestion Endpoint
           </label>
           <span className="text-[11px] font-mono text-zinc-400 bg-white/[0.04] border border-white/[0.08] px-2 py-0.5 rounded">
@@ -151,6 +154,7 @@ curl -X POST "${endpointUrl}" \\
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <input
+            id="universal-endpoint-input"
             type="text"
             readOnly
             value={endpointUrl}

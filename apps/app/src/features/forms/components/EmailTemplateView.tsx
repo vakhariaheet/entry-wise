@@ -80,9 +80,9 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
       onSiteUpdated(updated);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to update email settings:', err);
-      setErrorMessage(err.message || 'Failed to update email settings');
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to update email settings');
     } finally {
       setIsSaving(false);
     }
@@ -174,10 +174,14 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
         {notifyOnSubmission && (
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-200 mb-1.5">
+              <label
+                htmlFor="notification-emails-input"
+                className="block text-xs font-semibold text-zinc-200 mb-1.5"
+              >
                 Notification Recipient Emails
               </label>
               <textarea
+                id="notification-emails-input"
                 rows={2}
                 placeholder="team@acme.com, founder@acme.com, leads@marketing.com"
                 value={notificationEmails}
@@ -236,9 +240,9 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
             <div className="space-y-5">
               {/* Dynamic Tokens */}
               <div>
-                <label className="block text-zinc-400 text-xs mb-2 font-medium">
+                <span className="block text-zinc-400 text-xs mb-2 font-medium">
                   Insert dynamic template variables:
-                </label>
+                </span>
                 <div className="flex flex-wrap gap-1.5">
                   {['{{name}}', '{{email}}', '{{company}}', '{{domain}}', '{{submission_id}}'].map(
                     (tag) => (
@@ -257,10 +261,14 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
 
               {/* Subject Line */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                <label
+                  htmlFor="auto-responder-subject-input"
+                  className="block text-xs font-semibold text-zinc-300 mb-1.5"
+                >
                   Email Subject Line
                 </label>
                 <input
+                  id="auto-responder-subject-input"
                   type="text"
                   value={autoResponderSubject}
                   onChange={(e) => setAutoResponderSubject(e.target.value)}
@@ -271,10 +279,14 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
 
               {/* Confirmation Message Body */}
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                <label
+                  htmlFor="auto-responder-body-input"
+                  className="block text-xs font-semibold text-zinc-300 mb-1.5"
+                >
                   Confirmation Message Body
                 </label>
                 <textarea
+                  id="auto-responder-body-input"
                   rows={8}
                   value={autoResponderBody}
                   onChange={(e) => setAutoResponderBody(e.target.value)}
@@ -291,9 +303,9 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
             {/* Right: Live Responsive Preview */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-zinc-300">
+                <span className="text-xs font-semibold text-zinc-300">
                   Live Rendered Email Preview
-                </label>
+                </span>
                 <div className="flex items-center gap-1 bg-[#0a0a0d] p-1 rounded-xl border border-white/[0.08]">
                   <button
                     type="button"

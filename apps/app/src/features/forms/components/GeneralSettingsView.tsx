@@ -68,9 +68,9 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
       onSiteUpdated(updated);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to update form settings:', err);
-      setErrorMessage(err.message || 'Failed to update form settings');
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to update form settings');
     } finally {
       setIsSaving(false);
     }
@@ -87,9 +87,9 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
     try {
       await api.deleteSite(site.id);
       onSiteDeleted(site.id);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to delete form:', err);
-      setDeleteError(err.message || 'Failed to delete form');
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete form');
       setIsDeleting(false);
     }
   };
@@ -146,10 +146,14 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
         <h3 className="text-sm font-semibold text-white">Form Identity</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+            <label
+              htmlFor="form-name-input"
+              className="block text-xs font-semibold text-zinc-300 mb-1.5"
+            >
               Form Friendly Name
             </label>
             <input
+              id="form-name-input"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -158,10 +162,14 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+            <label
+              htmlFor="primary-domain-input"
+              className="block text-xs font-semibold text-zinc-300 mb-1.5"
+            >
               Primary Domain
             </label>
             <input
+              id="primary-domain-input"
               type="text"
               required
               value={domain}
