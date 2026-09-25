@@ -95,6 +95,29 @@ export const getSiteSchema = z.object({
 
 export const deleteSiteSchema = getSiteSchema;
 
+export const testSiteEmailSchema = z.object({
+  recipient_email: z.string().email('Invalid email address format').openapi({
+    description: 'Email address where the test preview should be sent',
+    example: 'alex.taylor@example.com',
+    format: 'email',
+  }),
+  template_type: z.enum(['auto_responder', 'submission_alert']).default('auto_responder').openapi({
+    description:
+      'Which email template to test: auto_responder (to submitter) or submission_alert (to team/admin)',
+    example: 'auto_responder',
+  }),
+  custom_subject: z.string().optional().openapi({
+    description: 'Optional custom subject line to test with',
+    example: 'Thank you for contacting us — example.com',
+    format: 'text',
+  }),
+  custom_html: z.string().optional().openapi({
+    description: 'Optional raw HTML content to test instead of the stored template',
+    example: '<!DOCTYPE html><html><body><h1>Hello Test</h1></body></html>',
+    format: 'text',
+  }),
+});
+
 // API Response Schemas
 export const siteResponseSchema = siteSchema;
 export const paginatedSitesResponseSchema = createPaginatedResponse(siteSchema);
@@ -103,6 +126,29 @@ export const updateApiSuccessResponseSchema = createApiResponse(siteSchema);
 export const deleteApiSuccessResponseSchema = createApiResponse(z.null());
 export const getApiSuccessResponseSchema = createApiResponse(siteSchema);
 export const getAllApiSuccessResponseSchema = createApiResponse(z.array(siteSchema));
+export const testSiteEmailSuccessResponseSchema = createApiResponse(
+  z.object({
+    success: z.boolean().openapi({
+      description: 'Whether the test email was successfully dispatched',
+      example: true,
+    }),
+    message: z.string().openapi({
+      description: 'Human-readable result message',
+      example: 'Test auto-responder email dispatched to alex.taylor@example.com',
+      format: 'text',
+    }),
+    recipient: z.string().openapi({
+      description: 'Email address the test was delivered to',
+      example: 'alex.taylor@example.com',
+      format: 'email',
+    }),
+    template_type: z.string().openapi({
+      description: 'The template type that was tested',
+      example: 'auto_responder',
+      format: 'text',
+    }),
+  })
+);
 
 // API Types
 export type Site = z.infer<typeof siteSchema>;
@@ -110,3 +156,4 @@ export type CreateSiteBody = z.infer<typeof createSiteSchema>;
 export type UpdateSiteBody = z.infer<typeof updateSiteSchema>;
 export type GetSiteBody = z.infer<typeof getSiteSchema>;
 export type DeleteSiteBody = z.infer<typeof deleteSiteSchema>;
+export type TestSiteEmailBody = z.infer<typeof testSiteEmailSchema>;

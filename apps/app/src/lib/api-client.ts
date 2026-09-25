@@ -166,6 +166,30 @@ class ApiService {
     }
   }
 
+  async testSiteEmail(
+    id: string,
+    payload: {
+      recipient_email: string;
+      template_type?: 'auto_responder' | 'submission_alert';
+      custom_subject?: string;
+      custom_html?: string;
+    }
+  ): Promise<{ success: boolean; message: string; recipient: string; template_type: string }> {
+    const res = await fetch(`${API_BASE}/sites/${id}/test-email`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(
+        err.detail || err.message || `Failed to send test email (HTTP ${res.status})`
+      );
+    }
+    const json = await res.json();
+    return json.data || json;
+  }
+
   // Form Fields
   async listFields(siteId: string): Promise<FormField[]> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/fields`, {

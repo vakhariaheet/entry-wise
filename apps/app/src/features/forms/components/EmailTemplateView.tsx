@@ -20,12 +20,13 @@ import {
   Plus,
   RotateCcw,
   Save,
+  Send,
   Smartphone,
   Sparkles,
   Table,
   Trash2,
   Type,
-  Wand2,
+  X,
 } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -40,6 +41,7 @@ export type EmailBlockType =
   | 'header'
   | 'heading'
   | 'text'
+  | 'image'
   | 'summary_table'
   | 'button'
   | 'callout'
@@ -53,6 +55,11 @@ export interface EmailBlock {
   subtitle?: string;
   text?: string;
   logoUrl?: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  imageWidth?: number;
+  imageLink?: string;
+  imageBorderRadius?: number;
   companyName?: string;
   buttonText?: string;
   buttonUrl?: string;
@@ -69,12 +76,26 @@ export interface EmailBlock {
 
 export type EmailTheme = 'clean_light' | 'emerald_glow' | 'indigo_slate' | 'executive_dark';
 export type TemplateEditorMode = 'blocks' | 'custom_html';
+export type TemplateTarget = 'auto_responder' | 'submission_alert';
 
-interface EmailTemplateConfig {
+export interface EmailTemplateConfig {
   mode?: TemplateEditorMode;
   theme: EmailTheme;
   blocks: EmailBlock[];
   cardRadius: number;
+  customHtml?: string;
+  compiledHtml?: string;
+  subject?: string;
+}
+
+export interface SiteEmailTemplatesConfig {
+  autoResponder?: EmailTemplateConfig;
+  submissionAlert?: EmailTemplateConfig;
+  // Legacy top-level fallback
+  mode?: TemplateEditorMode;
+  theme?: EmailTheme;
+  blocks?: EmailBlock[];
+  cardRadius?: number;
   customHtml?: string;
 }
 
@@ -137,6 +158,55 @@ export function getDefaultStarterHtml(site: Site): string {
     </div>
     <div class="footer">
       Delivered securely on behalf of ${brandName} via EntryWise.
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+export function getDefaultSubmissionAlertStarterHtml(site: Site): string {
+  const brandName = site.name || site.domain;
+  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>New Form Submission — ${brandName}</title>
+  <style type="text/css">
+    body { margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    .email-container { max-width: 600px; width: 100%; margin: 40px auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05); }
+    .header { padding: 32px 32px 18px 32px; border-bottom: 1px solid #f1f5f9; }
+    .brand-title { margin: 0; font-size: 20px; font-weight: 800; color: #0f172a; }
+    .content { padding: 28px 32px; }
+    .headline { font-size: 19px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 8px; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; background-color: #f1f5f9; color: #475569; margin-bottom: 16px; }
+    .footer { padding: 20px 32px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; }
+    .btn { display: inline-block; padding: 12px 24px; background-color: #0f172a; color: #ffffff !important; text-decoration: none; font-weight: 600; font-size: 13px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1 class="brand-title">${brandName}</h1>
+    </div>
+    <div class="content">
+      <span class="badge">Submission {{submission_id}} • {{date}}</span>
+      <h2 class="headline">New Form Submission Received</h2>
+      <p style="font-size: 14px; color: #475569; margin-bottom: 20px;">
+        A new response was submitted via <strong>{{domain}}</strong>. Below is the complete form payload:
+      </p>
+
+      <!-- Dynamic Form Submission Table -->
+      <div style="margin: 20px 0;">
+        {{formData}}
+      </div>
+
+      <div style="text-align: center; margin: 28px 0 12px 0;">
+        <a href="https://app.entrywise.webbound.in" class="btn" target="_blank" rel="noopener noreferrer">View Submissions in EntryWise →</a>
+      </div>
+    </div>
+    <div class="footer">
+      Automated submission notification delivered securely via EntryWise.
     </div>
   </div>
 </body>
@@ -274,7 +344,7 @@ const createPresetBlocks = (presetId: string, site: Site): EmailBlock[] => {
         },
       ];
 
-    default:
+    default: // modern_receipt
       return [
         {
           id: 'b-1',
@@ -328,6 +398,122 @@ const createPresetBlocks = (presetId: string, site: Site): EmailBlock[] => {
           type: 'footer',
           footerText: `Delivered securely on behalf of ${brandName} via EntryWise.`,
           alignment: 'center',
+        },
+      ];
+  }
+};
+
+const createAlertPresetBlocks = (presetId: string, site: Site): EmailBlock[] => {
+  const brandName = site.name || site.domain;
+
+  switch (presetId) {
+    case 'alert_compact':
+      return [
+        { id: 'ab-1', type: 'header', companyName: brandName, alignment: 'left' },
+        {
+          id: 'ab-2',
+          type: 'heading',
+          title: 'New Lead: {{name}} (#{{submission_id}})',
+          subtitle: 'Received from {{email}} on {{domain}}',
+          alignment: 'left',
+        },
+        { id: 'ab-3', type: 'summary_table', title: 'Submitted Form Payload' },
+        {
+          id: 'ab-4',
+          type: 'button',
+          buttonText: 'Reply Directly to Submitter →',
+          buttonUrl: 'mailto:{{email}}',
+          buttonBg: '#0f172a',
+          buttonTextColor: '#ffffff',
+          buttonRadius: 8,
+          alignment: 'left',
+        },
+        {
+          id: 'ab-5',
+          type: 'footer',
+          footerText: `EntryWise Realtime Alert • {{domain}}`,
+          alignment: 'left',
+        },
+      ];
+
+    case 'alert_banner_hero':
+      return [
+        { id: 'ab-1', type: 'header', companyName: brandName, alignment: 'center' },
+        {
+          id: 'ab-2',
+          type: 'image',
+          imageUrl:
+            'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80',
+          imageAlt: 'New Submission Alert',
+          imageWidth: 540,
+          imageBorderRadius: 8,
+          alignment: 'center',
+        },
+        {
+          id: 'ab-3',
+          type: 'heading',
+          title: '⚡ New Submission Alert',
+          subtitle: 'Submission #{{submission_id}} logged on {{domain}}',
+          alignment: 'center',
+        },
+        { id: 'ab-4', type: 'summary_table', title: 'Form Details' },
+        {
+          id: 'ab-5',
+          type: 'callout',
+          calloutType: 'success',
+          calloutText: '✓ Bot challenge verified & authenticated via EntryWise.',
+        },
+        {
+          id: 'ab-6',
+          type: 'button',
+          buttonText: 'Open Submissions Inbox →',
+          buttonUrl: 'https://app.entrywise.webbound.in',
+          buttonBg: '#10b981',
+          buttonTextColor: '#ffffff',
+          buttonRadius: 8,
+          alignment: 'center',
+        },
+        {
+          id: 'ab-7',
+          type: 'footer',
+          footerText: `Delivered securely to your team via EntryWise.`,
+          alignment: 'center',
+        },
+      ];
+
+    default: // alert_executive
+      return [
+        { id: 'ab-1', type: 'header', companyName: brandName, alignment: 'left' },
+        {
+          id: 'ab-2',
+          type: 'heading',
+          title: 'New Form Submission Received',
+          subtitle: 'Entry logged via {{domain}}',
+          alignment: 'left',
+        },
+        {
+          id: 'ab-3',
+          type: 'callout',
+          calloutType: 'info',
+          calloutText: '⚡ Instant Alert: Received on {{date}} • Submission ID: {{submission_id}}',
+        },
+        { id: 'ab-4', type: 'summary_table', title: 'Submitted Form Payload' },
+        {
+          id: 'ab-5',
+          type: 'button',
+          buttonText: 'View in EntryWise Dashboard →',
+          buttonUrl: 'https://app.entrywise.webbound.in',
+          buttonBg: '#10b981',
+          buttonTextColor: '#ffffff',
+          buttonRadius: 8,
+          alignment: 'left',
+        },
+        { id: 'ab-6', type: 'divider', dividerHeight: 20, dividerColor: '#e2e8f0' },
+        {
+          id: 'ab-7',
+          type: 'footer',
+          footerText: `EntryWise Realtime Notification • Delivered securely on behalf of ${brandName}`,
+          alignment: 'left',
         },
       ];
   }
@@ -439,6 +625,28 @@ export function compileBulletproofHtmlEmail(
             </tr>
           `;
 
+        case 'image': {
+          const imgSrc =
+            block.imageUrl ||
+            'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80';
+          const imgAlt = block.imageAlt || 'Banner image';
+          const imgWidth = block.imageWidth || 536;
+          const imgRadius = block.imageBorderRadius !== undefined ? block.imageBorderRadius : 8;
+          const marginStyle =
+            align === 'center' ? '0 auto' : align === 'right' ? '0 0 0 auto' : '0';
+          const imgTag = `<img src="${imgSrc}" alt="${imgAlt}" width="${imgWidth}" style="display:block;max-width:100%;height:auto;border-radius:${imgRadius}px;border:0;margin:${marginStyle};" />`;
+          const content = block.imageLink
+            ? `<a href="${block.imageLink}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">${imgTag}</a>`
+            : imgTag;
+          return `
+            <tr>
+              <td align="${align}" style="padding: 12px 32px 18px 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                ${content}
+              </td>
+            </tr>
+          `;
+        }
+
         case 'summary_table':
           return `
             <tr>
@@ -448,7 +656,7 @@ export function compileBulletproofHtmlEmail(
                     ? `<div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:${themeColors.textSecondary}; margin-bottom:10px;">${block.title}</div>`
                     : ''
                 }
-                <!-- Dynamic Submission Data Table Placeholder -->
+                <!-- Dynamic Submission Summary Table injected by EntryWise runtime -->
                 {{formData}}
               </td>
             </tr>
@@ -458,15 +666,17 @@ export function compileBulletproofHtmlEmail(
           return `
             <tr>
               <td align="${align}" style="padding: 16px 32px 24px 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                <table border="0" cellspacing="0" cellpadding="0" style="display:inline-block; border-collapse:separate;">
-                  <tr>
-                    <td align="center" style="border-radius:${block.buttonRadius ?? 8}px; background-color:${block.buttonBg || themeColors.accent};">
-                      <a href="${block.buttonUrl || `https://${site.domain}`}" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:12px 26px; font-size:14px; font-weight:600; color:${block.buttonTextColor || '#ffffff'}; text-decoration:none; border-radius:${block.buttonRadius ?? 8}px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                        ${block.buttonText || 'Visit Website →'}
-                      </a>
-                    </td>
-                  </tr>
-                </table>
+                <!--[if mso]>
+                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${block.buttonUrl || `https://${site.domain}`}" style="height:44px;v-text-anchor:middle;width:200px;" arcsize="18%" stroke="f" fillcolor="${block.buttonBg || '#10b981'}">
+                  <w:anchorlock/>
+                  <center style="color:${block.buttonTextColor || '#ffffff'};font-family:sans-serif;font-size:14px;font-weight:bold;">${block.buttonText || 'Click Here'}</center>
+                </v:roundrect>
+                <![endif]-->
+                <!--[if !mso]><!-->
+                <a href="${block.buttonUrl || `https://${site.domain}`}" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:12px 28px; background-color:${block.buttonBg || '#10b981'}; color:${block.buttonTextColor || '#ffffff'} !important; text-decoration:none; font-weight:600; font-size:14px; border-radius:${block.buttonRadius ?? 8}px; text-align:center;">
+                  ${block.buttonText || 'Click Here'}
+                </a>
+                <!--<![endif]-->
               </td>
             </tr>
           `;
@@ -475,9 +685,13 @@ export function compileBulletproofHtmlEmail(
           return `
             <tr>
               <td style="padding: 10px 32px 18px 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                <div style="background-color:${themeColors.calloutBg}; border:1px solid ${themeColors.calloutBorder}; border-radius:10px; padding:14px 18px; font-size:13px; line-height:1.55; color:${themeColors.calloutText};">
-                  ${(block.calloutText || '').replace(/\n/g, '<br/>')}
-                </div>
+                <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${themeColors.calloutBg}; border:1px solid ${themeColors.calloutBorder}; border-radius:8px;">
+                  <tr>
+                    <td style="padding: 14px 18px; font-size: 13px; line-height: 1.6; color:${themeColors.calloutText}; font-weight:500;">
+                      ${(block.calloutText || '').replace(/\n/g, '<br/>')}
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
           `;
@@ -485,8 +699,8 @@ export function compileBulletproofHtmlEmail(
         case 'divider':
           return `
             <tr>
-              <td style="padding: ${Math.round((block.dividerHeight ?? 24) / 2)}px 32px;">
-                <hr style="border:0; border-top:1px solid ${block.dividerColor || themeColors.cardBorder}; margin:0;" />
+              <td style="padding: ${(block.dividerHeight || 20) / 2}px 32px;">
+                <hr style="border: 0; height: 1px; background-color: ${block.dividerColor || '#e2e8f0'}; margin: 0;" />
               </td>
             </tr>
           `;
@@ -494,8 +708,8 @@ export function compileBulletproofHtmlEmail(
         case 'footer':
           return `
             <tr>
-              <td align="${align}" style="padding: 16px 32px 28px 32px; border-top:1px solid ${themeColors.cardBorder}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:11px; line-height:1.6; color:${themeColors.textSecondary};">
-                ${(block.footerText || `Delivered securely on behalf of ${brandName} via EntryWise.`).replace(/\n/g, '<br/>')}
+              <td align="${align}" style="padding: 20px 32px 32px 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:11px; line-height:1.6; color:${themeColors.textSecondary}; border-top: 1px solid ${theme === 'clean_light' ? '#f1f5f9' : 'rgba(255,255,255,0.06)'};">
+                ${block.footerText || `${brandName} • Delivered securely via EntryWise`}
               </td>
             </tr>
           `;
@@ -504,14 +718,14 @@ export function compileBulletproofHtmlEmail(
           return '';
       }
     })
-    .join('\n');
+    .join('');
 
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Receipt Confirmation — ${brandName}</title>
+  <title>${brandName}</title>
   <!--[if mso]>
   <noscript>
     <xml>
@@ -522,30 +736,36 @@ export function compileBulletproofHtmlEmail(
   </noscript>
   <![endif]-->
   <style type="text/css">
-    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    body, table, td, p, a, li, blockquote { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
     table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
-    table { border-collapse: collapse !important; }
-    body { margin: 0 !important; padding: 0 !important; width: 100% !important; min-width: 100%; background-color: ${themeColors.bg}; }
+    body { margin: 0; padding: 0; width: 100% !important; background-color: ${themeColors.bg}; }
     @media only screen and (max-width: 620px) {
-      .responsive-card { width: 100% !important; max-width: 100% !important; border-radius: 0 !important; }
+      .responsive-card { width: 100% !important; border-radius: 0 !important; }
       .mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }
     }
   </style>
 </head>
 <body style="margin:0; padding:0; background-color:${themeColors.bg}; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-  <center style="width: 100%; background-color: ${themeColors.bg}; padding: 40px 12px 60px 12px;">
-    <!--[if mso]>
-    <table role="presentation" width="600" align="center" border="0" cellspacing="0" cellpadding="0">
-    <tr><td>
-    <![endif]-->
-    <table role="presentation" class="responsive-card" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: ${themeColors.cardBg}; border: 1px solid ${themeColors.cardBorder}; border-radius: ${cardRadius}px; overflow: hidden; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); text-align: left;">
-      ${renderedRows}
-    </table>
-    <!--[if mso]>
-    </td></tr></table>
-    <![endif]-->
-  </center>
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="${themeColors.bg}" style="table-layout:fixed;">
+    <tr>
+      <td align="center" style="padding: 40px 16px;">
+        <!--[if mso]>
+        <table cellpadding="0" cellspacing="0" border="0" width="600" align="center">
+          <tr>
+            <td>
+        <![endif]-->
+        <table class="responsive-card" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px; background-color:${themeColors.cardBg}; border:1px solid ${themeColors.cardBorder}; border-radius:${cardRadius}px; overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.06);">
+          ${renderedRows}
+        </table>
+        <!--[if mso]>
+            </td>
+          </tr>
+        </table>
+        <![endif]-->
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
 }
@@ -555,17 +775,34 @@ export function compileBulletproofHtmlEmail(
 // ==========================================
 
 export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSiteUpdated }) => {
+  // Primary Dual Template Target: Auto-Responder vs Main Submission Alert
+  const [activeTemplate, setActiveTemplate] = useState<TemplateTarget>('auto_responder');
+
   // Navigation & Sub-Tabs
   const [activeSubTab, setActiveSubTab] = useState<'studio' | 'html' | 'team'>('studio');
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [simulateVariables, setSimulateVariables] = useState<boolean>(true);
 
-  // Editor Mode: 'blocks' (drag & drop) vs 'custom_html' (direct raw HTML code)
-  const [editorMode, setEditorMode] = useState<TemplateEditorMode>(() => {
+  // Auto-Responder Global Settings
+  const [autoResponderEnabled, setAutoResponderEnabled] = useState<boolean>(
+    Boolean(site.auto_responder_enabled)
+  );
+
+  // Team Alerts Global Settings
+  const [notifyOnSubmission, setNotifyOnSubmission] = useState<boolean>(
+    site.notify_on_submission === undefined ? true : Boolean(site.notify_on_submission)
+  );
+  const [notificationEmails, setNotificationEmails] = useState<string>(
+    site.notification_emails || ''
+  );
+
+  // --- Auto-Responder Template State ---
+  const [autoMode, setAutoMode] = useState<TemplateEditorMode>(() => {
     if (site.auto_responder_config) {
       try {
         const parsed = JSON.parse(site.auto_responder_config);
-        if (parsed.mode === 'custom_html') return 'custom_html';
+        const autoConf = parsed.autoResponder || parsed;
+        if (autoConf.mode === 'custom_html') return 'custom_html';
       } catch {
         // fallback
       }
@@ -581,12 +818,12 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
     return 'blocks';
   });
 
-  // Custom Raw HTML Editor State
-  const [customHtml, setCustomHtml] = useState<string>(() => {
+  const [autoCustomHtml, setAutoCustomHtml] = useState<string>(() => {
     if (site.auto_responder_config) {
       try {
         const parsed = JSON.parse(site.auto_responder_config);
-        if (parsed.customHtml) return parsed.customHtml;
+        const autoConf = parsed.autoResponder || parsed;
+        if (autoConf.customHtml) return autoConf.customHtml;
       } catch {
         // fallback
       }
@@ -602,31 +839,28 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
     return getDefaultStarterHtml(site);
   });
 
-  // Auto-Responder Settings
-  const [autoResponderEnabled, setAutoResponderEnabled] = useState<boolean>(
-    Boolean(site.auto_responder_enabled)
-  );
-  const [autoResponderSubject, setAutoResponderSubject] = useState<string>(
-    site.auto_responder_subject || 'We received your message — {{domain}}'
-  );
-
-  // Team Alerts
-  const [notifyOnSubmission, setNotifyOnSubmission] = useState<boolean>(
-    site.notify_on_submission === undefined ? true : Boolean(site.notify_on_submission)
-  );
-  const [notificationEmails, setNotificationEmails] = useState<string>(
-    site.notification_emails || ''
-  );
-
-  // Visual Blocks Config State
-  const [theme, setTheme] = useState<EmailTheme>('clean_light');
-  const [cardRadius, setCardRadius] = useState<number>(12);
-  const [blocks, setBlocks] = useState<EmailBlock[]>(() => {
+  const [autoSubject, setAutoSubject] = useState<string>(() => {
     if (site.auto_responder_config) {
       try {
         const parsed = JSON.parse(site.auto_responder_config);
-        if (parsed.blocks && Array.isArray(parsed.blocks)) {
-          return parsed.blocks;
+        const autoConf = parsed.autoResponder || parsed;
+        if (autoConf.subject) return autoConf.subject;
+      } catch {
+        // fallback
+      }
+    }
+    return site.auto_responder_subject || 'We received your message — {{domain}}';
+  });
+
+  const [autoTheme, setAutoTheme] = useState<EmailTheme>('clean_light');
+  const [autoCardRadius, setAutoCardRadius] = useState<number>(12);
+  const [autoBlocks, setAutoBlocks] = useState<EmailBlock[]>(() => {
+    if (site.auto_responder_config) {
+      try {
+        const parsed = JSON.parse(site.auto_responder_config);
+        const autoConf = parsed.autoResponder || parsed;
+        if (autoConf.blocks && Array.isArray(autoConf.blocks)) {
+          return autoConf.blocks;
         }
       } catch {
         // fallback
@@ -634,22 +868,85 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
     }
     return createPresetBlocks('modern_receipt', site);
   });
-
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(
-    () => blocks[0]?.id || null
+  const [autoSelectedBlockId, setAutoSelectedBlockId] = useState<string | null>(
+    () => autoBlocks[0]?.id || null
   );
+
+  // --- Submission Alert (Main Notification) Template State ---
+  const [alertMode, setAlertMode] = useState<TemplateEditorMode>(() => {
+    if (site.auto_responder_config) {
+      try {
+        const parsed = JSON.parse(site.auto_responder_config);
+        if (parsed.submissionAlert?.mode === 'custom_html') return 'custom_html';
+      } catch {
+        // fallback
+      }
+    }
+    return 'blocks';
+  });
+
+  const [alertCustomHtml, setAlertCustomHtml] = useState<string>(() => {
+    if (site.auto_responder_config) {
+      try {
+        const parsed = JSON.parse(site.auto_responder_config);
+        if (parsed.submissionAlert?.customHtml) return parsed.submissionAlert.customHtml;
+      } catch {
+        // fallback
+      }
+    }
+    return getDefaultSubmissionAlertStarterHtml(site);
+  });
+
+  const [alertSubject, setAlertSubject] = useState<string>(() => {
+    if (site.auto_responder_config) {
+      try {
+        const parsed = JSON.parse(site.auto_responder_config);
+        if (parsed.submissionAlert?.subject) return parsed.submissionAlert.subject;
+      } catch {
+        // fallback
+      }
+    }
+    return `New Form Submission: ${site.name || site.domain} — #{{submission_id}}`;
+  });
+
+  const [alertTheme, setAlertTheme] = useState<EmailTheme>('clean_light');
+  const [alertCardRadius, setAlertCardRadius] = useState<number>(12);
+  const [alertBlocks, setAlertBlocks] = useState<EmailBlock[]>(() => {
+    if (site.auto_responder_config) {
+      try {
+        const parsed = JSON.parse(site.auto_responder_config);
+        if (parsed.submissionAlert?.blocks && Array.isArray(parsed.submissionAlert.blocks)) {
+          return parsed.submissionAlert.blocks;
+        }
+      } catch {
+        // fallback
+      }
+    }
+    return createAlertPresetBlocks('alert_executive', site);
+  });
+  const [alertSelectedBlockId, setAlertSelectedBlockId] = useState<string | null>(
+    () => alertBlocks[0]?.id || null
+  );
+
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  // Feedback & Saving
+  // Feedback & Saving State
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [copiedHtml, setCopiedHtml] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Initialize from site props on change
+  // Send Test Email Modal State
+  const [testEmailModalOpen, setTestEmailModalOpen] = useState<boolean>(false);
+  const [testEmailTarget, setTestEmailTarget] = useState<TemplateTarget>('auto_responder');
+  const [testEmailRecipient, setTestEmailRecipient] = useState<string>(site.admin_email || '');
+  const [isSendingTestEmail, setIsSendingTestEmail] = useState<boolean>(false);
+  const [testEmailSuccess, setTestEmailSuccess] = useState<string | null>(null);
+  const [testEmailError, setTestEmailError] = useState<string | null>(null);
+
+  // Synchronize state when site prop changes
   useEffect(() => {
     setAutoResponderEnabled(Boolean(site.auto_responder_enabled));
-    setAutoResponderSubject(site.auto_responder_subject || 'We received your message — {{domain}}');
     setNotifyOnSubmission(
       site.notify_on_submission === undefined ? true : Boolean(site.notify_on_submission)
     );
@@ -658,46 +955,110 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
     if (site.auto_responder_config) {
       try {
         const parsed = JSON.parse(site.auto_responder_config);
-        if (parsed.mode) setEditorMode(parsed.mode);
-        if (parsed.customHtml) setCustomHtml(parsed.customHtml);
-        if (parsed.blocks && Array.isArray(parsed.blocks)) {
-          setBlocks(parsed.blocks);
+        // Load Auto-Responder
+        const autoConf = parsed.autoResponder || parsed;
+        if (autoConf.mode) setAutoMode(autoConf.mode);
+        if (autoConf.customHtml) setAutoCustomHtml(autoConf.customHtml);
+        if (autoConf.blocks && Array.isArray(autoConf.blocks)) setAutoBlocks(autoConf.blocks);
+        if (autoConf.theme) setAutoTheme(autoConf.theme);
+        if (autoConf.cardRadius) setAutoCardRadius(autoConf.cardRadius);
+        if (autoConf.subject) setAutoSubject(autoConf.subject);
+
+        // Load Submission Alert
+        const alertConf = parsed.submissionAlert;
+        if (alertConf) {
+          if (alertConf.mode) setAlertMode(alertConf.mode);
+          if (alertConf.customHtml) setAlertCustomHtml(alertConf.customHtml);
+          if (alertConf.blocks && Array.isArray(alertConf.blocks)) setAlertBlocks(alertConf.blocks);
+          if (alertConf.theme) setAlertTheme(alertConf.theme);
+          if (alertConf.cardRadius) setAlertCardRadius(alertConf.cardRadius);
+          if (alertConf.subject) setAlertSubject(alertConf.subject);
         }
-        if (parsed.theme) setTheme(parsed.theme);
-        if (parsed.cardRadius) setCardRadius(parsed.cardRadius);
       } catch {
         // keep current
       }
     }
   }, [site]);
 
+  // Active Template Accessors
+  const isAuto = activeTemplate === 'auto_responder';
+
+  const editorMode = isAuto ? autoMode : alertMode;
+  const setEditorMode = (m: TemplateEditorMode) => (isAuto ? setAutoMode(m) : setAlertMode(m));
+
+  const customHtml = isAuto ? autoCustomHtml : alertCustomHtml;
+  const setCustomHtml = (valOrFn: string | ((prev: string) => string)) => {
+    if (isAuto) {
+      setAutoCustomHtml(valOrFn);
+    } else {
+      setAlertCustomHtml(valOrFn);
+    }
+  };
+
+  const subject = isAuto ? autoSubject : alertSubject;
+  const setSubject = (s: string) => (isAuto ? setAutoSubject(s) : setAlertSubject(s));
+
+  const theme = isAuto ? autoTheme : alertTheme;
+  const setTheme = (t: EmailTheme) => (isAuto ? setAutoTheme(t) : setAlertTheme(t));
+
+  const cardRadius = isAuto ? autoCardRadius : alertCardRadius;
+  const setCardRadius = (r: number) => (isAuto ? setAutoCardRadius(r) : setAlertCardRadius(r));
+
+  const blocks = isAuto ? autoBlocks : alertBlocks;
+  const setBlocks = (valOrFn: EmailBlock[] | ((prev: EmailBlock[]) => EmailBlock[])) => {
+    if (isAuto) {
+      setAutoBlocks(valOrFn);
+    } else {
+      setAlertBlocks(valOrFn);
+    }
+  };
+
+  const selectedBlockId = isAuto ? autoSelectedBlockId : alertSelectedBlockId;
+  const setSelectedBlockId = (id: string | null) =>
+    isAuto ? setAutoSelectedBlockId(id) : setAlertSelectedBlockId(id);
+
   // Selected block reference
   const selectedBlock = useMemo(() => {
     return blocks.find((b) => b.id === selectedBlockId) || null;
   }, [blocks, selectedBlockId]);
 
-  // Compiled full HTML email string from visual blocks
-  const compiledBlocksHtml = useMemo(() => {
-    return compileBulletproofHtmlEmail(blocks, theme, cardRadius, site);
-  }, [blocks, theme, cardRadius, site]);
+  // Compiled full HTML email string for Auto-Responder
+  const compiledAutoHtml = useMemo(() => {
+    return compileBulletproofHtmlEmail(autoBlocks, autoTheme, autoCardRadius, site);
+  }, [autoBlocks, autoTheme, autoCardRadius, site]);
 
-  // Active output HTML: returns customHtml if in raw mode, else compiled visual blocks
+  // Compiled full HTML email string for Submission Alert
+  const compiledAlertHtml = useMemo(() => {
+    return compileBulletproofHtmlEmail(alertBlocks, alertTheme, alertCardRadius, site);
+  }, [alertBlocks, alertTheme, alertCardRadius, site]);
+
+  // Compiled blocks HTML for currently selected template
+  const compiledBlocksHtml = isAuto ? compiledAutoHtml : compiledAlertHtml;
+
+  // Active output HTML (Raw code if in custom_html mode, else compiled visual blocks)
   const activeOutputHtml = useMemo(() => {
     return editorMode === 'custom_html' ? customHtml : compiledBlocksHtml;
   }, [editorMode, customHtml, compiledBlocksHtml]);
 
-  // Handle Preset Switching (Blocks Mode)
+  // Handle Preset Switching
   const handleApplyPreset = (presetId: string) => {
-    const newBlocks = createPresetBlocks(presetId, site);
-    setBlocks(newBlocks);
-    setSelectedBlockId(newBlocks[0]?.id || null);
+    if (isAuto) {
+      const newBlocks = createPresetBlocks(presetId, site);
+      setAutoBlocks(newBlocks);
+      setAutoSelectedBlockId(newBlocks[0]?.id || null);
 
-    if (presetId === 'dark_executive') {
-      setTheme('executive_dark');
-    } else if (presetId === 'next_steps') {
-      setTheme('emerald_glow');
+      if (presetId === 'dark_executive') {
+        setAutoTheme('executive_dark');
+      } else if (presetId === 'next_steps') {
+        setAutoTheme('emerald_glow');
+      } else {
+        setAutoTheme('clean_light');
+      }
     } else {
-      setTheme('clean_light');
+      const newBlocks = createAlertPresetBlocks(presetId, site);
+      setAlertBlocks(newBlocks);
+      setAlertSelectedBlockId(newBlocks[0]?.id || null);
+      setAlertTheme('clean_light');
     }
   };
 
@@ -709,7 +1070,11 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
 
   // Reset custom HTML to starter boilerplate
   const handleResetStarterHtml = () => {
-    setCustomHtml(getDefaultStarterHtml(site));
+    if (isAuto) {
+      setAutoCustomHtml(getDefaultStarterHtml(site));
+    } else {
+      setAlertCustomHtml(getDefaultSubmissionAlertStarterHtml(site));
+    }
   };
 
   // Drag and drop reordering
@@ -721,7 +1086,6 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
     if (draggedIndex === null || draggedIndex === index) return;
-
     const updated = [...blocks];
     const [moved] = updated.splice(draggedIndex, 1);
     updated.splice(index, 0, moved);
@@ -752,33 +1116,56 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
           id: newId,
           type: 'header',
           companyName: site.name || site.domain,
-          alignment: 'center',
+          alignment: isAuto ? 'center' : 'left',
         };
         break;
       case 'heading':
-        newBlock = { id: newId, type: 'heading', title: 'Special Update', alignment: 'center' };
+        newBlock = {
+          id: newId,
+          type: 'heading',
+          title: isAuto ? 'Special Update' : 'New Form Submission',
+          alignment: isAuto ? 'center' : 'left',
+        };
         break;
       case 'text':
         newBlock = {
           id: newId,
           type: 'text',
-          text: 'Hi {{name}},\n\nHere is an update regarding your request on {{domain}}.',
+          text: isAuto
+            ? 'Hi {{name}},\n\nHere is an update regarding your request on {{domain}}.'
+            : 'A new form submission was recorded on {{domain}}.',
           alignment: 'left',
         };
         break;
+      case 'image':
+        newBlock = {
+          id: newId,
+          type: 'image',
+          imageUrl:
+            'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80',
+          imageAlt: 'Visual Banner',
+          imageWidth: 540,
+          imageBorderRadius: 8,
+          alignment: 'center',
+        };
+        break;
       case 'summary_table':
-        newBlock = { id: newId, type: 'summary_table', title: 'Submitted Details' };
+        newBlock = {
+          id: newId,
+          type: 'summary_table',
+          title: isAuto ? 'Submitted Details' : 'Form Submission Details',
+        };
         break;
       case 'button':
         newBlock = {
           id: newId,
           type: 'button',
-          buttonText: 'View Details →',
-          buttonUrl: `https://${site.domain}`,
+          buttonText: isAuto ? `Visit ${site.domain} →` : 'View in EntryWise →',
+          buttonUrl: isAuto ? `https://${site.domain}` : 'https://app.entrywise.webbound.in',
           buttonBg: '#10b981',
           buttonTextColor: '#ffffff',
           buttonRadius: 8,
-          alignment: 'center',
+          alignment: isAuto ? 'center' : 'left',
         };
         break;
       case 'callout':
@@ -786,7 +1173,9 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
           id: newId,
           type: 'callout',
           calloutType: 'info',
-          calloutText: 'Notice: Please allow up to 24 hours for review.',
+          calloutText: isAuto
+            ? 'Notice: Please allow up to 24 hours for review.'
+            : '⚡ Instant Alert: Form response captured in real-time.',
         };
         break;
       case 'divider':
@@ -797,7 +1186,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
           id: newId,
           type: 'footer',
           footerText: `${site.name || site.domain} • Delivered securely via EntryWise`,
-          alignment: 'center',
+          alignment: isAuto ? 'center' : 'left',
         };
         break;
     }
@@ -828,30 +1217,51 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
     });
   };
 
-  const handleInsertVariableIntoHtml = (tag: string) => {
-    setCustomHtml((prev) => `${prev} ${tag}`);
+  const handleInsertRawHtmlVariable = (variableToken: string) => {
+    setCustomHtml((prev) => `${prev} ${variableToken}`);
   };
 
-  // Save to EntryWise backend
+  // Save Both Email Templates to Backend
   const handleSave = async () => {
     setIsSaving(true);
     setErrorMessage(null);
 
-    const configPayload: EmailTemplateConfig = {
-      mode: editorMode,
-      theme,
-      blocks,
-      cardRadius,
-      customHtml,
+    const configPayload: SiteEmailTemplatesConfig = {
+      autoResponder: {
+        mode: autoMode,
+        theme: autoTheme,
+        blocks: autoBlocks,
+        cardRadius: autoCardRadius,
+        customHtml: autoCustomHtml,
+        compiledHtml: compiledAutoHtml,
+        subject: autoSubject,
+      },
+      submissionAlert: {
+        mode: alertMode,
+        theme: alertTheme,
+        blocks: alertBlocks,
+        cardRadius: alertCardRadius,
+        customHtml: alertCustomHtml,
+        compiledHtml: compiledAlertHtml,
+        subject: alertSubject,
+      },
+      // Backwards compatibility mirror
+      mode: autoMode,
+      theme: autoTheme,
+      blocks: autoBlocks,
+      cardRadius: autoCardRadius,
+      customHtml: autoCustomHtml,
     };
+
+    const autoResponderCompiled = autoMode === 'custom_html' ? autoCustomHtml : compiledAutoHtml;
 
     try {
       const updated = await api.updateSite(site.id, {
         notify_on_submission: notifyOnSubmission,
         notification_emails: notificationEmails.trim() || null,
         auto_responder_enabled: autoResponderEnabled,
-        auto_responder_subject: autoResponderSubject.trim() || null,
-        auto_responder_body: activeOutputHtml,
+        auto_responder_subject: autoSubject.trim() || null,
+        auto_responder_body: autoResponderCompiled,
         auto_responder_config: JSON.stringify(configPayload),
       });
 
@@ -863,6 +1273,49 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
       setErrorMessage(err instanceof Error ? err.message : 'Failed to save email template');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Send Live Test Email
+  const handleSendTestEmail = async () => {
+    if (!testEmailRecipient?.includes('@')) {
+      setTestEmailError('Please enter a valid recipient email address');
+      return;
+    }
+
+    setIsSendingTestEmail(true);
+    setTestEmailError(null);
+    setTestEmailSuccess(null);
+
+    const isTestingAuto = testEmailTarget === 'auto_responder';
+    const targetMode = isTestingAuto ? autoMode : alertMode;
+    const targetBlocks = isTestingAuto ? autoBlocks : alertBlocks;
+    const targetTheme = isTestingAuto ? autoTheme : alertTheme;
+    const targetRadius = isTestingAuto ? autoCardRadius : alertCardRadius;
+    const targetCustomHtml = isTestingAuto ? autoCustomHtml : alertCustomHtml;
+    const targetSubject = isTestingAuto ? autoSubject : alertSubject;
+
+    const activeHtml =
+      targetMode === 'custom_html'
+        ? targetCustomHtml
+        : compileBulletproofHtmlEmail(targetBlocks, targetTheme, targetRadius, site);
+
+    try {
+      const res = await api.testSiteEmail(site.id, {
+        recipient_email: testEmailRecipient.trim(),
+        template_type: testEmailTarget,
+        custom_subject: targetSubject.trim(),
+        custom_html: activeHtml,
+      });
+
+      setTestEmailSuccess(
+        res.message || `Test email dispatched successfully to ${testEmailRecipient}!`
+      );
+    } catch (err: unknown) {
+      console.error('Failed to send test email:', err);
+      setTestEmailError(err instanceof Error ? err.message : 'Failed to send test email');
+    } finally {
+      setIsSendingTestEmail(false);
     }
   };
 
@@ -879,7 +1332,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `email-template-${site.domain}.html`;
+    link.download = `email-template-${activeTemplate}-${site.domain}.html`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -905,6 +1358,14 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
         .replace(/{{\s*company\s*}}/gi, site.name || site.domain)
         .replace(/{{\s*company_name\s*}}/gi, site.name || site.domain)
         .replace(/{{\s*submission_id\s*}}/gi, '#EW-849102')
+        .replace(
+          /{{\s*date\s*}}/gi,
+          new Date().toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })
+        )
         .replace(/{{\s*(formData|form_data|submission_summary|all_fields)\s*}}/gi, sampleTableHtml);
     },
     [simulateVariables, site]
@@ -925,7 +1386,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
             </span>
           </div>
           <p className="text-xs text-zinc-400 mt-1">
-            Build custom auto-responder receipts and team alerts using drag-and-drop blocks or
+            Build custom auto-responder receipts and team alerts with images, visual blocks, or
             direct HTML.
           </p>
         </div>
@@ -971,6 +1432,22 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
             </button>
           </div>
 
+          {/* Send Test Email Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setTestEmailTarget(activeTemplate);
+              setTestEmailRecipient(site.admin_email || '');
+              setTestEmailSuccess(null);
+              setTestEmailError(null);
+              setTestEmailModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 text-white font-medium text-xs border border-white/[0.1] transition shadow-sm"
+          >
+            <Send className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Send Test Email</span>
+          </button>
+
           {/* Save Button */}
           <button
             type="button"
@@ -1006,27 +1483,81 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
       )}
 
       {/* ========================================================================= */}
+      {/* PRIMARY DUAL TEMPLATE SWITCHER (AUTO-RESPONDER VS MAIN SUBMISSION ALERT)  */}
+      {/* ========================================================================= */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl border border-white/[0.08] bg-[#0d0e13]">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-white">Active Template in Editor</div>
+            <div className="text-[11px] text-zinc-400">
+              {isAuto
+                ? 'Editing confirmation receipt sent automatically to form submitters'
+                : 'Editing real-time alert sent to your team or admin inbox on new submissions'}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center bg-[#070709] p-1 rounded-xl border border-white/[0.08]">
+          <button
+            type="button"
+            onClick={() => setActiveTemplate('auto_responder')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition ${
+              isAuto
+                ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-sm border border-emerald-500/30'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Mail className="w-3.5 h-3.5" />
+            <span>Auto-Responder (Submitter)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTemplate('submission_alert')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition ${
+              !isAuto
+                ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-sm border border-emerald-500/30'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Inbox className="w-3.5 h-3.5" />
+            <span>Submission Alert (Team)</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
       {/* VIEW 1: STUDIO & LIVE PREVIEW (WITH MODE SWITCHER)                       */}
       {/* ========================================================================= */}
       {activeSubTab === 'studio' && (
         <div className="space-y-6">
           {/* Top Control Bar: Active Toggle + Mode Selector + Subject Line */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 rounded-2xl border border-white/[0.08] bg-[#121318]">
-            {/* Auto-Responder Toggle */}
+            {/* Delivery Enable/Disable Toggle for active template */}
             <div className="lg:col-span-3 flex items-center justify-between p-3 rounded-xl border border-white/[0.06] bg-[#0c0d10]">
               <div>
-                <div className="text-xs font-semibold text-white">Auto-Responder</div>
-                <div className="text-[10px] text-zinc-400">Send receipt to submitter</div>
+                <div className="text-xs font-semibold text-white">
+                  {isAuto ? 'Auto-Responder' : 'Team Alert'}
+                </div>
+                <div className="text-[10px] text-zinc-400">
+                  {isAuto ? 'Send receipt to submitter' : 'Notify team on entry'}
+                </div>
               </div>
               <label
-                htmlFor="toggle-auto-responder"
+                htmlFor="toggle-template-enabled"
                 className="relative inline-flex items-center cursor-pointer"
               >
                 <input
-                  id="toggle-auto-responder"
+                  id="toggle-template-enabled"
                   type="checkbox"
-                  checked={autoResponderEnabled}
-                  onChange={(e) => setAutoResponderEnabled(e.target.checked)}
+                  checked={isAuto ? autoResponderEnabled : notifyOnSubmission}
+                  onChange={(e) =>
+                    isAuto
+                      ? setAutoResponderEnabled(e.target.checked)
+                      : setNotifyOnSubmission(e.target.checked)
+                  }
                   className="sr-only peer"
                 />
                 <div className="w-9 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500" />
@@ -1077,9 +1608,13 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
               <input
                 id="email-subject-input"
                 type="text"
-                value={autoResponderSubject}
-                onChange={(e) => setAutoResponderSubject(e.target.value)}
-                placeholder="We received your message — {{domain}}"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder={
+                  isAuto
+                    ? 'We received your message — {{domain}}'
+                    : 'New Form Submission: {{domain}} — #{{submission_id}}'
+                }
                 className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500/50"
               />
             </div>
@@ -1094,17 +1629,24 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
               <div className="flex items-center justify-between p-3 rounded-xl border border-white/[0.08] bg-[#121318]">
                 <span className="text-xs text-zinc-400">Quick Designer Presets:</span>
                 <div className="flex items-center gap-2">
-                  {[
-                    { id: 'modern_receipt', label: 'Receipt' },
-                    { id: 'minimal_letter', label: 'Minimal' },
-                    { id: 'next_steps', label: 'Next Steps' },
-                    { id: 'dark_executive', label: 'Dark' },
-                  ].map((preset) => (
+                  {(isAuto
+                    ? [
+                        { id: 'modern_receipt', label: 'Receipt' },
+                        { id: 'minimal_letter', label: 'Minimal' },
+                        { id: 'next_steps', label: 'Next Steps' },
+                        { id: 'dark_executive', label: 'Dark Executive' },
+                      ]
+                    : [
+                        { id: 'alert_executive', label: 'Executive Alert' },
+                        { id: 'alert_banner_hero', label: 'Hero Banner Alert' },
+                        { id: 'alert_compact', label: 'Compact Alert' },
+                      ]
+                  ).map((preset) => (
                     <button
                       key={preset.id}
                       type="button"
                       onClick={() => handleApplyPreset(preset.id)}
-                      className="px-3 py-1 rounded-lg border border-white/[0.08] bg-[#0c0d10] hover:bg-white/[0.06] hover:border-emerald-500/40 text-xs text-zinc-300 hover:text-white transition font-medium"
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium border border-white/[0.06] bg-[#0c0d10] text-zinc-300 hover:text-white hover:border-emerald-500/40 transition"
                     >
                       {preset.label}
                     </button>
@@ -1112,11 +1654,10 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                   <button
                     type="button"
                     onClick={handleConvertBlocksToHtml}
-                    className="flex items-center gap-1 px-3 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs text-emerald-400 font-medium transition ml-2"
-                    title="Export blocks as HTML code and switch to Custom HTML editor"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition ml-2"
                   >
-                    <Wand2 className="w-3 h-3" />
-                    <span>Convert to HTML Code</span>
+                    <Code2 className="w-3 h-3" />
+                    <span>Convert to Raw HTML</span>
                   </button>
                 </div>
               </div>
@@ -1135,11 +1676,12 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                       <span className="text-[10px] text-zinc-500">Click to append</span>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-3 gap-1.5">
                       {[
-                        { type: 'header' as EmailBlockType, label: 'Header', icon: Image },
-                        { type: 'heading' as EmailBlockType, label: 'Title', icon: Heading },
-                        { type: 'text' as EmailBlockType, label: 'Text', icon: Type },
+                        { type: 'header' as EmailBlockType, label: 'Logo / Header', icon: Heading },
+                        { type: 'heading' as EmailBlockType, label: 'Title', icon: Type },
+                        { type: 'image' as EmailBlockType, label: 'Banner / Image', icon: Image },
+                        { type: 'text' as EmailBlockType, label: 'Text Copy', icon: MessageSquare },
                         {
                           type: 'summary_table' as EmailBlockType,
                           label: 'Form Table',
@@ -1147,7 +1689,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                         },
                         {
                           type: 'button' as EmailBlockType,
-                          label: 'Button',
+                          label: 'Button CTA',
                           icon: MousePointerClick,
                         },
                         { type: 'callout' as EmailBlockType, label: 'Callout', icon: Sparkles },
@@ -1198,51 +1740,55 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                             <button
                               type="button"
                               onClick={() => setSelectedBlockId(block.id)}
-                              className="flex items-center gap-2 min-w-0 flex-1 text-left focus:outline-none"
+                              className="flex items-center gap-2 flex-1 min-w-0 text-left bg-transparent border-0 p-0 cursor-pointer"
                             >
-                              <div className="cursor-grab text-zinc-500 hover:text-zinc-300 p-0.5">
+                              <span className="cursor-grab text-zinc-600 hover:text-zinc-400">
                                 <GripVertical className="w-3.5 h-3.5" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-xs font-semibold text-zinc-200 truncate flex items-center gap-1.5">
-                                  <span className="capitalize">{block.type.replace('_', ' ')}</span>
-                                </div>
-                                <div className="text-[10px] text-zinc-400 truncate">
-                                  {block.title ||
-                                    block.buttonText ||
-                                    block.companyName ||
-                                    block.text?.slice(0, 30) ||
-                                    'Configured block'}
-                                </div>
-                              </div>
+                              </span>
+                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 uppercase">
+                                {block.type}
+                              </span>
+                              <span className="text-xs font-medium text-zinc-200 truncate">
+                                {block.type === 'header' &&
+                                  (block.logoUrl
+                                    ? 'Header (Logo Image)'
+                                    : block.companyName || 'Header')}
+                                {block.type === 'heading' && (block.title || 'Heading')}
+                                {block.type === 'text' && (block.text?.slice(0, 24) || 'Text')}
+                                {block.type === 'image' &&
+                                  (block.imageAlt || 'Banner / Custom Image')}
+                                {block.type === 'summary_table' &&
+                                  (block.title || 'Form Data Table')}
+                                {block.type === 'button' && (block.buttonText || 'Button')}
+                                {block.type === 'callout' && (block.calloutText || 'Callout')}
+                                {block.type === 'divider' && 'Divider Line'}
+                                {block.type === 'footer' && 'Footer Text'}
+                              </span>
                             </button>
 
-                            <div className="flex items-center gap-1 shrink-0">
+                            <div className="flex items-center gap-1">
                               <button
                                 type="button"
                                 onClick={() => handleMoveBlock(index, 'up')}
                                 disabled={index === 0}
-                                className="p-1 rounded text-zinc-400 hover:text-white disabled:opacity-20 text-[10px]"
-                                title="Move Up"
+                                className="p-1 text-zinc-500 hover:text-white disabled:opacity-20 transition"
                               >
-                                ▲
+                                ↑
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleMoveBlock(index, 'down')}
                                 disabled={index === blocks.length - 1}
-                                className="p-1 rounded text-zinc-400 hover:text-white disabled:opacity-20 text-[10px]"
-                                title="Move Down"
+                                className="p-1 text-zinc-500 hover:text-white disabled:opacity-20 transition"
                               >
-                                ▼
+                                ↓
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDeleteBlock(block.id)}
-                                className="p-1 rounded text-zinc-500 hover:text-red-400 transition"
-                                title="Remove Block"
+                                className="p-1 text-zinc-500 hover:text-red-400 transition"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 className="w-3 h-3" />
                               </button>
                             </div>
                           </li>
@@ -1251,39 +1797,36 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                     </ul>
                   </div>
 
-                  {/* Property Inspector */}
+                  {/* Inspector Panel */}
                   {selectedBlock && (
                     <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-4">
                       <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-                        <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-                          Edit {selectedBlock.type.replace('_', ' ')} Block
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase font-semibold">
+                            {selectedBlock.type}
+                          </span>
+                          <span className="text-xs font-semibold text-white">Block Properties</span>
                         </div>
-                        <div className="flex items-center gap-1 bg-[#0a0a0d] p-1 rounded-lg border border-white/[0.06]">
-                          {(['left', 'center', 'right'] as const).map((align) => {
-                            const Icon =
-                              align === 'left'
-                                ? AlignLeft
-                                : align === 'center'
-                                  ? AlignCenter
-                                  : AlignRight;
-                            return (
-                              <button
-                                key={align}
-                                type="button"
-                                onClick={() =>
-                                  handleUpdateBlock(selectedBlock.id, { alignment: align })
-                                }
-                                className={`p-1 rounded transition ${
-                                  (selectedBlock.alignment || 'left') === align
-                                    ? 'bg-white/[0.1] text-emerald-400'
-                                    : 'text-zinc-500 hover:text-zinc-300'
-                                }`}
-                                title={`Align ${align}`}
-                              >
-                                <Icon className="w-3 h-3" />
-                              </button>
-                            );
-                          })}
+                        {/* Alignment picker */}
+                        <div className="flex items-center bg-[#0a0a0d] p-0.5 rounded-lg border border-white/[0.06]">
+                          {(['left', 'center', 'right'] as const).map((align) => (
+                            <button
+                              key={align}
+                              type="button"
+                              onClick={() =>
+                                handleUpdateBlock(selectedBlock.id, { alignment: align })
+                              }
+                              className={`p-1 rounded text-zinc-400 hover:text-white ${
+                                (selectedBlock.alignment || 'left') === align
+                                  ? 'bg-white/[0.1] text-white'
+                                  : ''
+                              }`}
+                            >
+                              {align === 'left' && <AlignLeft className="w-3 h-3" />}
+                              {align === 'center' && <AlignCenter className="w-3 h-3" />}
+                              {align === 'right' && <AlignRight className="w-3 h-3" />}
+                            </button>
+                          ))}
                         </div>
                       </div>
 
@@ -1292,13 +1835,13 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                         <div className="space-y-3">
                           <div>
                             <label
-                              htmlFor="header-brand-input"
+                              htmlFor="header-company-input"
                               className="block text-[11px] text-zinc-400 mb-1"
                             >
                               Brand / Company Name
                             </label>
                             <input
-                              id="header-brand-input"
+                              id="header-company-input"
                               type="text"
                               value={selectedBlock.companyName || ''}
                               onChange={(e) =>
@@ -1323,6 +1866,109 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                                 handleUpdateBlock(selectedBlock.id, { logoUrl: e.target.value })
                               }
                               placeholder="https://example.com/logo.png"
+                              className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                            />
+                          </div>
+                          {selectedBlock.logoUrl && (
+                            <div className="p-2 rounded-lg bg-[#0c0d10] border border-white/[0.06] flex items-center gap-3">
+                              <img
+                                src={selectedBlock.logoUrl}
+                                alt="Logo Preview"
+                                className="h-8 max-w-[120px] object-contain"
+                              />
+                              <span className="text-[10px] text-zinc-400">Logo Image Active</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Image Block Inspector */}
+                      {selectedBlock.type === 'image' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label
+                              htmlFor="image-src-input"
+                              className="block text-[11px] text-zinc-400 mb-1"
+                            >
+                              Banner / Image URL
+                            </label>
+                            <input
+                              id="image-src-input"
+                              type="url"
+                              value={selectedBlock.imageUrl || ''}
+                              onChange={(e) =>
+                                handleUpdateBlock(selectedBlock.id, { imageUrl: e.target.value })
+                              }
+                              placeholder="https://example.com/banner.jpg"
+                              className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                            />
+                          </div>
+                          {selectedBlock.imageUrl && (
+                            <div className="p-2 rounded-lg bg-[#0c0d10] border border-white/[0.06] overflow-hidden">
+                              <img
+                                src={selectedBlock.imageUrl}
+                                alt={selectedBlock.imageAlt || 'Banner'}
+                                className="w-full h-24 object-cover rounded-md"
+                              />
+                            </div>
+                          )}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label
+                                htmlFor="image-alt-input"
+                                className="block text-[11px] text-zinc-400 mb-1"
+                              >
+                                Alt Text
+                              </label>
+                              <input
+                                id="image-alt-input"
+                                type="text"
+                                value={selectedBlock.imageAlt || ''}
+                                onChange={(e) =>
+                                  handleUpdateBlock(selectedBlock.id, { imageAlt: e.target.value })
+                                }
+                                placeholder="Banner description"
+                                className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                              />
+                            </div>
+                            <div>
+                              <label
+                                htmlFor="image-width-input"
+                                className="block text-[11px] text-zinc-400 mb-1"
+                              >
+                                Max Width ({selectedBlock.imageWidth || 540}px)
+                              </label>
+                              <input
+                                id="image-width-input"
+                                type="range"
+                                min={120}
+                                max={540}
+                                step={10}
+                                value={selectedBlock.imageWidth || 540}
+                                onChange={(e) =>
+                                  handleUpdateBlock(selectedBlock.id, {
+                                    imageWidth: Number(e.target.value),
+                                  })
+                                }
+                                className="w-full accent-emerald-500"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="image-link-input"
+                              className="block text-[11px] text-zinc-400 mb-1"
+                            >
+                              Click Destination Link (Optional)
+                            </label>
+                            <input
+                              id="image-link-input"
+                              type="url"
+                              value={selectedBlock.imageLink || ''}
+                              onChange={(e) =>
+                                handleUpdateBlock(selectedBlock.id, { imageLink: e.target.value })
+                              }
+                              placeholder="https://example.com/promo"
                               className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
                             />
                           </div>
@@ -1364,7 +2010,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                               onChange={(e) =>
                                 handleUpdateBlock(selectedBlock.id, { subtitle: e.target.value })
                               }
-                              placeholder="Thank you for getting in touch."
+                              placeholder="Confirmation receipt"
                               className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
                             />
                           </div>
@@ -1459,35 +2105,42 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                               >
                                 Background Color
                               </label>
-                              <input
-                                id="btn-bg-input"
-                                type="color"
-                                value={selectedBlock.buttonBg || '#10b981'}
-                                onChange={(e) =>
-                                  handleUpdateBlock(selectedBlock.id, { buttonBg: e.target.value })
-                                }
-                                className="w-full h-8 bg-transparent cursor-pointer rounded border border-white/[0.08]"
-                              />
+                              <div className="flex items-center gap-2">
+                                <input
+                                  id="btn-bg-input"
+                                  type="color"
+                                  value={selectedBlock.buttonBg || '#10b981'}
+                                  onChange={(e) =>
+                                    handleUpdateBlock(selectedBlock.id, {
+                                      buttonBg: e.target.value,
+                                    })
+                                  }
+                                  className="w-7 h-7 rounded border border-white/[0.08] bg-transparent cursor-pointer"
+                                />
+                                <span className="text-xs font-mono text-zinc-300">
+                                  {selectedBlock.buttonBg || '#10b981'}
+                                </span>
+                              </div>
                             </div>
                             <div>
                               <label
                                 htmlFor="btn-radius-input"
                                 className="block text-[11px] text-zinc-400 mb-1"
                               >
-                                Border Radius (px)
+                                Corner Radius ({selectedBlock.buttonRadius || 8}px)
                               </label>
                               <input
                                 id="btn-radius-input"
-                                type="number"
+                                type="range"
                                 min={0}
                                 max={24}
-                                value={selectedBlock.buttonRadius ?? 8}
+                                value={selectedBlock.buttonRadius || 8}
                                 onChange={(e) =>
                                   handleUpdateBlock(selectedBlock.id, {
                                     buttonRadius: Number(e.target.value),
                                   })
                                 }
-                                className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                                className="w-full accent-emerald-500"
                               />
                             </div>
                           </div>
@@ -1598,13 +2251,23 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                                 : 'border-white/20 opacity-60 hover:opacity-100'
                             }`}
                             style={{ backgroundColor: t.color }}
-                            title={`Theme: ${t.label}`}
-                          >
-                            {theme === t.id && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                            )}
-                          </button>
+                            title={t.label}
+                          />
                         ))}
+                      </div>
+
+                      {/* Card Radius Slider */}
+                      <div className="hidden sm:flex items-center gap-1.5 text-zinc-400 text-[10px] pl-2 border-l border-white/[0.08]">
+                        <span>Radius:</span>
+                        <input
+                          type="range"
+                          min={0}
+                          max={24}
+                          value={cardRadius}
+                          onChange={(e) => setCardRadius(Number(e.target.value))}
+                          className="w-14 accent-emerald-500 cursor-pointer"
+                          title={`Card Radius: ${cardRadius}px`}
+                        />
                       </div>
                     </div>
 
@@ -1612,37 +2275,33 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                       <button
                         type="button"
                         onClick={() => setSimulateVariables((prev) => !prev)}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition border ${
+                        className={`text-[10px] px-2 py-1 rounded-lg border transition ${
                           simulateVariables
-                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                            : 'border-white/[0.08] bg-[#0c0d10] text-zinc-400'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                            : 'bg-white/[0.04] text-zinc-400 border-white/[0.06]'
                         }`}
                       >
-                        {simulateVariables ? 'Sample Data ON' : 'Raw {{tags}}'}
+                        {simulateVariables ? 'Variables Active' : 'Raw Tags'}
                       </button>
 
-                      <div className="flex items-center bg-[#0c0d10] p-1 rounded-xl border border-white/[0.08]">
+                      <div className="flex items-center bg-[#0a0a0d] p-0.5 rounded-lg border border-white/[0.06]">
                         <button
                           type="button"
                           onClick={() => setPreviewDevice('desktop')}
-                          className={`p-1.5 rounded-lg transition ${
-                            previewDevice === 'desktop'
-                              ? 'bg-white/[0.1] text-white shadow-sm'
-                              : 'text-zinc-500 hover:text-zinc-300'
+                          className={`p-1.5 rounded text-zinc-400 hover:text-white ${
+                            previewDevice === 'desktop' ? 'bg-white/[0.1] text-white' : ''
                           }`}
-                          title="Desktop Preview"
+                          title="Desktop View"
                         >
                           <Monitor className="w-3.5 h-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={() => setPreviewDevice('mobile')}
-                          className={`p-1.5 rounded-lg transition ${
-                            previewDevice === 'mobile'
-                              ? 'bg-white/[0.1] text-white shadow-sm'
-                              : 'text-zinc-500 hover:text-zinc-300'
+                          className={`p-1.5 rounded text-zinc-400 hover:text-white ${
+                            previewDevice === 'mobile' ? 'bg-white/[0.1] text-white' : ''
                           }`}
-                          title="Mobile Preview"
+                          title="Mobile View"
                         >
                           <Smartphone className="w-3.5 h-3.5" />
                         </button>
@@ -1650,15 +2309,13 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                     </div>
                   </div>
 
-                  {/* Mail Envelope Simulation */}
+                  {/* Simulator Canvas Frame */}
                   <div
-                    className={`mx-auto rounded-2xl border border-white/[0.1] shadow-2xl overflow-hidden transition-all duration-300 ${
-                      previewDevice === 'mobile' ? 'max-w-[375px]' : 'w-full'
-                    }`}
+                    className="p-6 rounded-2xl border border-white/[0.08] transition-all flex justify-center overflow-x-auto min-h-[580px]"
                     style={{
                       backgroundColor:
                         theme === 'clean_light'
-                          ? '#f8fafc'
+                          ? '#f1f5f9'
                           : theme === 'emerald_glow'
                             ? '#090a0f'
                             : theme === 'indigo_slate'
@@ -1666,212 +2323,210 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                               : '#09090b',
                     }}
                   >
-                    {/* Mail App Header */}
-                    <div className="bg-[#181920] border-b border-white/[0.08] px-4 py-3 space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] text-zinc-400">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block" />
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
-                        </div>
-                        <span className="text-[10px] text-zinc-500">Inbox • Just now</span>
-                      </div>
+                    <div
+                      className={`transition-all duration-200 border shadow-xl overflow-hidden ${
+                        previewDevice === 'mobile' ? 'w-[360px]' : 'w-full max-w-[560px]'
+                      }`}
+                      style={{
+                        backgroundColor:
+                          theme === 'clean_light'
+                            ? '#ffffff'
+                            : theme === 'emerald_glow'
+                              ? '#12141c'
+                              : theme === 'indigo_slate'
+                                ? '#141829'
+                                : '#121215',
+                        borderColor:
+                          theme === 'clean_light'
+                            ? '#e2e8f0'
+                            : theme === 'emerald_glow'
+                              ? 'rgba(16, 185, 129, 0.25)'
+                              : theme === 'indigo_slate'
+                                ? 'rgba(99, 102, 241, 0.25)'
+                                : 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: `${cardRadius}px`,
+                        color: theme === 'clean_light' ? '#0f172a' : '#f8fafc',
+                      }}
+                    >
+                      {blocks.map((block) => {
+                        const align = block.alignment || 'left';
+                        const isSelected = block.id === selectedBlockId;
 
-                      <div className="text-xs font-semibold text-white truncate">
-                        {simulateText(autoResponderSubject)}
-                      </div>
-
-                      <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-0.5">
-                        <span>
-                          <strong className="text-zinc-300">From:</strong>{' '}
-                          {site.name || site.domain} &lt;no-reply@entrywise.webbound.in&gt;
-                        </span>
-                        <span>
-                          <strong className="text-zinc-300">To:</strong>{' '}
-                          {simulateVariables ? 'Alex Taylor <alex@example.com>' : '{{email}}'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Email Card Canvas */}
-                    <div className="p-6 md:p-8 flex justify-center">
-                      <div
-                        className="w-full max-w-[540px] rounded-xl shadow-lg border transition-all"
-                        style={{
-                          backgroundColor:
-                            theme === 'clean_light'
-                              ? '#ffffff'
-                              : theme === 'emerald_glow'
-                                ? '#12141c'
-                                : theme === 'indigo_slate'
-                                  ? '#141829'
-                                  : '#121215',
-                          borderColor:
-                            theme === 'clean_light'
-                              ? '#e2e8f0'
-                              : theme === 'emerald_glow'
-                                ? 'rgba(16, 185, 129, 0.25)'
-                                : theme === 'indigo_slate'
-                                  ? 'rgba(99, 102, 241, 0.25)'
-                                  : 'rgba(255, 255, 255, 0.1)',
-                          borderRadius: `${cardRadius}px`,
-                          color: theme === 'clean_light' ? '#0f172a' : '#f8fafc',
-                        }}
-                      >
-                        {blocks.map((block) => {
-                          const align = block.alignment || 'left';
-                          const isSelected = block.id === selectedBlockId;
-
-                          return (
-                            <button
-                              key={block.id}
-                              type="button"
-                              onClick={() => setSelectedBlockId(block.id)}
-                              className={`w-full text-left cursor-pointer transition border border-transparent focus:outline-none ${
-                                isSelected
-                                  ? 'ring-2 ring-emerald-500/80 rounded-lg'
-                                  : 'hover:border-dashed hover:border-zinc-500/40'
-                              }`}
-                            >
-                              {block.type === 'header' && (
-                                <div className={`p-6 pb-2 text-${align}`}>
-                                  {block.logoUrl ? (
-                                    <img
-                                      src={block.logoUrl}
-                                      alt="Logo"
-                                      className="h-10 inline-block object-contain"
-                                    />
-                                  ) : (
-                                    <div className="text-xl font-bold tracking-tight">
-                                      {block.companyName || site.name || site.domain}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-
-                              {block.type === 'heading' && (
-                                <div className={`px-6 py-2 text-${align}`}>
-                                  <h3 className="text-lg font-bold tracking-tight">
-                                    {simulateText(block.title)}
-                                  </h3>
-                                  {block.subtitle && (
-                                    <p className="text-xs text-zinc-400 mt-0.5">
-                                      {simulateText(block.subtitle)}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-
-                              {block.type === 'text' && (
-                                <div
-                                  className={`px-6 py-2 text-xs leading-relaxed whitespace-pre-line text-${align}`}
-                                  style={{ color: theme === 'clean_light' ? '#475569' : '#94a3b8' }}
-                                >
-                                  {simulateText(block.text)}
-                                </div>
-                              )}
-
-                              {block.type === 'callout' && (
-                                <div className="px-6 py-2">
-                                  <div
-                                    className="p-3 rounded-lg text-xs leading-relaxed border"
-                                    style={{
-                                      backgroundColor:
-                                        theme === 'clean_light'
-                                          ? '#ecfdf5'
-                                          : 'rgba(16, 185, 129, 0.1)',
-                                      borderColor:
-                                        theme === 'clean_light'
-                                          ? '#a7f3d0'
-                                          : 'rgba(16, 185, 129, 0.3)',
-                                      color: theme === 'clean_light' ? '#065f46' : '#34d399',
-                                    }}
-                                  >
-                                    {simulateText(block.calloutText)}
+                        return (
+                          <button
+                            key={block.id}
+                            type="button"
+                            onClick={() => setSelectedBlockId(block.id)}
+                            className={`w-full text-left cursor-pointer transition border border-transparent focus:outline-none ${
+                              isSelected
+                                ? 'ring-2 ring-emerald-500/80 rounded-lg'
+                                : 'hover:border-dashed hover:border-zinc-500/40'
+                            }`}
+                          >
+                            {block.type === 'header' && (
+                              <div className={`p-6 pb-2 text-${align}`}>
+                                {block.logoUrl ? (
+                                  <img
+                                    src={block.logoUrl}
+                                    alt="Logo"
+                                    className="h-10 inline-block object-contain"
+                                  />
+                                ) : (
+                                  <div className="text-xl font-bold tracking-tight">
+                                    {block.companyName || site.name || site.domain}
                                   </div>
-                                </div>
-                              )}
+                                )}
+                              </div>
+                            )}
 
-                              {block.type === 'summary_table' && (
-                                <div className="px-6 py-3">
-                                  {block.title && (
-                                    <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">
-                                      {block.title}
-                                    </div>
-                                  )}
-                                  <div className="rounded-lg border border-zinc-200 dark:border-white/[0.08] overflow-hidden text-xs">
-                                    <table className="w-full border-collapse">
-                                      <tbody>
-                                        <tr className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-white/[0.02]">
-                                          <td className="p-2.5 font-semibold text-zinc-500 w-1/3">
-                                            Name
-                                          </td>
-                                          <td className="p-2.5">
-                                            {simulateVariables ? 'Alex Taylor' : '{{name}}'}
-                                          </td>
-                                        </tr>
-                                        <tr className="border-b border-zinc-200 dark:border-white/[0.06]">
-                                          <td className="p-2.5 font-semibold text-zinc-500">
-                                            Email
-                                          </td>
-                                          <td className="p-2.5">
-                                            {simulateVariables ? 'alex@example.com' : '{{email}}'}
-                                          </td>
-                                        </tr>
-                                        <tr className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-white/[0.02]">
-                                          <td className="p-2.5 font-semibold text-zinc-500">
-                                            Message
-                                          </td>
-                                          <td className="p-2.5">
-                                            {simulateVariables
-                                              ? 'Interested in discussing enterprise licensing options.'
-                                              : '{{message}}'}
-                                          </td>
-                                        </tr>
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                              )}
+                            {block.type === 'heading' && (
+                              <div className={`px-6 py-2 text-${align}`}>
+                                <h3 className="text-lg font-bold tracking-tight">
+                                  {simulateText(block.title)}
+                                </h3>
+                                {block.subtitle && (
+                                  <p className="text-xs text-zinc-400 mt-0.5">
+                                    {simulateText(block.subtitle)}
+                                  </p>
+                                )}
+                              </div>
+                            )}
 
-                              {block.type === 'button' && (
-                                <div className={`px-6 py-3 text-${align}`}>
-                                  <span
-                                    className="inline-block px-5 py-2.5 font-semibold text-xs shadow-md"
+                            {block.type === 'image' && (
+                              <div className={`px-6 py-2 text-${align}`}>
+                                {block.imageUrl ? (
+                                  <img
+                                    src={block.imageUrl}
+                                    alt={block.imageAlt || 'Banner'}
+                                    className="inline-block max-w-full h-auto object-cover"
                                     style={{
-                                      backgroundColor: block.buttonBg || '#10b981',
-                                      color: block.buttonTextColor || '#ffffff',
-                                      borderRadius: `${block.buttonRadius ?? 8}px`,
-                                    }}
-                                  >
-                                    {block.buttonText || 'Visit Website →'}
-                                  </span>
-                                </div>
-                              )}
-
-                              {block.type === 'divider' && (
-                                <div className="px-6 py-2">
-                                  <hr
-                                    style={{
-                                      borderColor: block.dividerColor || '#e2e8f0',
-                                      borderTopWidth: '1px',
-                                      borderBottomWidth: '0px',
+                                      width: block.imageWidth ? `${block.imageWidth}px` : '100%',
+                                      borderRadius: `${
+                                        block.imageBorderRadius !== undefined
+                                          ? block.imageBorderRadius
+                                          : 8
+                                      }px`,
                                     }}
                                   />
-                                </div>
-                              )}
+                                ) : (
+                                  <div className="p-8 border-2 border-dashed border-zinc-600/50 rounded-xl text-center text-xs text-zinc-400">
+                                    <Image className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                                    Click to set Image URL in the inspector
+                                  </div>
+                                )}
+                              </div>
+                            )}
 
-                              {block.type === 'footer' && (
+                            {block.type === 'text' && (
+                              <div
+                                className={`px-6 py-2 text-xs leading-relaxed whitespace-pre-line text-${align}`}
+                                style={{ color: theme === 'clean_light' ? '#475569' : '#94a3b8' }}
+                              >
+                                {simulateText(block.text)}
+                              </div>
+                            )}
+
+                            {block.type === 'callout' && (
+                              <div className="px-6 py-2">
                                 <div
-                                  className={`p-5 text-[10px] text-zinc-500 border-t border-zinc-200 dark:border-white/[0.06] text-${align}`}
+                                  className="p-3 rounded-lg text-xs leading-relaxed border"
+                                  style={{
+                                    backgroundColor:
+                                      theme === 'clean_light'
+                                        ? '#ecfdf5'
+                                        : 'rgba(16, 185, 129, 0.1)',
+                                    borderColor:
+                                      theme === 'clean_light'
+                                        ? '#a7f3d0'
+                                        : 'rgba(16, 185, 129, 0.3)',
+                                    color: theme === 'clean_light' ? '#065f46' : '#34d399',
+                                  }}
                                 >
-                                  {simulateText(block.footerText)}
+                                  {simulateText(block.calloutText)}
                                 </div>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
+                              </div>
+                            )}
+
+                            {block.type === 'summary_table' && (
+                              <div className="px-6 py-2">
+                                {block.title && (
+                                  <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2">
+                                    {block.title}
+                                  </div>
+                                )}
+                                <div className="border border-zinc-200 dark:border-white/[0.08] rounded-lg overflow-hidden text-xs">
+                                  <div className="flex border-b border-zinc-200 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] p-2.5">
+                                    <span className="w-1/3 font-semibold text-zinc-500 dark:text-zinc-400">
+                                      Name
+                                    </span>
+                                    <span className="text-zinc-900 dark:text-zinc-100 font-medium">
+                                      Alex Taylor
+                                    </span>
+                                  </div>
+                                  <div className="flex border-b border-zinc-200 dark:border-white/[0.08] p-2.5">
+                                    <span className="w-1/3 font-semibold text-zinc-500 dark:text-zinc-400">
+                                      Email
+                                    </span>
+                                    <span className="text-zinc-900 dark:text-zinc-100 font-medium">
+                                      alex.taylor@example.com
+                                    </span>
+                                  </div>
+                                  <div className="flex p-2.5">
+                                    <span className="w-1/3 font-semibold text-zinc-500 dark:text-zinc-400">
+                                      Message
+                                    </span>
+                                    <span className="text-zinc-900 dark:text-zinc-100 font-medium leading-relaxed">
+                                      We are interested in discussing partnership and enterprise
+                                      licensing.
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {block.type === 'button' && (
+                              <div className={`px-6 py-3 text-${align}`}>
+                                <span
+                                  className="inline-block px-5 py-2 font-semibold text-xs transition"
+                                  style={{
+                                    backgroundColor: block.buttonBg || '#10b981',
+                                    color: block.buttonTextColor || '#ffffff',
+                                    borderRadius: `${block.buttonRadius ?? 8}px`,
+                                  }}
+                                >
+                                  {block.buttonText || 'Click Here'}
+                                </span>
+                              </div>
+                            )}
+
+                            {block.type === 'divider' && (
+                              <div className="px-6">
+                                <hr
+                                  style={{
+                                    borderColor: block.dividerColor || '#e2e8f0',
+                                    margin: `${(block.dividerHeight || 20) / 2}px 0`,
+                                  }}
+                                />
+                              </div>
+                            )}
+
+                            {block.type === 'footer' && (
+                              <div
+                                className={`px-6 py-4 text-[10px] border-t text-${align}`}
+                                style={{
+                                  borderColor:
+                                    theme === 'clean_light'
+                                      ? '#f1f5f9'
+                                      : 'rgba(255, 255, 255, 0.08)',
+                                  color: theme === 'clean_light' ? '#94a3b8' : '#71717a',
+                                }}
+                              >
+                                {simulateText(block.footerText)}
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -1879,136 +2534,104 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
             </div>
           ) : (
             /* ================================================================= */
-            /* MODE B: DIRECT CUSTOM HTML EDITOR                                 */
+            /* MODE B: DIRECT CUSTOM HTML CODE EDITOR                            */
             /* ================================================================= */
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left: Raw HTML Code Editor (5 cols) */}
+              {/* Left Column: Code Editor & Variables Chips (6 cols) */}
               <div className="lg:col-span-6 space-y-4">
                 <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-                    <div>
-                      <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
-                        <Code2 className="w-4 h-4 text-emerald-400" />
-                        <span>Direct HTML Editor</span>
-                      </h3>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">
-                        Paste or write your full standalone HTML email markup.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={handleResetStarterHtml}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/[0.08] bg-[#0c0d10] hover:bg-white/[0.06] text-[11px] text-zinc-400 hover:text-white transition"
-                        title="Reset code to clean responsive boilerplate"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        <span>Reset Boilerplate</span>
-                      </button>
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
+                      <Code2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Custom Raw HTML Source</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleResetStarterHtml}
+                      className="text-[10px] text-zinc-400 hover:text-white flex items-center gap-1 transition"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Reset Starter Template</span>
+                    </button>
                   </div>
 
-                  {/* Dynamic Variable Chips */}
-                  <div>
-                    <span className="block text-[11px] text-zinc-400 mb-1.5 font-medium">
-                      Insert Dynamic Variables into HTML:
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">
+                      Insert Variables:
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       {[
-                        '{{name}}',
-                        '{{email}}',
-                        '{{company}}',
-                        '{{domain}}',
-                        '{{submission_id}}',
-                        '{{formData}}',
-                      ].map((tag) => (
+                        { token: '{{name}}', label: 'Submitter Name' },
+                        { token: '{{email}}', label: 'Submitter Email' },
+                        { token: '{{formData}}', label: 'Submission Data Table' },
+                        { token: '{{domain}}', label: 'Site Domain' },
+                        { token: '{{company}}', label: 'Company Name' },
+                        { token: '{{submission_id}}', label: 'Submission ID' },
+                        { token: '{{date}}', label: 'Submission Date' },
+                      ].map((chip) => (
                         <button
-                          key={tag}
+                          key={chip.token}
                           type="button"
-                          onClick={() => handleInsertVariableIntoHtml(tag)}
-                          className="px-2 py-0.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-mono transition"
+                          onClick={() => handleInsertRawHtmlVariable(chip.token)}
+                          className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/[0.04] text-zinc-300 border border-white/[0.08] hover:border-emerald-500/40 hover:text-emerald-400 transition"
                         >
-                          +{tag}
+                          +{chip.token}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* HTML Editor Textarea */}
-                  <div>
-                    <label htmlFor="custom-html-editor" className="sr-only">
-                      Custom HTML Email Source
-                    </label>
-                    <textarea
-                      id="custom-html-editor"
-                      rows={22}
-                      value={customHtml}
-                      onChange={(e) => setCustomHtml(e.target.value)}
-                      placeholder="<!DOCTYPE html><html>...</html>"
-                      className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl p-4 text-xs font-mono text-zinc-200 focus:outline-none focus:border-emerald-500/50 leading-relaxed transition"
-                      spellCheck={false}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1">
-                    <span>
-                      {customHtml.length} characters • {customHtml.split('\n').length} lines
-                    </span>
-                    <span className="text-emerald-400/80">
-                      ✓ Direct delivery enabled (no escaping)
-                    </span>
+                  <textarea
+                    rows={22}
+                    value={customHtml}
+                    onChange={(e) => setCustomHtml(e.target.value)}
+                    className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl p-3 text-xs font-mono text-zinc-200 leading-relaxed focus:outline-none focus:border-emerald-500/50 resize-y"
+                    placeholder="<!DOCTYPE html><html><body>...</body></html>"
+                    spellCheck={false}
+                  />
+                  <div className="flex items-center justify-between text-[10px] text-zinc-500 px-1">
+                    <span>Lines: {customHtml.split('\n').length}</span>
+                    <span>Characters: {customHtml.length}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Right: Live Simulator Rendering Custom HTML (6 cols) */}
+              {/* Right Column: Sandboxed Live Preview (6 cols) */}
               <div className="lg:col-span-6 space-y-4">
                 <div className="flex items-center justify-between p-3 rounded-2xl border border-white/[0.08] bg-[#121318]">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-zinc-200">
-                      Live HTML Email Preview
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      Isolated Render
-                    </span>
-                  </div>
-
+                  <span className="text-xs font-semibold text-zinc-200">
+                    Live HTML Render Simulator
+                  </span>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setSimulateVariables((prev) => !prev)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition border ${
+                      className={`text-[10px] px-2 py-1 rounded-lg border transition ${
                         simulateVariables
-                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                          : 'border-white/[0.08] bg-[#0c0d10] text-zinc-400'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          : 'bg-white/[0.04] text-zinc-400 border-white/[0.06]'
                       }`}
                     >
-                      {simulateVariables ? 'Sample Data ON' : 'Raw {{tags}}'}
+                      {simulateVariables ? 'Variables Replaced' : 'Raw Tags'}
                     </button>
-
-                    <div className="flex items-center bg-[#0c0d10] p-1 rounded-xl border border-white/[0.08]">
+                    <div className="flex items-center bg-[#0a0a0d] p-0.5 rounded-lg border border-white/[0.06]">
                       <button
                         type="button"
                         onClick={() => setPreviewDevice('desktop')}
-                        className={`p-1.5 rounded-lg transition ${
-                          previewDevice === 'desktop'
-                            ? 'bg-white/[0.1] text-white shadow-sm'
-                            : 'text-zinc-500 hover:text-zinc-300'
+                        className={`p-1.5 rounded text-zinc-400 hover:text-white ${
+                          previewDevice === 'desktop' ? 'bg-white/[0.1] text-white' : ''
                         }`}
-                        title="Desktop Preview"
+                        title="Desktop View"
                       >
                         <Monitor className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"
                         onClick={() => setPreviewDevice('mobile')}
-                        className={`p-1.5 rounded-lg transition ${
-                          previewDevice === 'mobile'
-                            ? 'bg-white/[0.1] text-white shadow-sm'
-                            : 'text-zinc-500 hover:text-zinc-300'
+                        className={`p-1.5 rounded text-zinc-400 hover:text-white ${
+                          previewDevice === 'mobile' ? 'bg-white/[0.1] text-white' : ''
                         }`}
-                        title="Mobile Preview"
+                        title="Mobile View"
                       >
                         <Smartphone className="w-3.5 h-3.5" />
                       </button>
@@ -2016,45 +2639,16 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                   </div>
                 </div>
 
-                {/* Email Client Envelope Frame */}
-                <div
-                  className={`mx-auto rounded-2xl border border-white/[0.1] shadow-2xl overflow-hidden transition-all duration-300 bg-[#121318] ${
-                    previewDevice === 'mobile' ? 'max-w-[375px]' : 'w-full'
-                  }`}
-                >
-                  {/* Mail App Header */}
-                  <div className="bg-[#181920] border-b border-white/[0.08] px-4 py-3 space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] text-zinc-400">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block" />
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
-                      </div>
-                      <span className="text-[10px] text-zinc-500">Inbox • Just now</span>
-                    </div>
-
-                    <div className="text-xs font-semibold text-white truncate">
-                      {simulateText(autoResponderSubject)}
-                    </div>
-
-                    <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-0.5">
-                      <span>
-                        <strong className="text-zinc-300">From:</strong> {site.name || site.domain}{' '}
-                        &lt;no-reply@entrywise.webbound.in&gt;
-                      </span>
-                      <span>
-                        <strong className="text-zinc-300">To:</strong>{' '}
-                        {simulateVariables ? 'Alex Taylor <alex@example.com>' : '{{email}}'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Sandboxed iFrame Preview of Raw HTML */}
-                  <div className="bg-white">
+                <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#0c0d10] flex justify-center">
+                  <div
+                    className={`transition-all duration-200 border border-white/[0.08] rounded-xl overflow-hidden bg-white shadow-xl ${
+                      previewDevice === 'mobile' ? 'w-[360px]' : 'w-full'
+                    }`}
+                  >
                     <iframe
-                      title="Live Custom HTML Email Preview"
+                      title="HTML Email Preview"
                       srcDoc={simulateText(customHtml)}
-                      className="w-full h-[600px] border-0"
+                      className="w-full h-[520px] border-0"
                       sandbox="allow-same-origin"
                     />
                   </div>
@@ -2066,31 +2660,24 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
       )}
 
       {/* ========================================================================= */}
-      {/* VIEW 2: FULL HTML CODE EXPORT                                            */}
+      {/* VIEW 2: HTML EXPORT & INSPECTOR                                          */}
       {/* ========================================================================= */}
       {activeSubTab === 'html' && (
-        <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.06]">
+        <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-4 shadow-lg">
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
             <div>
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <Code2 className="w-4 h-4 text-emerald-400" />
-                <span>
-                  {editorMode === 'custom_html'
-                    ? 'Active Custom HTML Email'
-                    : 'Compiled Bulletproof HTML Email'}
-                </span>
+              <h3 className="text-sm font-semibold text-white">
+                Compiled Output HTML ({isAuto ? 'Auto-Responder' : 'Submission Alert'})
               </h3>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Ready for Gmail, Outlook, Apple Mail, and standard SMTP dispatch with inlined CSS
-                styles.
+                Ready for production delivery with bulletproof table scaffolding.
               </p>
             </div>
-
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleCopyHtml}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-[#0c0d10] hover:bg-white/[0.05] text-xs font-medium text-zinc-300 hover:text-white transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-white text-xs font-medium transition"
               >
                 {copiedHtml ? (
                   <>
@@ -2188,6 +2775,143 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SEND TEST EMAIL MODAL                                                     */}
+      {/* ========================================================================= */}
+      {testEmailModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative w-full max-w-md bg-[#121318] border border-white/[0.12] rounded-2xl shadow-2xl p-6 space-y-5">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                  <Send className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Send Test Email</h3>
+                  <p className="text-[11px] text-zinc-400">
+                    Verify images, typography, and variables in a real inbox
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTestEmailModalOpen(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Template Chooser */}
+            <div className="space-y-1.5">
+              <span className="block text-[11px] font-semibold text-zinc-300">
+                Template to Test
+              </span>
+              <div className="grid grid-cols-2 gap-2 bg-[#0a0a0d] p-1 rounded-xl border border-white/[0.08]">
+                <button
+                  type="button"
+                  onClick={() => setTestEmailTarget('auto_responder')}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-medium text-center transition ${
+                    testEmailTarget === 'auto_responder'
+                      ? 'bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Auto-Responder
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTestEmailTarget('submission_alert')}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-medium text-center transition ${
+                    testEmailTarget === 'submission_alert'
+                      ? 'bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Submission Alert
+                </button>
+              </div>
+            </div>
+
+            {/* Recipient Input */}
+            <div className="space-y-1.5">
+              <label
+                htmlFor="test-email-recipient"
+                className="block text-[11px] font-semibold text-zinc-300"
+              >
+                Recipient Email Address
+              </label>
+              <input
+                id="test-email-recipient"
+                type="email"
+                value={testEmailRecipient}
+                onChange={(e) => setTestEmailRecipient(e.target.value)}
+                placeholder="developer@example.com"
+                className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50"
+              />
+            </div>
+
+            {/* Notice Callout */}
+            <div className="p-3 rounded-xl bg-zinc-900/60 border border-white/[0.06] text-[11px] text-zinc-400 space-y-1">
+              <div className="text-zinc-300 font-medium flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Live Rendering Preview</span>
+              </div>
+              <p>
+                Dispatches a live message to your real inbox with sample fields (
+                <code>&#123;&#123;name&#125;&#125;</code>,{' '}
+                <code>&#123;&#123;formData&#125;&#125;</code>, images, and logos) using your
+                workspace&apos;s configured email provider.
+              </p>
+            </div>
+
+            {testEmailSuccess && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+                <Check className="w-4 h-4 shrink-0" />
+                <span>{testEmailSuccess}</span>
+              </div>
+            )}
+
+            {testEmailError && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+                <Trash2 className="w-4 h-4 shrink-0" />
+                <span>{testEmailError}</span>
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setTestEmailModalOpen(false)}
+                className="px-3.5 py-2 rounded-xl text-xs text-zinc-400 hover:text-white hover:bg-white/[0.06] transition"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={handleSendTestEmail}
+                disabled={isSendingTestEmail || !testEmailRecipient}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs transition shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+              >
+                {isSendingTestEmail ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-black" />
+                    <span>Sending Test...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 text-black" />
+                    <span>Send Test Now</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

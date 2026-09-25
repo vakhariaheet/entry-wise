@@ -12,6 +12,7 @@ import { deleteSite } from '../../controllers/v1/sites/deleteSite';
 import { getSite } from '../../controllers/v1/sites/getSite';
 import { listSites } from '../../controllers/v1/sites/listSites';
 import { patchSite } from '../../controllers/v1/sites/patchSite';
+import { testSiteEmail } from '../../controllers/v1/sites/testSiteEmail';
 import { deleteSubmission } from '../../controllers/v1/submissions/deleteSubmission';
 import { exportSubmissions } from '../../controllers/v1/submissions/exportSubmissions';
 import { getSubmission } from '../../controllers/v1/submissions/getSubmission';
@@ -30,7 +31,7 @@ import {
   createFieldSchema,
   updateFieldSchema,
 } from '../../schemas/field.schema';
-import { updateSiteSchema } from '../../schemas/site.schema';
+import { testSiteEmailSchema, updateSiteSchema } from '../../schemas/site.schema';
 import { patchSubmissionSchema } from '../../schemas/submission.schema';
 import type { Env } from '../../types/env';
 
@@ -104,6 +105,25 @@ sitesRouter.patch(
   validator('param', z.object({ id: z.string() })),
   validator('json', updateSiteSchema),
   patchSite
+);
+
+sitesRouter.post(
+  '/:id/test-email',
+  describeRoute({
+    summary: 'Send test site email',
+    description:
+      'Dispatch a test preview of the auto-responder or main submission alert template to verify images, styling, and variables in a real inbox',
+    tags: ['Sites'],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Test email dispatched successfully' },
+      400: { description: 'Invalid recipient or test email delivery failed' },
+      404: { description: 'Site or parent workspace not found' },
+    },
+  }),
+  validator('param', z.object({ id: z.string() })),
+  validator('json', testSiteEmailSchema),
+  testSiteEmail
 );
 
 sitesRouter.delete(

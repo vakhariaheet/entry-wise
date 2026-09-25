@@ -89,6 +89,73 @@ export async function processSubmissionDelivery(
 
     const deliveryTasks: Promise<unknown>[] = [];
 
+    // Common template data interpolation preparation
+    let fieldsTableHtml =
+      '<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:540px;border-collapse:collapse;margin:16px 0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;font-size:13px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">';
+    let rowIdx = 0;
+    for (const [k, v] of Object.entries(fields)) {
+      if (k.startsWith('_')) continue;
+      const valStr = typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
+      const bg = rowIdx % 2 === 0 ? '#ffffff' : '#f8fafc';
+      fieldsTableHtml += `<tr style="background:${bg};"><td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;width:35%;vertical-align:top;">${escapeHtml(k)}</td><td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;color:#0f172a;vertical-align:top;">${escapeHtml(valStr)}</td></tr>`;
+      rowIdx++;
+    }
+    fieldsTableHtml += '</table>';
+
+    const companyDisplayName = site.name || company.name || company.from_name || site.domain;
+    const templateVars: Record<string, string> = {
+      ...fields,
+      name: submitterName || '',
+      email: submitterEmail || '',
+      company: companyDisplayName,
+      company_name: companyDisplayName,
+      domain: site.domain,
+      site_domain: site.domain,
+      submission_id: submissionId,
+      date: new Date().toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+      formData: fieldsTableHtml,
+      form_data: fieldsTableHtml,
+      submission_summary: fieldsTableHtml,
+      all_fields: fieldsTableHtml,
+    };
+
+    const interpolateVars = (text: string): string => {
+      let res = text;
+      for (const [k, val] of Object.entries(templateVars)) {
+        const regex = new RegExp(`{{\\s*${k}\\s*}}`, 'gi');
+        res = res.replace(regex, val);
+      }
+      return res;
+    };
+
+    interface StoredTemplateConfig {
+      mode?: string;
+      theme?: string;
+      customHtml?: string;
+      compiledHtml?: string;
+      subject?: string;
+    }
+
+    interface StoredSiteConfig {
+      autoResponder?: StoredTemplateConfig;
+      submissionAlert?: StoredTemplateConfig;
+      customHtml?: string;
+      compiledHtml?: string;
+    }
+
+    let parsedConfig: StoredSiteConfig | null = null;
+    if (site.auto_responder_config) {
+      try {
+        parsedConfig = JSON.parse(site.auto_responder_config);
+      } catch {
+        parsedConfig = null;
+      }
+    }
+
     // 4. Admin Notification Email
     if (site.notify_on_submission !== 0) {
       const recipientList: string[] = [];
@@ -110,14 +177,33 @@ export async function processSubmissionDelivery(
       }
 
       if (recipientList.length > 0) {
-        const htmlEmail = renderFormSubmissionEmail({
-          siteDomain: site.domain,
-          formData: fields,
-          companyName: site.name || company.name || site.domain,
-          timezone: site.timezone,
-          submissionId,
-          attachments: emailAttachments.map((f) => ({ filename: f.filename })),
-        });
+        let alertHtml = '';
+        let alertSubject = `New Form Submission: ${site.name || site.domain}`;
+
+        const alertConf = parsedConfig?.submissionAlert;
+        if (alertConf) {
+          const rawAlertHtml =
+            alertConf.mode === 'custom_html' && alertConf.customHtml
+              ? alertConf.customHtml
+              : alertConf.compiledHtml;
+          if (rawAlertHtml) {
+            alertHtml = interpolateVars(rawAlertHtml);
+          }
+          if (alertConf.subject) {
+            alertSubject = interpolateVars(alertConf.subject);
+          }
+        }
+
+        if (!alertHtml) {
+          alertHtml = renderFormSubmissionEmail({
+            siteDomain: site.domain,
+            formData: fields,
+            companyName: companyDisplayName,
+            timezone: site.timezone,
+            submissionId,
+            attachments: emailAttachments.map((f) => ({ filename: f.filename })),
+          });
+        }
 
         for (const recipient of recipientList) {
           deliveryTasks.push(
@@ -126,8 +212,8 @@ export async function processSubmissionDelivery(
                 from: company.from_email || 'no-reply@entrywise.webbound.in',
                 fromName: site.name || company.from_name || 'EntryWise',
                 to: recipient,
-                subject: `New Form Submission: ${site.name || site.domain}`,
-                html: htmlEmail,
+                subject: alertSubject,
+                html: alertHtml,
                 replyTo: submitterEmail || undefined,
                 attachments: emailAttachments,
               })
@@ -142,45 +228,13 @@ export async function processSubmissionDelivery(
 
     // 5. Submitter Auto-Responder Email
     if (site.auto_responder_enabled && submitterEmail) {
-      const companyDisplayName = site.name || company.name || company.from_name || site.domain;
       let interpolatedSubject =
         site.auto_responder_subject || `Thank you for reaching out — ${companyDisplayName}`;
       let interpolatedBody = site.auto_responder_body || '';
 
-      // Generate a responsive HTML table of submission fields for {{formData}} or {{submission_summary}}
-      let fieldsTableHtml =
-        '<table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:540px;border-collapse:collapse;margin:16px 0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;font-size:13px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">';
-      let rowIdx = 0;
-      for (const [k, v] of Object.entries(fields)) {
-        if (k.startsWith('_')) continue;
-        const valStr = typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
-        const bg = rowIdx % 2 === 0 ? '#ffffff' : '#f8fafc';
-        fieldsTableHtml += `<tr style="background:${bg};"><td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;width:35%;vertical-align:top;">${escapeHtml(k)}</td><td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;color:#0f172a;vertical-align:top;">${escapeHtml(valStr)}</td></tr>`;
-        rowIdx++;
-      }
-      fieldsTableHtml += '</table>';
-
-      const templateVars: Record<string, string> = {
-        ...fields,
-        name: submitterName || '',
-        email: submitterEmail,
-        company: companyDisplayName,
-        company_name: companyDisplayName,
-        domain: site.domain,
-        site_domain: site.domain,
-        submission_id: submissionId,
-        formData: fieldsTableHtml,
-        form_data: fieldsTableHtml,
-        submission_summary: fieldsTableHtml,
-        all_fields: fieldsTableHtml,
-      };
-
-      for (const [k, val] of Object.entries(templateVars)) {
-        const regex = new RegExp(`{{\\s*${k}\\s*}}`, 'gi');
-        interpolatedSubject = interpolatedSubject.replace(regex, val);
-        if (interpolatedBody) {
-          interpolatedBody = interpolatedBody.replace(regex, val);
-        }
+      interpolatedSubject = interpolateVars(interpolatedSubject);
+      if (interpolatedBody) {
+        interpolatedBody = interpolateVars(interpolatedBody);
       }
 
       const autoReplyHtml = renderAutoResponderEmail({
