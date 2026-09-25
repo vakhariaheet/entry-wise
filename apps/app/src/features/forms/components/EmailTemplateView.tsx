@@ -25,6 +25,7 @@ import {
   Table,
   Trash2,
   Type,
+  Wand2,
 } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -67,11 +68,14 @@ export interface EmailBlock {
 }
 
 export type EmailTheme = 'clean_light' | 'emerald_glow' | 'indigo_slate' | 'executive_dark';
+export type TemplateEditorMode = 'blocks' | 'custom_html';
 
 interface EmailTemplateConfig {
+  mode?: TemplateEditorMode;
   theme: EmailTheme;
   blocks: EmailBlock[];
   cardRadius: number;
+  customHtml?: string;
 }
 
 interface EmailTemplateViewProps {
@@ -80,8 +84,64 @@ interface EmailTemplateViewProps {
 }
 
 // ==========================================
-// 2. Pre-Built Designer Presets
+// 2. Pre-Built Designer Presets & Starter HTML
 // ==========================================
+
+export function getDefaultStarterHtml(site: Site): string {
+  const brandName = site.name || site.domain;
+  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Receipt Confirmation — ${brandName}</title>
+  <style type="text/css">
+    body { margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    .email-container { max-width: 600px; width: 100%; margin: 40px auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05); }
+    .header { padding: 36px 32px 18px 32px; text-align: center; border-bottom: 1px solid #f1f5f9; }
+    .brand-title { margin: 0; font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; }
+    .content { padding: 28px 32px; }
+    .headline { font-size: 19px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 8px; }
+    .body-copy { font-size: 14px; line-height: 1.65; color: #475569; margin-bottom: 20px; }
+    .callout { background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #065f46; margin: 18px 0; }
+    .btn { display: inline-block; padding: 12px 28px; background-color: #10b981; color: #ffffff !important; text-decoration: none; font-weight: 600; font-size: 14px; border-radius: 8px; }
+    .footer { padding: 20px 32px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h1 class="brand-title">${brandName}</h1>
+    </div>
+    <div class="content">
+      <h2 class="headline">We received your message!</h2>
+      <p class="body-copy">
+        Hi {{name}}, thank you for contacting us. We have received your submission sent via {{domain}} and our team is already reviewing it.
+      </p>
+
+      <div class="callout">
+        ✓ Fast SLA: Our typical turnaround time is under 2 business hours.
+      </div>
+
+      <!-- Submission Summary Table -->
+      <div style="margin: 22px 0;">
+        <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 8px;">
+          Submission Receipt:
+        </div>
+        {{formData}}
+      </div>
+
+      <div style="text-align: center; margin: 28px 0 12px 0;">
+        <a href="https://${site.domain}" class="btn" target="_blank" rel="noopener noreferrer">Visit ${site.domain} →</a>
+      </div>
+    </div>
+    <div class="footer">
+      Delivered securely on behalf of ${brandName} via EntryWise.
+    </div>
+  </div>
+</body>
+</html>`;
+}
 
 const createPresetBlocks = (presetId: string, site: Site): EmailBlock[] => {
   const brandName = site.name || site.domain;
@@ -274,7 +334,7 @@ const createPresetBlocks = (presetId: string, site: Site): EmailBlock[] => {
 };
 
 // ==========================================
-// 3. Bulletproof HTML Email Compiler
+// 3. Bulletproof HTML Email Compiler (Blocks Mode)
 // ==========================================
 
 export function compileBulletproofHtmlEmail(
@@ -336,7 +396,6 @@ export function compileBulletproofHtmlEmail(
     },
   }[theme];
 
-  // Render individual blocks to bulletproof table rows
   const renderedRows = blocks
     .map((block) => {
       const align = block.alignment || 'left';
@@ -492,7 +551,7 @@ export function compileBulletproofHtmlEmail(
 }
 
 // ==========================================
-// 4. Main Component: EmailTemplateStudioView
+// 4. Main Component: EmailTemplateView
 // ==========================================
 
 export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSiteUpdated }) => {
@@ -500,6 +559,48 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
   const [activeSubTab, setActiveSubTab] = useState<'studio' | 'html' | 'team'>('studio');
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [simulateVariables, setSimulateVariables] = useState<boolean>(true);
+
+  // Editor Mode: 'blocks' (drag & drop) vs 'custom_html' (direct raw HTML code)
+  const [editorMode, setEditorMode] = useState<TemplateEditorMode>(() => {
+    if (site.auto_responder_config) {
+      try {
+        const parsed = JSON.parse(site.auto_responder_config);
+        if (parsed.mode === 'custom_html') return 'custom_html';
+      } catch {
+        // fallback
+      }
+    }
+    if (
+      site.auto_responder_body &&
+      (site.auto_responder_body.includes('<!DOCTYPE') ||
+        site.auto_responder_body.includes('<html')) &&
+      !site.auto_responder_config
+    ) {
+      return 'custom_html';
+    }
+    return 'blocks';
+  });
+
+  // Custom Raw HTML Editor State
+  const [customHtml, setCustomHtml] = useState<string>(() => {
+    if (site.auto_responder_config) {
+      try {
+        const parsed = JSON.parse(site.auto_responder_config);
+        if (parsed.customHtml) return parsed.customHtml;
+      } catch {
+        // fallback
+      }
+    }
+    if (
+      site.auto_responder_body &&
+      (site.auto_responder_body.includes('<!DOCTYPE') ||
+        site.auto_responder_body.includes('<html') ||
+        site.auto_responder_body.includes('<table'))
+    ) {
+      return site.auto_responder_body;
+    }
+    return getDefaultStarterHtml(site);
+  });
 
   // Auto-Responder Settings
   const [autoResponderEnabled, setAutoResponderEnabled] = useState<boolean>(
@@ -517,7 +618,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
     site.notification_emails || ''
   );
 
-  // Template Studio Config State
+  // Visual Blocks Config State
   const [theme, setTheme] = useState<EmailTheme>('clean_light');
   const [cardRadius, setCardRadius] = useState<number>(12);
   const [blocks, setBlocks] = useState<EmailBlock[]>(() => {
@@ -557,6 +658,8 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
     if (site.auto_responder_config) {
       try {
         const parsed = JSON.parse(site.auto_responder_config);
+        if (parsed.mode) setEditorMode(parsed.mode);
+        if (parsed.customHtml) setCustomHtml(parsed.customHtml);
         if (parsed.blocks && Array.isArray(parsed.blocks)) {
           setBlocks(parsed.blocks);
         }
@@ -573,12 +676,17 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
     return blocks.find((b) => b.id === selectedBlockId) || null;
   }, [blocks, selectedBlockId]);
 
-  // Compiled full HTML email string
-  const fullHtmlEmail = useMemo(() => {
+  // Compiled full HTML email string from visual blocks
+  const compiledBlocksHtml = useMemo(() => {
     return compileBulletproofHtmlEmail(blocks, theme, cardRadius, site);
   }, [blocks, theme, cardRadius, site]);
 
-  // Handle Preset Switching
+  // Active output HTML: returns customHtml if in raw mode, else compiled visual blocks
+  const activeOutputHtml = useMemo(() => {
+    return editorMode === 'custom_html' ? customHtml : compiledBlocksHtml;
+  }, [editorMode, customHtml, compiledBlocksHtml]);
+
+  // Handle Preset Switching (Blocks Mode)
   const handleApplyPreset = (presetId: string) => {
     const newBlocks = createPresetBlocks(presetId, site);
     setBlocks(newBlocks);
@@ -591,6 +699,17 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
     } else {
       setTheme('clean_light');
     }
+  };
+
+  // Convert current visual blocks to custom HTML
+  const handleConvertBlocksToHtml = () => {
+    setCustomHtml(compiledBlocksHtml);
+    setEditorMode('custom_html');
+  };
+
+  // Reset custom HTML to starter boilerplate
+  const handleResetStarterHtml = () => {
+    setCustomHtml(getDefaultStarterHtml(site));
   };
 
   // Drag and drop reordering
@@ -709,15 +828,21 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
     });
   };
 
+  const handleInsertVariableIntoHtml = (tag: string) => {
+    setCustomHtml((prev) => `${prev} ${tag}`);
+  };
+
   // Save to EntryWise backend
   const handleSave = async () => {
     setIsSaving(true);
     setErrorMessage(null);
 
     const configPayload: EmailTemplateConfig = {
+      mode: editorMode,
       theme,
       blocks,
       cardRadius,
+      customHtml,
     };
 
     try {
@@ -726,7 +851,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
         notification_emails: notificationEmails.trim() || null,
         auto_responder_enabled: autoResponderEnabled,
         auto_responder_subject: autoResponderSubject.trim() || null,
-        auto_responder_body: fullHtmlEmail,
+        auto_responder_body: activeOutputHtml,
         auto_responder_config: JSON.stringify(configPayload),
       });
 
@@ -743,14 +868,14 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
 
   // Copy HTML to clipboard
   const handleCopyHtml = () => {
-    navigator.clipboard.writeText(fullHtmlEmail);
+    navigator.clipboard.writeText(activeOutputHtml);
     setCopiedHtml(true);
     setTimeout(() => setCopiedHtml(false), 2000);
   };
 
   // Download .html file
   const handleDownloadHtml = () => {
-    const blob = new Blob([fullHtmlEmail], { type: 'text/html;charset=utf-8' });
+    const blob = new Blob([activeOutputHtml], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -764,13 +889,23 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
     (input?: string): string => {
       if (!input) return '';
       if (!simulateVariables) return input;
+
+      const sampleTableHtml = `
+        <table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:540px;border-collapse:collapse;margin:12px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+          <tr style="background:#f8fafc;"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;width:30%;">Name</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;">Alex Taylor</td></tr>
+          <tr style="background:#ffffff;"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">Email</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;">alex.taylor@example.com</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">Message</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;">We are interested in discussing partnership and enterprise licensing.</td></tr>
+        </table>
+      `;
+
       return input
         .replace(/{{\s*name\s*}}/gi, 'Alex Taylor')
         .replace(/{{\s*email\s*}}/gi, 'alex.taylor@example.com')
         .replace(/{{\s*domain\s*}}/gi, site.domain)
         .replace(/{{\s*company\s*}}/gi, site.name || site.domain)
         .replace(/{{\s*company_name\s*}}/gi, site.name || site.domain)
-        .replace(/{{\s*submission_id\s*}}/gi, '#EW-849102');
+        .replace(/{{\s*submission_id\s*}}/gi, '#EW-849102')
+        .replace(/{{\s*(formData|form_data|submission_summary|all_fields)\s*}}/gi, sampleTableHtml);
     },
     [simulateVariables, site]
   );
@@ -786,12 +921,12 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
             </span>
             <h2 className="text-lg font-bold text-white tracking-tight">Email Template Studio</h2>
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              Full HTML Generator
+              {editorMode === 'custom_html' ? 'Custom HTML Mode' : 'Visual Blocks Mode'}
             </span>
           </div>
           <p className="text-xs text-zinc-400 mt-1">
-            Visually design responsive, bulletproof HTML confirmation receipts and team alert
-            templates.
+            Build custom auto-responder receipts and team alerts using drag-and-drop blocks or
+            direct HTML.
           </p>
         </div>
 
@@ -871,11 +1006,11 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
       )}
 
       {/* ========================================================================= */}
-      {/* VIEW 1: STUDIO & LIVE PREVIEW                                            */}
+      {/* VIEW 1: STUDIO & LIVE PREVIEW (WITH MODE SWITCHER)                       */}
       {/* ========================================================================= */}
       {activeSubTab === 'studio' && (
         <div className="space-y-6">
-          {/* Top Control Bar: Active Toggle + Subject Line + Presets */}
+          {/* Top Control Bar: Active Toggle + Mode Selector + Subject Line */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 rounded-2xl border border-white/[0.08] bg-[#121318]">
             {/* Auto-Responder Toggle */}
             <div className="lg:col-span-3 flex items-center justify-between p-3 rounded-xl border border-white/[0.06] bg-[#0c0d10]">
@@ -898,6 +1033,39 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
               </label>
             </div>
 
+            {/* Editor Mode Selector (Blocks vs Custom HTML) */}
+            <div className="lg:col-span-4 flex flex-col justify-center">
+              <span className="block text-[11px] font-semibold text-zinc-300 mb-1">
+                Template Composition Mode
+              </span>
+              <div className="flex items-center bg-[#0a0a0d] p-1 rounded-xl border border-white/[0.08]">
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('blocks')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition ${
+                    editorMode === 'blocks'
+                      ? 'bg-emerald-500/15 text-emerald-400 font-semibold shadow-sm'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <LayoutTemplate className="w-3.5 h-3.5" />
+                  <span>Visual Blocks</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('custom_html')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition ${
+                    editorMode === 'custom_html'
+                      ? 'bg-emerald-500/15 text-emerald-400 font-semibold shadow-sm'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <Code2 className="w-3.5 h-3.5" />
+                  <span>Custom HTML</span>
+                </button>
+              </div>
+            </div>
+
             {/* Subject Line Input */}
             <div className="lg:col-span-5 flex flex-col justify-center">
               <label
@@ -915,775 +1083,990 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                 className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500/50"
               />
             </div>
-
-            {/* Designer Presets */}
-            <div className="lg:col-span-4 flex flex-col justify-center">
-              <span className="block text-[11px] font-semibold text-zinc-300 mb-1">
-                Apply Designer Preset
-              </span>
-              <div className="grid grid-cols-4 gap-1">
-                {[
-                  { id: 'modern_receipt', label: 'Receipt' },
-                  { id: 'minimal_letter', label: 'Minimal' },
-                  { id: 'next_steps', label: 'Next Steps' },
-                  { id: 'dark_executive', label: 'Dark' },
-                ].map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => handleApplyPreset(preset.id)}
-                    className="px-2 py-1.5 rounded-lg border border-white/[0.06] bg-[#0c0d10] hover:bg-white/[0.06] hover:border-emerald-500/40 text-[11px] text-zinc-300 hover:text-white transition font-medium text-center"
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
-          {/* Main 2-Column Split: Builder Canvas & Live Preview Simulator */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left: Drag & Drop Canvas + Palette + Inspector (5 cols) */}
-            <div className="lg:col-span-5 space-y-4">
-              {/* Block Palette */}
-              <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-zinc-200 uppercase tracking-wider flex items-center gap-1.5">
-                    <Plus className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Add Email Block</span>
-                  </span>
-                  <span className="text-[10px] text-zinc-500">Click to add to template</span>
-                </div>
-
-                <div className="grid grid-cols-4 gap-1.5">
+          {/* ================================================================= */}
+          {/* MODE A: VISUAL BLOCKS BUILDER                                    */}
+          {/* ================================================================= */}
+          {editorMode === 'blocks' ? (
+            <div className="space-y-6">
+              {/* Presets Bar */}
+              <div className="flex items-center justify-between p-3 rounded-xl border border-white/[0.08] bg-[#121318]">
+                <span className="text-xs text-zinc-400">Quick Designer Presets:</span>
+                <div className="flex items-center gap-2">
                   {[
-                    { type: 'header' as EmailBlockType, label: 'Header', icon: Image },
-                    { type: 'heading' as EmailBlockType, label: 'Title', icon: Heading },
-                    { type: 'text' as EmailBlockType, label: 'Text', icon: Type },
-                    { type: 'summary_table' as EmailBlockType, label: 'Form Table', icon: Table },
-                    { type: 'button' as EmailBlockType, label: 'Button', icon: MousePointerClick },
-                    { type: 'callout' as EmailBlockType, label: 'Callout', icon: Sparkles },
-                    { type: 'divider' as EmailBlockType, label: 'Divider', icon: RotateCcw },
-                    { type: 'footer' as EmailBlockType, label: 'Footer', icon: MessageSquare },
-                  ].map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.type}
-                        type="button"
-                        onClick={() => handleAddBlock(item.type)}
-                        className="flex flex-col items-center justify-center p-2 rounded-xl border border-white/[0.06] bg-[#0c0d10] hover:bg-emerald-500/[0.08] hover:border-emerald-500/40 text-zinc-400 hover:text-emerald-400 transition text-center group"
-                      >
-                        <Icon className="w-4 h-4 mb-1 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-medium">{item.label}</span>
-                      </button>
-                    );
-                  })}
+                    { id: 'modern_receipt', label: 'Receipt' },
+                    { id: 'minimal_letter', label: 'Minimal' },
+                    { id: 'next_steps', label: 'Next Steps' },
+                    { id: 'dark_executive', label: 'Dark' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => handleApplyPreset(preset.id)}
+                      className="px-3 py-1 rounded-lg border border-white/[0.08] bg-[#0c0d10] hover:bg-white/[0.06] hover:border-emerald-500/40 text-xs text-zinc-300 hover:text-white transition font-medium"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleConvertBlocksToHtml}
+                    className="flex items-center gap-1 px-3 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs text-emerald-400 font-medium transition ml-2"
+                    title="Export blocks as HTML code and switch to Custom HTML editor"
+                  >
+                    <Wand2 className="w-3 h-3" />
+                    <span>Convert to HTML Code</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Draggable Email Canvas */}
-              <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-zinc-200">
-                    Template Structure ({blocks.length} blocks)
-                  </span>
-                  <span className="text-[10px] text-zinc-500">Drag to reorder</span>
-                </div>
-
-                <ul className="space-y-2 max-h-[380px] overflow-y-auto pr-1 list-none p-0 m-0">
-                  {blocks.map((block, index) => {
-                    const isSelected = block.id === selectedBlockId;
-                    return (
-                      <li
-                        key={block.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, index)}
-                        onDragOver={(e) => handleDragOver(e, index)}
-                        onDragEnd={handleDragEnd}
-                        className={`p-2.5 rounded-xl border transition flex items-center justify-between gap-2 ${
-                          isSelected
-                            ? 'border-emerald-500/60 bg-emerald-500/[0.08] shadow-sm'
-                            : 'border-white/[0.06] bg-[#0c0d10] hover:bg-white/[0.04]'
-                        } ${draggedIndex === index ? 'opacity-40 border-dashed border-emerald-400' : ''}`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => setSelectedBlockId(block.id)}
-                          className="flex items-center gap-2 min-w-0 flex-1 text-left focus:outline-none"
-                        >
-                          <div className="cursor-grab text-zinc-500 hover:text-zinc-300 p-0.5">
-                            <GripVertical className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-xs font-semibold text-zinc-200 truncate flex items-center gap-1.5">
-                              <span className="capitalize">{block.type.replace('_', ' ')}</span>
-                            </div>
-                            <div className="text-[10px] text-zinc-400 truncate">
-                              {block.title ||
-                                block.buttonText ||
-                                block.companyName ||
-                                block.text?.slice(0, 30) ||
-                                'Configured block'}
-                            </div>
-                          </div>
-                        </button>
-
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleMoveBlock(index, 'up')}
-                            disabled={index === 0}
-                            className="p-1 rounded text-zinc-400 hover:text-white disabled:opacity-20 text-[10px]"
-                            title="Move Up"
-                          >
-                            ▲
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleMoveBlock(index, 'down')}
-                            disabled={index === blocks.length - 1}
-                            className="p-1 rounded text-zinc-400 hover:text-white disabled:opacity-20 text-[10px]"
-                            title="Move Down"
-                          >
-                            ▼
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteBlock(block.id)}
-                            className="p-1 rounded text-zinc-500 hover:text-red-400 transition"
-                            title="Remove Block"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-
-              {/* Block Property Inspector */}
-              {selectedBlock && (
-                <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-                    <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-                      Edit {selectedBlock.type.replace('_', ' ')} Block
+              {/* Main 2-Column Split */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Left: Palette + Draggable Canvas + Inspector (5 cols) */}
+                <div className="lg:col-span-5 space-y-4">
+                  {/* Palette */}
+                  <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-zinc-200 uppercase tracking-wider flex items-center gap-1.5">
+                        <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Add Email Block</span>
+                      </span>
+                      <span className="text-[10px] text-zinc-500">Click to append</span>
                     </div>
-                    {/* Alignment Controls */}
-                    <div className="flex items-center gap-1 bg-[#0a0a0d] p-1 rounded-lg border border-white/[0.06]">
-                      {(['left', 'center', 'right'] as const).map((align) => {
-                        const Icon =
-                          align === 'left'
-                            ? AlignLeft
-                            : align === 'center'
-                              ? AlignCenter
-                              : AlignRight;
+
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { type: 'header' as EmailBlockType, label: 'Header', icon: Image },
+                        { type: 'heading' as EmailBlockType, label: 'Title', icon: Heading },
+                        { type: 'text' as EmailBlockType, label: 'Text', icon: Type },
+                        {
+                          type: 'summary_table' as EmailBlockType,
+                          label: 'Form Table',
+                          icon: Table,
+                        },
+                        {
+                          type: 'button' as EmailBlockType,
+                          label: 'Button',
+                          icon: MousePointerClick,
+                        },
+                        { type: 'callout' as EmailBlockType, label: 'Callout', icon: Sparkles },
+                        { type: 'divider' as EmailBlockType, label: 'Divider', icon: RotateCcw },
+                        { type: 'footer' as EmailBlockType, label: 'Footer', icon: MessageSquare },
+                      ].map((item) => {
+                        const Icon = item.icon;
                         return (
                           <button
-                            key={align}
+                            key={item.type}
                             type="button"
-                            onClick={() =>
-                              handleUpdateBlock(selectedBlock.id, { alignment: align })
-                            }
-                            className={`p-1 rounded transition ${
-                              (selectedBlock.alignment || 'left') === align
-                                ? 'bg-white/[0.1] text-emerald-400'
-                                : 'text-zinc-500 hover:text-zinc-300'
-                            }`}
-                            title={`Align ${align}`}
+                            onClick={() => handleAddBlock(item.type)}
+                            className="flex flex-col items-center justify-center p-2 rounded-xl border border-white/[0.06] bg-[#0c0d10] hover:bg-emerald-500/[0.08] hover:border-emerald-500/40 text-zinc-400 hover:text-emerald-400 transition text-center group"
                           >
-                            <Icon className="w-3 h-3" />
+                            <Icon className="w-4 h-4 mb-1 group-hover:scale-110 transition-transform" />
+                            <span className="text-[10px] font-medium">{item.label}</span>
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Header Block Inspector */}
-                  {selectedBlock.type === 'header' && (
-                    <div className="space-y-3">
-                      <div>
-                        <label
-                          htmlFor="header-brand-input"
-                          className="block text-[11px] text-zinc-400 mb-1"
-                        >
-                          Brand / Company Name
-                        </label>
-                        <input
-                          id="header-brand-input"
-                          type="text"
-                          value={selectedBlock.companyName || ''}
-                          onChange={(e) =>
-                            handleUpdateBlock(selectedBlock.id, { companyName: e.target.value })
-                          }
-                          placeholder={site.name || site.domain}
-                          className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
-                        />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="header-logo-input"
-                          className="block text-[11px] text-zinc-400 mb-1"
-                        >
-                          Logo Image URL (Optional)
-                        </label>
-                        <input
-                          id="header-logo-input"
-                          type="url"
-                          value={selectedBlock.logoUrl || ''}
-                          onChange={(e) =>
-                            handleUpdateBlock(selectedBlock.id, { logoUrl: e.target.value })
-                          }
-                          placeholder="https://example.com/logo.png"
-                          className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
-                        />
-                      </div>
+                  {/* Canvas List */}
+                  <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-zinc-200">
+                        Template Blocks ({blocks.length})
+                      </span>
+                      <span className="text-[10px] text-zinc-500">Drag to reorder</span>
                     </div>
-                  )}
 
-                  {/* Heading Block Inspector */}
-                  {selectedBlock.type === 'heading' && (
-                    <div className="space-y-3">
-                      <div>
-                        <label
-                          htmlFor="heading-title-input"
-                          className="block text-[11px] text-zinc-400 mb-1"
-                        >
-                          Heading Title
-                        </label>
-                        <input
-                          id="heading-title-input"
-                          type="text"
-                          value={selectedBlock.title || ''}
-                          onChange={(e) =>
-                            handleUpdateBlock(selectedBlock.id, { title: e.target.value })
-                          }
-                          placeholder="We received your message!"
-                          className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
-                        />
-                      </div>
-                      <div>
-                        <label
-                          htmlFor="heading-sub-input"
-                          className="block text-[11px] text-zinc-400 mb-1"
-                        >
-                          Subtitle (Optional)
-                        </label>
-                        <input
-                          id="heading-sub-input"
-                          type="text"
-                          value={selectedBlock.subtitle || ''}
-                          onChange={(e) =>
-                            handleUpdateBlock(selectedBlock.id, { subtitle: e.target.value })
-                          }
-                          placeholder="Thank you for getting in touch."
-                          className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Text Block Inspector */}
-                  {selectedBlock.type === 'text' && (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label
-                          htmlFor="text-body-input"
-                          className="block text-[11px] text-zinc-400"
-                        >
-                          Message Body
-                        </label>
-                        <div className="flex gap-1">
-                          {['{{name}}', '{{domain}}', '{{company}}'].map((tag) => (
+                    <ul className="space-y-2 max-h-[360px] overflow-y-auto pr-1 list-none p-0 m-0">
+                      {blocks.map((block, index) => {
+                        const isSelected = block.id === selectedBlockId;
+                        return (
+                          <li
+                            key={block.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, index)}
+                            onDragOver={(e) => handleDragOver(e, index)}
+                            onDragEnd={handleDragEnd}
+                            className={`p-2.5 rounded-xl border transition flex items-center justify-between gap-2 ${
+                              isSelected
+                                ? 'border-emerald-500/60 bg-emerald-500/[0.08] shadow-sm'
+                                : 'border-white/[0.06] bg-[#0c0d10] hover:bg-white/[0.04]'
+                            } ${draggedIndex === index ? 'opacity-40 border-dashed border-emerald-400' : ''}`}
+                          >
                             <button
-                              key={tag}
                               type="button"
-                              onClick={() => handleInsertVariable(tag, 'text')}
-                              className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                              onClick={() => setSelectedBlockId(block.id)}
+                              className="flex items-center gap-2 min-w-0 flex-1 text-left focus:outline-none"
                             >
-                              +{tag}
+                              <div className="cursor-grab text-zinc-500 hover:text-zinc-300 p-0.5">
+                                <GripVertical className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs font-semibold text-zinc-200 truncate flex items-center gap-1.5">
+                                  <span className="capitalize">{block.type.replace('_', ' ')}</span>
+                                </div>
+                                <div className="text-[10px] text-zinc-400 truncate">
+                                  {block.title ||
+                                    block.buttonText ||
+                                    block.companyName ||
+                                    block.text?.slice(0, 30) ||
+                                    'Configured block'}
+                                </div>
+                              </div>
                             </button>
-                          ))}
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleMoveBlock(index, 'up')}
+                                disabled={index === 0}
+                                className="p-1 rounded text-zinc-400 hover:text-white disabled:opacity-20 text-[10px]"
+                                title="Move Up"
+                              >
+                                ▲
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleMoveBlock(index, 'down')}
+                                disabled={index === blocks.length - 1}
+                                className="p-1 rounded text-zinc-400 hover:text-white disabled:opacity-20 text-[10px]"
+                                title="Move Down"
+                              >
+                                ▼
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteBlock(block.id)}
+                                className="p-1 rounded text-zinc-500 hover:text-red-400 transition"
+                                title="Remove Block"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+
+                  {/* Property Inspector */}
+                  {selectedBlock && (
+                    <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-4">
+                      <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+                        <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                          Edit {selectedBlock.type.replace('_', ' ')} Block
+                        </div>
+                        <div className="flex items-center gap-1 bg-[#0a0a0d] p-1 rounded-lg border border-white/[0.06]">
+                          {(['left', 'center', 'right'] as const).map((align) => {
+                            const Icon =
+                              align === 'left'
+                                ? AlignLeft
+                                : align === 'center'
+                                  ? AlignCenter
+                                  : AlignRight;
+                            return (
+                              <button
+                                key={align}
+                                type="button"
+                                onClick={() =>
+                                  handleUpdateBlock(selectedBlock.id, { alignment: align })
+                                }
+                                className={`p-1 rounded transition ${
+                                  (selectedBlock.alignment || 'left') === align
+                                    ? 'bg-white/[0.1] text-emerald-400'
+                                    : 'text-zinc-500 hover:text-zinc-300'
+                                }`}
+                                title={`Align ${align}`}
+                              >
+                                <Icon className="w-3 h-3" />
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
-                      <textarea
-                        id="text-body-input"
-                        rows={4}
-                        value={selectedBlock.text || ''}
-                        onChange={(e) =>
-                          handleUpdateBlock(selectedBlock.id, { text: e.target.value })
-                        }
-                        className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-2 text-xs text-white leading-relaxed font-sans"
-                        placeholder="Hi {{name}}, thank you for reaching out..."
-                      />
-                    </div>
-                  )}
 
-                  {/* Button Block Inspector */}
-                  {selectedBlock.type === 'button' && (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label
-                            htmlFor="btn-label-input"
-                            className="block text-[11px] text-zinc-400 mb-1"
-                          >
-                            Button Label
-                          </label>
-                          <input
-                            id="btn-label-input"
-                            type="text"
-                            value={selectedBlock.buttonText || ''}
+                      {/* Header Block Inspector */}
+                      {selectedBlock.type === 'header' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label
+                              htmlFor="header-brand-input"
+                              className="block text-[11px] text-zinc-400 mb-1"
+                            >
+                              Brand / Company Name
+                            </label>
+                            <input
+                              id="header-brand-input"
+                              type="text"
+                              value={selectedBlock.companyName || ''}
+                              onChange={(e) =>
+                                handleUpdateBlock(selectedBlock.id, { companyName: e.target.value })
+                              }
+                              placeholder={site.name || site.domain}
+                              className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                            />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="header-logo-input"
+                              className="block text-[11px] text-zinc-400 mb-1"
+                            >
+                              Logo Image URL (Optional)
+                            </label>
+                            <input
+                              id="header-logo-input"
+                              type="url"
+                              value={selectedBlock.logoUrl || ''}
+                              onChange={(e) =>
+                                handleUpdateBlock(selectedBlock.id, { logoUrl: e.target.value })
+                              }
+                              placeholder="https://example.com/logo.png"
+                              className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Heading Block Inspector */}
+                      {selectedBlock.type === 'heading' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label
+                              htmlFor="heading-title-input"
+                              className="block text-[11px] text-zinc-400 mb-1"
+                            >
+                              Heading Title
+                            </label>
+                            <input
+                              id="heading-title-input"
+                              type="text"
+                              value={selectedBlock.title || ''}
+                              onChange={(e) =>
+                                handleUpdateBlock(selectedBlock.id, { title: e.target.value })
+                              }
+                              placeholder="We received your message!"
+                              className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                            />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="heading-sub-input"
+                              className="block text-[11px] text-zinc-400 mb-1"
+                            >
+                              Subtitle (Optional)
+                            </label>
+                            <input
+                              id="heading-sub-input"
+                              type="text"
+                              value={selectedBlock.subtitle || ''}
+                              onChange={(e) =>
+                                handleUpdateBlock(selectedBlock.id, { subtitle: e.target.value })
+                              }
+                              placeholder="Thank you for getting in touch."
+                              className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Text Block Inspector */}
+                      {selectedBlock.type === 'text' && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label
+                              htmlFor="text-body-input"
+                              className="block text-[11px] text-zinc-400"
+                            >
+                              Message Body
+                            </label>
+                            <div className="flex gap-1">
+                              {['{{name}}', '{{domain}}', '{{company}}'].map((tag) => (
+                                <button
+                                  key={tag}
+                                  type="button"
+                                  onClick={() => handleInsertVariable(tag, 'text')}
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                                >
+                                  +{tag}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <textarea
+                            id="text-body-input"
+                            rows={4}
+                            value={selectedBlock.text || ''}
                             onChange={(e) =>
-                              handleUpdateBlock(selectedBlock.id, { buttonText: e.target.value })
+                              handleUpdateBlock(selectedBlock.id, { text: e.target.value })
                             }
-                            placeholder="Visit Our Website →"
-                            className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                            className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-2 text-xs text-white leading-relaxed font-sans"
+                            placeholder="Hi {{name}}, thank you for reaching out..."
                           />
                         </div>
-                        <div>
-                          <label
-                            htmlFor="btn-url-input"
-                            className="block text-[11px] text-zinc-400 mb-1"
-                          >
-                            Destination URL
-                          </label>
-                          <input
-                            id="btn-url-input"
-                            type="text"
-                            value={selectedBlock.buttonUrl || ''}
-                            onChange={(e) =>
-                              handleUpdateBlock(selectedBlock.id, { buttonUrl: e.target.value })
-                            }
-                            placeholder="https://example.com"
-                            className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
-                          />
+                      )}
+
+                      {/* Button Block Inspector */}
+                      {selectedBlock.type === 'button' && (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label
+                                htmlFor="btn-label-input"
+                                className="block text-[11px] text-zinc-400 mb-1"
+                              >
+                                Button Label
+                              </label>
+                              <input
+                                id="btn-label-input"
+                                type="text"
+                                value={selectedBlock.buttonText || ''}
+                                onChange={(e) =>
+                                  handleUpdateBlock(selectedBlock.id, {
+                                    buttonText: e.target.value,
+                                  })
+                                }
+                                placeholder="Visit Our Website →"
+                                className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                              />
+                            </div>
+                            <div>
+                              <label
+                                htmlFor="btn-url-input"
+                                className="block text-[11px] text-zinc-400 mb-1"
+                              >
+                                Destination URL
+                              </label>
+                              <input
+                                id="btn-url-input"
+                                type="text"
+                                value={selectedBlock.buttonUrl || ''}
+                                onChange={(e) =>
+                                  handleUpdateBlock(selectedBlock.id, { buttonUrl: e.target.value })
+                                }
+                                placeholder="https://example.com"
+                                className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label
+                                htmlFor="btn-bg-input"
+                                className="block text-[11px] text-zinc-400 mb-1"
+                              >
+                                Background Color
+                              </label>
+                              <input
+                                id="btn-bg-input"
+                                type="color"
+                                value={selectedBlock.buttonBg || '#10b981'}
+                                onChange={(e) =>
+                                  handleUpdateBlock(selectedBlock.id, { buttonBg: e.target.value })
+                                }
+                                className="w-full h-8 bg-transparent cursor-pointer rounded border border-white/[0.08]"
+                              />
+                            </div>
+                            <div>
+                              <label
+                                htmlFor="btn-radius-input"
+                                className="block text-[11px] text-zinc-400 mb-1"
+                              >
+                                Border Radius (px)
+                              </label>
+                              <input
+                                id="btn-radius-input"
+                                type="number"
+                                min={0}
+                                max={24}
+                                value={selectedBlock.buttonRadius ?? 8}
+                                onChange={(e) =>
+                                  handleUpdateBlock(selectedBlock.id, {
+                                    buttonRadius: Number(e.target.value),
+                                  })
+                                }
+                                className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                              />
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
 
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label
-                            htmlFor="btn-bg-input"
-                            className="block text-[11px] text-zinc-400 mb-1"
-                          >
-                            Background Color
-                          </label>
-                          <input
-                            id="btn-bg-input"
-                            type="color"
-                            value={selectedBlock.buttonBg || '#10b981'}
-                            onChange={(e) =>
-                              handleUpdateBlock(selectedBlock.id, { buttonBg: e.target.value })
-                            }
-                            className="w-full h-8 bg-transparent cursor-pointer rounded border border-white/[0.08]"
-                          />
+                      {/* Summary Table Inspector */}
+                      {selectedBlock.type === 'summary_table' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label
+                              htmlFor="table-heading-input"
+                              className="block text-[11px] text-zinc-400 mb-1"
+                            >
+                              Table Section Heading
+                            </label>
+                            <input
+                              id="table-heading-input"
+                              type="text"
+                              value={selectedBlock.title || ''}
+                              onChange={(e) =>
+                                handleUpdateBlock(selectedBlock.id, { title: e.target.value })
+                              }
+                              placeholder="Submission Receipt"
+                              className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                            />
+                          </div>
+                          <p className="text-[11px] text-zinc-500 leading-relaxed">
+                            When delivered, EntryWise automatically injects a styled table of all
+                            fields submitted by the user (Name, Email, Message, Attachments) into
+                            the <code>&#123;&#123;formData&#125;&#125;</code> placeholder.
+                          </p>
                         </div>
-                        <div>
-                          <label
-                            htmlFor="btn-radius-input"
-                            className="block text-[11px] text-zinc-400 mb-1"
-                          >
-                            Border Radius (px)
-                          </label>
-                          <input
-                            id="btn-radius-input"
-                            type="number"
-                            min={0}
-                            max={24}
-                            value={selectedBlock.buttonRadius ?? 8}
-                            onChange={(e) =>
-                              handleUpdateBlock(selectedBlock.id, {
-                                buttonRadius: Number(e.target.value),
-                              })
-                            }
-                            className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
-                          />
+                      )}
+
+                      {/* Callout Inspector */}
+                      {selectedBlock.type === 'callout' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label
+                              htmlFor="callout-text-input"
+                              className="block text-[11px] text-zinc-400 mb-1"
+                            >
+                              Callout Highlight Message
+                            </label>
+                            <textarea
+                              id="callout-text-input"
+                              rows={3}
+                              value={selectedBlock.calloutText || ''}
+                              onChange={(e) =>
+                                handleUpdateBlock(selectedBlock.id, { calloutText: e.target.value })
+                              }
+                              className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-2 text-xs text-white"
+                            />
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  )}
+                      )}
 
-                  {/* Summary Table Inspector */}
-                  {selectedBlock.type === 'summary_table' && (
-                    <div className="space-y-3">
-                      <div>
-                        <label
-                          htmlFor="table-heading-input"
-                          className="block text-[11px] text-zinc-400 mb-1"
-                        >
-                          Table Section Heading
-                        </label>
-                        <input
-                          id="table-heading-input"
-                          type="text"
-                          value={selectedBlock.title || ''}
-                          onChange={(e) =>
-                            handleUpdateBlock(selectedBlock.id, { title: e.target.value })
-                          }
-                          placeholder="Submission Receipt"
-                          className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
-                        />
-                      </div>
-                      <p className="text-[11px] text-zinc-500 leading-relaxed">
-                        When delivered, EntryWise automatically injects a styled table of all fields
-                        submitted by the user (Name, Email, Message, Attachments) into the{' '}
-                        <code>&#123;&#123;formData&#125;&#125;</code> placeholder.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Callout Inspector */}
-                  {selectedBlock.type === 'callout' && (
-                    <div className="space-y-3">
-                      <div>
-                        <label
-                          htmlFor="callout-text-input"
-                          className="block text-[11px] text-zinc-400 mb-1"
-                        >
-                          Callout Highlight Message
-                        </label>
-                        <textarea
-                          id="callout-text-input"
-                          rows={3}
-                          value={selectedBlock.calloutText || ''}
-                          onChange={(e) =>
-                            handleUpdateBlock(selectedBlock.id, { calloutText: e.target.value })
-                          }
-                          className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-2 text-xs text-white"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Footer Inspector */}
-                  {selectedBlock.type === 'footer' && (
-                    <div className="space-y-3">
-                      <div>
-                        <label
-                          htmlFor="footer-text-input"
-                          className="block text-[11px] text-zinc-400 mb-1"
-                        >
-                          Footer Text / Disclaimer
-                        </label>
-                        <textarea
-                          id="footer-text-input"
-                          rows={2}
-                          value={selectedBlock.footerText || ''}
-                          onChange={(e) =>
-                            handleUpdateBlock(selectedBlock.id, { footerText: e.target.value })
-                          }
-                          className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
-                        />
-                      </div>
+                      {/* Footer Inspector */}
+                      {selectedBlock.type === 'footer' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label
+                              htmlFor="footer-text-input"
+                              className="block text-[11px] text-zinc-400 mb-1"
+                            >
+                              Footer Text / Disclaimer
+                            </label>
+                            <textarea
+                              id="footer-text-input"
+                              rows={2}
+                              value={selectedBlock.footerText || ''}
+                              onChange={(e) =>
+                                handleUpdateBlock(selectedBlock.id, { footerText: e.target.value })
+                              }
+                              className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-white"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            {/* Right: Live Interactive Simulator (7 cols) */}
-            <div className="lg:col-span-7 space-y-4">
-              {/* Preview Controls Bar */}
-              <div className="flex items-center justify-between p-3 rounded-2xl border border-white/[0.08] bg-[#121318]">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-semibold text-zinc-200">
-                    Email Client Simulator
-                  </span>
-                  {/* Theme Selector */}
-                  <div className="flex items-center gap-1.5">
-                    {[
-                      { id: 'clean_light' as EmailTheme, label: 'Light', color: '#f8fafc' },
-                      { id: 'emerald_glow' as EmailTheme, label: 'Emerald', color: '#10b981' },
-                      { id: 'indigo_slate' as EmailTheme, label: 'Indigo', color: '#6366f1' },
-                      { id: 'executive_dark' as EmailTheme, label: 'Dark', color: '#18181b' },
-                    ].map((t) => (
+                {/* Right: Interactive Simulator (Blocks Mode) (7 cols) */}
+                <div className="lg:col-span-7 space-y-4">
+                  {/* Simulator Controls */}
+                  <div className="flex items-center justify-between p-3 rounded-2xl border border-white/[0.08] bg-[#121318]">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-zinc-200">
+                        Email Client Simulator
+                      </span>
+                      {/* Theme Selector */}
+                      <div className="flex items-center gap-1.5">
+                        {[
+                          { id: 'clean_light' as EmailTheme, label: 'Light', color: '#f8fafc' },
+                          { id: 'emerald_glow' as EmailTheme, label: 'Emerald', color: '#10b981' },
+                          { id: 'indigo_slate' as EmailTheme, label: 'Indigo', color: '#6366f1' },
+                          { id: 'executive_dark' as EmailTheme, label: 'Dark', color: '#18181b' },
+                        ].map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => setTheme(t.id)}
+                            className={`w-5 h-5 rounded-full border transition flex items-center justify-center ${
+                              theme === t.id
+                                ? 'border-white scale-110 shadow-sm'
+                                : 'border-white/20 opacity-60 hover:opacity-100'
+                            }`}
+                            style={{ backgroundColor: t.color }}
+                            title={`Theme: ${t.label}`}
+                          >
+                            {theme === t.id && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
                       <button
-                        key={t.id}
                         type="button"
-                        onClick={() => setTheme(t.id)}
-                        className={`w-5 h-5 rounded-full border transition flex items-center justify-center ${
-                          theme === t.id
-                            ? 'border-white scale-110 shadow-sm'
-                            : 'border-white/20 opacity-60 hover:opacity-100'
+                        onClick={() => setSimulateVariables((prev) => !prev)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition border ${
+                          simulateVariables
+                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                            : 'border-white/[0.08] bg-[#0c0d10] text-zinc-400'
                         }`}
-                        style={{ backgroundColor: t.color }}
-                        title={`Theme: ${t.label}`}
                       >
-                        {theme === t.id && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        {simulateVariables ? 'Sample Data ON' : 'Raw {{tags}}'}
                       </button>
-                    ))}
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  {/* Variable Toggle */}
-                  <button
-                    type="button"
-                    onClick={() => setSimulateVariables((prev) => !prev)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition border ${
-                      simulateVariables
-                        ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
-                        : 'border-white/[0.08] bg-[#0c0d10] text-zinc-400'
-                    }`}
-                  >
-                    {simulateVariables ? 'Sample Data ON' : 'Raw {{tags}}'}
-                  </button>
-
-                  {/* Device Switcher */}
-                  <div className="flex items-center bg-[#0c0d10] p-1 rounded-xl border border-white/[0.08]">
-                    <button
-                      type="button"
-                      onClick={() => setPreviewDevice('desktop')}
-                      className={`p-1.5 rounded-lg transition ${
-                        previewDevice === 'desktop'
-                          ? 'bg-white/[0.1] text-white shadow-sm'
-                          : 'text-zinc-500 hover:text-zinc-300'
-                      }`}
-                      title="Desktop Preview"
-                    >
-                      <Monitor className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewDevice('mobile')}
-                      className={`p-1.5 rounded-lg transition ${
-                        previewDevice === 'mobile'
-                          ? 'bg-white/[0.1] text-white shadow-sm'
-                          : 'text-zinc-500 hover:text-zinc-300'
-                      }`}
-                      title="Mobile Preview"
-                    >
-                      <Smartphone className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Realistic Email Client Frame */}
-              <div
-                className={`mx-auto rounded-2xl border border-white/[0.1] shadow-2xl overflow-hidden transition-all duration-300 ${
-                  previewDevice === 'mobile' ? 'max-w-[375px]' : 'w-full'
-                }`}
-                style={{
-                  backgroundColor:
-                    theme === 'clean_light'
-                      ? '#f8fafc'
-                      : theme === 'emerald_glow'
-                        ? '#090a0f'
-                        : theme === 'indigo_slate'
-                          ? '#0c0e17'
-                          : '#09090b',
-                }}
-              >
-                {/* Mail App Header Envelope */}
-                <div className="bg-[#181920] border-b border-white/[0.08] px-4 py-3 space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
+                      <div className="flex items-center bg-[#0c0d10] p-1 rounded-xl border border-white/[0.08]">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDevice('desktop')}
+                          className={`p-1.5 rounded-lg transition ${
+                            previewDevice === 'desktop'
+                              ? 'bg-white/[0.1] text-white shadow-sm'
+                              : 'text-zinc-500 hover:text-zinc-300'
+                          }`}
+                          title="Desktop Preview"
+                        >
+                          <Monitor className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDevice('mobile')}
+                          className={`p-1.5 rounded-lg transition ${
+                            previewDevice === 'mobile'
+                              ? 'bg-white/[0.1] text-white shadow-sm'
+                              : 'text-zinc-500 hover:text-zinc-300'
+                          }`}
+                          title="Mobile Preview"
+                        >
+                          <Smartphone className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    <span className="text-[10px] text-zinc-500">Inbox • Just now</span>
                   </div>
 
-                  <div className="text-xs font-semibold text-white truncate">
-                    {simulateText(autoResponderSubject)}
-                  </div>
-
-                  <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-0.5">
-                    <span>
-                      <strong className="text-zinc-300">From:</strong> {site.name || site.domain}{' '}
-                      &lt;no-reply@entrywise.webbound.in&gt;
-                    </span>
-                    <span>
-                      <strong className="text-zinc-300">To:</strong>{' '}
-                      {simulateVariables ? 'Alex Taylor <alex@example.com>' : '{{email}}'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Email Body Canvas */}
-                <div className="p-6 md:p-8 flex justify-center">
+                  {/* Mail Envelope Simulation */}
                   <div
-                    className="w-full max-w-[540px] rounded-xl shadow-lg border transition-all"
+                    className={`mx-auto rounded-2xl border border-white/[0.1] shadow-2xl overflow-hidden transition-all duration-300 ${
+                      previewDevice === 'mobile' ? 'max-w-[375px]' : 'w-full'
+                    }`}
                     style={{
                       backgroundColor:
                         theme === 'clean_light'
-                          ? '#ffffff'
+                          ? '#f8fafc'
                           : theme === 'emerald_glow'
-                            ? '#12141c'
+                            ? '#090a0f'
                             : theme === 'indigo_slate'
-                              ? '#141829'
-                              : '#121215',
-                      borderColor:
-                        theme === 'clean_light'
-                          ? '#e2e8f0'
-                          : theme === 'emerald_glow'
-                            ? 'rgba(16, 185, 129, 0.25)'
-                            : theme === 'indigo_slate'
-                              ? 'rgba(99, 102, 241, 0.25)'
-                              : 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: `${cardRadius}px`,
-                      color: theme === 'clean_light' ? '#0f172a' : '#f8fafc',
+                              ? '#0c0e17'
+                              : '#09090b',
                     }}
                   >
-                    {blocks.map((block) => {
-                      const align = block.alignment || 'left';
-                      const isSelected = block.id === selectedBlockId;
+                    {/* Mail App Header */}
+                    <div className="bg-[#181920] border-b border-white/[0.08] px-4 py-3 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
+                        </div>
+                        <span className="text-[10px] text-zinc-500">Inbox • Just now</span>
+                      </div>
 
-                      return (
-                        <button
-                          key={block.id}
-                          type="button"
-                          onClick={() => setSelectedBlockId(block.id)}
-                          className={`w-full text-left cursor-pointer transition border border-transparent focus:outline-none ${
-                            isSelected
-                              ? 'ring-2 ring-emerald-500/80 rounded-lg'
-                              : 'hover:border-dashed hover:border-zinc-500/40'
-                          }`}
-                        >
-                          {block.type === 'header' && (
-                            <div className={`p-6 pb-2 text-${align}`}>
-                              {block.logoUrl ? (
-                                <img
-                                  src={block.logoUrl}
-                                  alt="Logo"
-                                  className="h-10 inline-block object-contain"
-                                />
-                              ) : (
-                                <div className="text-xl font-bold tracking-tight">
-                                  {block.companyName || site.name || site.domain}
+                      <div className="text-xs font-semibold text-white truncate">
+                        {simulateText(autoResponderSubject)}
+                      </div>
+
+                      <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-0.5">
+                        <span>
+                          <strong className="text-zinc-300">From:</strong>{' '}
+                          {site.name || site.domain} &lt;no-reply@entrywise.webbound.in&gt;
+                        </span>
+                        <span>
+                          <strong className="text-zinc-300">To:</strong>{' '}
+                          {simulateVariables ? 'Alex Taylor <alex@example.com>' : '{{email}}'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Email Card Canvas */}
+                    <div className="p-6 md:p-8 flex justify-center">
+                      <div
+                        className="w-full max-w-[540px] rounded-xl shadow-lg border transition-all"
+                        style={{
+                          backgroundColor:
+                            theme === 'clean_light'
+                              ? '#ffffff'
+                              : theme === 'emerald_glow'
+                                ? '#12141c'
+                                : theme === 'indigo_slate'
+                                  ? '#141829'
+                                  : '#121215',
+                          borderColor:
+                            theme === 'clean_light'
+                              ? '#e2e8f0'
+                              : theme === 'emerald_glow'
+                                ? 'rgba(16, 185, 129, 0.25)'
+                                : theme === 'indigo_slate'
+                                  ? 'rgba(99, 102, 241, 0.25)'
+                                  : 'rgba(255, 255, 255, 0.1)',
+                          borderRadius: `${cardRadius}px`,
+                          color: theme === 'clean_light' ? '#0f172a' : '#f8fafc',
+                        }}
+                      >
+                        {blocks.map((block) => {
+                          const align = block.alignment || 'left';
+                          const isSelected = block.id === selectedBlockId;
+
+                          return (
+                            <button
+                              key={block.id}
+                              type="button"
+                              onClick={() => setSelectedBlockId(block.id)}
+                              className={`w-full text-left cursor-pointer transition border border-transparent focus:outline-none ${
+                                isSelected
+                                  ? 'ring-2 ring-emerald-500/80 rounded-lg'
+                                  : 'hover:border-dashed hover:border-zinc-500/40'
+                              }`}
+                            >
+                              {block.type === 'header' && (
+                                <div className={`p-6 pb-2 text-${align}`}>
+                                  {block.logoUrl ? (
+                                    <img
+                                      src={block.logoUrl}
+                                      alt="Logo"
+                                      className="h-10 inline-block object-contain"
+                                    />
+                                  ) : (
+                                    <div className="text-xl font-bold tracking-tight">
+                                      {block.companyName || site.name || site.domain}
+                                    </div>
+                                  )}
                                 </div>
                               )}
-                            </div>
-                          )}
 
-                          {block.type === 'heading' && (
-                            <div className={`px-6 py-2 text-${align}`}>
-                              <h3 className="text-lg font-bold tracking-tight">
-                                {simulateText(block.title)}
-                              </h3>
-                              {block.subtitle && (
-                                <p className="text-xs text-zinc-400 mt-0.5">
-                                  {simulateText(block.subtitle)}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {block.type === 'text' && (
-                            <div
-                              className={`px-6 py-2 text-xs leading-relaxed whitespace-pre-line text-${align}`}
-                              style={{ color: theme === 'clean_light' ? '#475569' : '#94a3b8' }}
-                            >
-                              {simulateText(block.text)}
-                            </div>
-                          )}
-
-                          {block.type === 'callout' && (
-                            <div className="px-6 py-2">
-                              <div
-                                className="p-3 rounded-lg text-xs leading-relaxed border"
-                                style={{
-                                  backgroundColor:
-                                    theme === 'clean_light' ? '#ecfdf5' : 'rgba(16, 185, 129, 0.1)',
-                                  borderColor:
-                                    theme === 'clean_light' ? '#a7f3d0' : 'rgba(16, 185, 129, 0.3)',
-                                  color: theme === 'clean_light' ? '#065f46' : '#34d399',
-                                }}
-                              >
-                                {simulateText(block.calloutText)}
-                              </div>
-                            </div>
-                          )}
-
-                          {block.type === 'summary_table' && (
-                            <div className="px-6 py-3">
-                              {block.title && (
-                                <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">
-                                  {block.title}
+                              {block.type === 'heading' && (
+                                <div className={`px-6 py-2 text-${align}`}>
+                                  <h3 className="text-lg font-bold tracking-tight">
+                                    {simulateText(block.title)}
+                                  </h3>
+                                  {block.subtitle && (
+                                    <p className="text-xs text-zinc-400 mt-0.5">
+                                      {simulateText(block.subtitle)}
+                                    </p>
+                                  )}
                                 </div>
                               )}
-                              <div className="rounded-lg border border-zinc-200 dark:border-white/[0.08] overflow-hidden text-xs">
-                                <table className="w-full border-collapse">
-                                  <tbody>
-                                    <tr className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-white/[0.02]">
-                                      <td className="p-2.5 font-semibold text-zinc-500 w-1/3">
-                                        Name
-                                      </td>
-                                      <td className="p-2.5">
-                                        {simulateVariables ? 'Alex Taylor' : '{{name}}'}
-                                      </td>
-                                    </tr>
-                                    <tr className="border-b border-zinc-200 dark:border-white/[0.06]">
-                                      <td className="p-2.5 font-semibold text-zinc-500">Email</td>
-                                      <td className="p-2.5">
-                                        {simulateVariables ? 'alex@example.com' : '{{email}}'}
-                                      </td>
-                                    </tr>
-                                    <tr className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-white/[0.02]">
-                                      <td className="p-2.5 font-semibold text-zinc-500">Message</td>
-                                      <td className="p-2.5">
-                                        {simulateVariables
-                                          ? 'Interested in discussing enterprise licensing options.'
-                                          : '{{message}}'}
-                                      </td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          )}
 
-                          {block.type === 'button' && (
-                            <div className={`px-6 py-3 text-${align}`}>
-                              <span
-                                className="inline-block px-5 py-2.5 font-semibold text-xs shadow-md"
-                                style={{
-                                  backgroundColor: block.buttonBg || '#10b981',
-                                  color: block.buttonTextColor || '#ffffff',
-                                  borderRadius: `${block.buttonRadius ?? 8}px`,
-                                }}
-                              >
-                                {block.buttonText || 'Visit Website →'}
-                              </span>
-                            </div>
-                          )}
+                              {block.type === 'text' && (
+                                <div
+                                  className={`px-6 py-2 text-xs leading-relaxed whitespace-pre-line text-${align}`}
+                                  style={{ color: theme === 'clean_light' ? '#475569' : '#94a3b8' }}
+                                >
+                                  {simulateText(block.text)}
+                                </div>
+                              )}
 
-                          {block.type === 'divider' && (
-                            <div className="px-6 py-2">
-                              <hr
-                                style={{
-                                  borderColor: block.dividerColor || '#e2e8f0',
-                                  borderTopWidth: '1px',
-                                  borderBottomWidth: '0px',
-                                }}
-                              />
-                            </div>
-                          )}
+                              {block.type === 'callout' && (
+                                <div className="px-6 py-2">
+                                  <div
+                                    className="p-3 rounded-lg text-xs leading-relaxed border"
+                                    style={{
+                                      backgroundColor:
+                                        theme === 'clean_light'
+                                          ? '#ecfdf5'
+                                          : 'rgba(16, 185, 129, 0.1)',
+                                      borderColor:
+                                        theme === 'clean_light'
+                                          ? '#a7f3d0'
+                                          : 'rgba(16, 185, 129, 0.3)',
+                                      color: theme === 'clean_light' ? '#065f46' : '#34d399',
+                                    }}
+                                  >
+                                    {simulateText(block.calloutText)}
+                                  </div>
+                                </div>
+                              )}
 
-                          {block.type === 'footer' && (
-                            <div
-                              className={`p-5 text-[10px] text-zinc-500 border-t border-zinc-200 dark:border-white/[0.06] text-${align}`}
-                            >
-                              {simulateText(block.footerText)}
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
+                              {block.type === 'summary_table' && (
+                                <div className="px-6 py-3">
+                                  {block.title && (
+                                    <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-2">
+                                      {block.title}
+                                    </div>
+                                  )}
+                                  <div className="rounded-lg border border-zinc-200 dark:border-white/[0.08] overflow-hidden text-xs">
+                                    <table className="w-full border-collapse">
+                                      <tbody>
+                                        <tr className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-white/[0.02]">
+                                          <td className="p-2.5 font-semibold text-zinc-500 w-1/3">
+                                            Name
+                                          </td>
+                                          <td className="p-2.5">
+                                            {simulateVariables ? 'Alex Taylor' : '{{name}}'}
+                                          </td>
+                                        </tr>
+                                        <tr className="border-b border-zinc-200 dark:border-white/[0.06]">
+                                          <td className="p-2.5 font-semibold text-zinc-500">
+                                            Email
+                                          </td>
+                                          <td className="p-2.5">
+                                            {simulateVariables ? 'alex@example.com' : '{{email}}'}
+                                          </td>
+                                        </tr>
+                                        <tr className="border-b border-zinc-200 dark:border-white/[0.06] bg-zinc-50 dark:bg-white/[0.02]">
+                                          <td className="p-2.5 font-semibold text-zinc-500">
+                                            Message
+                                          </td>
+                                          <td className="p-2.5">
+                                            {simulateVariables
+                                              ? 'Interested in discussing enterprise licensing options.'
+                                              : '{{message}}'}
+                                          </td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              )}
+
+                              {block.type === 'button' && (
+                                <div className={`px-6 py-3 text-${align}`}>
+                                  <span
+                                    className="inline-block px-5 py-2.5 font-semibold text-xs shadow-md"
+                                    style={{
+                                      backgroundColor: block.buttonBg || '#10b981',
+                                      color: block.buttonTextColor || '#ffffff',
+                                      borderRadius: `${block.buttonRadius ?? 8}px`,
+                                    }}
+                                  >
+                                    {block.buttonText || 'Visit Website →'}
+                                  </span>
+                                </div>
+                              )}
+
+                              {block.type === 'divider' && (
+                                <div className="px-6 py-2">
+                                  <hr
+                                    style={{
+                                      borderColor: block.dividerColor || '#e2e8f0',
+                                      borderTopWidth: '1px',
+                                      borderBottomWidth: '0px',
+                                    }}
+                                  />
+                                </div>
+                              )}
+
+                              {block.type === 'footer' && (
+                                <div
+                                  className={`p-5 text-[10px] text-zinc-500 border-t border-zinc-200 dark:border-white/[0.06] text-${align}`}
+                                >
+                                  {simulateText(block.footerText)}
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            /* ================================================================= */
+            /* MODE B: DIRECT CUSTOM HTML EDITOR                                 */
+            /* ================================================================= */
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left: Raw HTML Code Editor (5 cols) */}
+              <div className="lg:col-span-6 space-y-4">
+                <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+                    <div>
+                      <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                        <Code2 className="w-4 h-4 text-emerald-400" />
+                        <span>Direct HTML Editor</span>
+                      </h3>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                        Paste or write your full standalone HTML email markup.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={handleResetStarterHtml}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/[0.08] bg-[#0c0d10] hover:bg-white/[0.06] text-[11px] text-zinc-400 hover:text-white transition"
+                        title="Reset code to clean responsive boilerplate"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Reset Boilerplate</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Variable Chips */}
+                  <div>
+                    <span className="block text-[11px] text-zinc-400 mb-1.5 font-medium">
+                      Insert Dynamic Variables into HTML:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        '{{name}}',
+                        '{{email}}',
+                        '{{company}}',
+                        '{{domain}}',
+                        '{{submission_id}}',
+                        '{{formData}}',
+                      ].map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => handleInsertVariableIntoHtml(tag)}
+                          className="px-2 py-0.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-mono transition"
+                        >
+                          +{tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* HTML Editor Textarea */}
+                  <div>
+                    <label htmlFor="custom-html-editor" className="sr-only">
+                      Custom HTML Email Source
+                    </label>
+                    <textarea
+                      id="custom-html-editor"
+                      rows={22}
+                      value={customHtml}
+                      onChange={(e) => setCustomHtml(e.target.value)}
+                      placeholder="<!DOCTYPE html><html>...</html>"
+                      className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl p-4 text-xs font-mono text-zinc-200 focus:outline-none focus:border-emerald-500/50 leading-relaxed transition"
+                      spellCheck={false}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1">
+                    <span>
+                      {customHtml.length} characters • {customHtml.split('\n').length} lines
+                    </span>
+                    <span className="text-emerald-400/80">
+                      ✓ Direct delivery enabled (no escaping)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Live Simulator Rendering Custom HTML (6 cols) */}
+              <div className="lg:col-span-6 space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-2xl border border-white/[0.08] bg-[#121318]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-zinc-200">
+                      Live HTML Email Preview
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      Isolated Render
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSimulateVariables((prev) => !prev)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition border ${
+                        simulateVariables
+                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                          : 'border-white/[0.08] bg-[#0c0d10] text-zinc-400'
+                      }`}
+                    >
+                      {simulateVariables ? 'Sample Data ON' : 'Raw {{tags}}'}
+                    </button>
+
+                    <div className="flex items-center bg-[#0c0d10] p-1 rounded-xl border border-white/[0.08]">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDevice('desktop')}
+                        className={`p-1.5 rounded-lg transition ${
+                          previewDevice === 'desktop'
+                            ? 'bg-white/[0.1] text-white shadow-sm'
+                            : 'text-zinc-500 hover:text-zinc-300'
+                        }`}
+                        title="Desktop Preview"
+                      >
+                        <Monitor className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDevice('mobile')}
+                        className={`p-1.5 rounded-lg transition ${
+                          previewDevice === 'mobile'
+                            ? 'bg-white/[0.1] text-white shadow-sm'
+                            : 'text-zinc-500 hover:text-zinc-300'
+                        }`}
+                        title="Mobile Preview"
+                      >
+                        <Smartphone className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email Client Envelope Frame */}
+                <div
+                  className={`mx-auto rounded-2xl border border-white/[0.1] shadow-2xl overflow-hidden transition-all duration-300 bg-[#121318] ${
+                    previewDevice === 'mobile' ? 'max-w-[375px]' : 'w-full'
+                  }`}
+                >
+                  {/* Mail App Header */}
+                  <div className="bg-[#181920] border-b border-white/[0.08] px-4 py-3 space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
+                      </div>
+                      <span className="text-[10px] text-zinc-500">Inbox • Just now</span>
+                    </div>
+
+                    <div className="text-xs font-semibold text-white truncate">
+                      {simulateText(autoResponderSubject)}
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-0.5">
+                      <span>
+                        <strong className="text-zinc-300">From:</strong> {site.name || site.domain}{' '}
+                        &lt;no-reply@entrywise.webbound.in&gt;
+                      </span>
+                      <span>
+                        <strong className="text-zinc-300">To:</strong>{' '}
+                        {simulateVariables ? 'Alex Taylor <alex@example.com>' : '{{email}}'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Sandboxed iFrame Preview of Raw HTML */}
+                  <div className="bg-white">
+                    <iframe
+                      title="Live Custom HTML Email Preview"
+                      srcDoc={simulateText(customHtml)}
+                      className="w-full h-[600px] border-0"
+                      sandbox="allow-same-origin"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* VIEW 2: FULL HTML CODE GENERATOR & EXPORT                                 */}
+      {/* VIEW 2: FULL HTML CODE EXPORT                                            */}
       {/* ========================================================================= */}
       {activeSubTab === 'html' && (
         <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-4">
@@ -1691,7 +2074,11 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
             <div>
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Code2 className="w-4 h-4 text-emerald-400" />
-                <span>Generated Bulletproof HTML Email</span>
+                <span>
+                  {editorMode === 'custom_html'
+                    ? 'Active Custom HTML Email'
+                    : 'Compiled Bulletproof HTML Email'}
+                </span>
               </h3>
               <p className="text-xs text-zinc-400 mt-0.5">
                 Ready for Gmail, Outlook, Apple Mail, and standard SMTP dispatch with inlined CSS
@@ -1729,7 +2116,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
           </div>
 
           <pre className="p-4 rounded-xl bg-[#090a0f] border border-white/[0.06] text-xs font-mono text-zinc-300 overflow-x-auto max-h-[520px] leading-relaxed">
-            {fullHtmlEmail}
+            {activeOutputHtml}
           </pre>
         </div>
       )}
