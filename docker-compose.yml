@@ -1,0 +1,64 @@
+services:
+  # =========================================================================
+  # EntryWise Core Application (API + Interactive Dashboard)
+  # =========================================================================
+  entrywise:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: entrywise-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8787}:8787"
+    environment:
+      - PORT=8787
+      - HOST=0.0.0.0
+      - DATABASE_DRIVER=${DATABASE_DRIVER:-sqlite}
+      - DATABASE_PATH=/app/data/entrywise.db
+      - STORAGE_DRIVER=${STORAGE_DRIVER:-local}
+      - STORAGE_PATH=/app/uploads
+      - QUEUE_DRIVER=${QUEUE_DRIVER:-memory}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - JWT_SECRET=${JWT_SECRET:-generate_a_secure_random_jwt_secret_here}
+      - ADMIN_SECRET=${ADMIN_SECRET:-generate_a_secure_random_admin_secret_here}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-32_character_hex_encryption_key_here}
+      - BASE_URL=${BASE_URL:-http://localhost:8787}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY:-}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY:-}
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8787/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - entrywise-net
+
+  # =========================================================================
+  # Optional Redis (for high-throughput rate limiting & distributed queues)
+  # Run with: docker compose --profile with-redis up -d
+  # =========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: entrywise-redis
+    restart: unless-stopped
+    profiles:
+      - with-redis
+    volumes:
+      - redis_data:/data
+    networks:
+      - entrywise-net
+
+networks:
+  entrywise-net:
+    driver: bridge
+
+volumes:
+  redis_data:

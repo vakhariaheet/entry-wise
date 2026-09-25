@@ -138,4 +138,11 @@ app.get('/', async (c) => {
   });
 });
 
-export default app;
+import { queueConsumer } from './queue/consumer';
+
+export { app };
+
+export default {
+  fetch: app.fetch,
+  queue: queueConsumer,
+};

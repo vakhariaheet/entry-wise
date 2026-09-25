@@ -2,18 +2,12 @@ import { Context } from 'hono';
 import { Env } from '../../../types/env';
 import { sendProblemDetails } from '../../../utils/sendResponse';
 import { HONEYPOT_FIELDS, MAX_FILE_SIZE, VALID_FILE_TYPES } from '../../../types/submission';
-import { decrypt } from '../../../utils/encryption';
-import { renderFormSubmissionEmail } from '../../../emails/FormSubmissionEmail';
-import { renderAutoResponderEmail } from '../../../emails/AutoResponderEmail';
 import { renderConfirmationPage } from '../../../templates/ConfirmationPage';
-import { EmailServiceFactory, EmailAttachment } from '../../../services/email';
 import { verifyTurnstileToken } from '../../../utils/turnstile';
-import { dispatchWebhook } from '../../../utils/webhook';
-import { dispatchSlackNotification } from '../../../services/connectors/slack';
-import { dispatchDiscordNotification } from '../../../services/connectors/discord';
-import { dispatchGoogleSheets } from '../../../services/connectors/googleSheets';
 import { validateRedirectUrl } from '../../../utils/redirectGuard';
 import { getConnInfo } from 'hono/cloudflare-workers';
+import { SubmissionQueueMessage } from '../../../types/queue';
+import { processSubmissionDelivery } from '../../../queue/submissionProcessor';
 
 interface ParsedSubmissionPayload {
     fields: Record<string, string>;
@@ -264,177 +258,38 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
             VALUES (?, ?, ?, ?, 'new', ?)
         `).bind(submissionId, siteId, submissionDataJson, attachmentsJson, ipAddress).run();
 
-        // 6. Fetch Company Configuration for Email Service
-        const { results: companies } = await c.env.DB.prepare(`
-            SELECT name, email_provider, email_provider_token, from_email, from_name
-            FROM companies WHERE id = ?
-        `).bind(companyId).all<any>();
-
-        const company = companies?.[0] || {
-            name: 'EntryWise',
-            email_provider: 'cloudflare',
-            from_email: 'no-reply@entrywise.webbound.in',
-            from_name: 'EntryWise Forms',
+        // 6. Async Delivery: Cloudflare Queue (Primary) or waitUntil fallback (Self-Hosted / Dev)
+        const queuePayload: SubmissionQueueMessage = {
+            type: 'submission.process',
+            submissionId,
+            siteId: site.id,
+            companyId,
+            fields,
+            savedAttachmentMeta,
+            submitterEmail: submitterEmail || null,
+            submitterName: submitterName || null,
+            ipAddress,
+            submittedAt: new Date().toISOString(),
         };
 
-        let providerToken: string | null = null;
-        if (company.email_provider !== 'cloudflare' && company.email_provider_token) {
-            providerToken = await decrypt(company.email_provider_token, c.env.ENCRYPTION_KEY);
-        }
-
-        const emailService = EmailServiceFactory.createEmailService({
-            provider: company.email_provider,
-            apiKey: providerToken ?? undefined,
-            binding: company.email_provider === 'cloudflare' ? c.env.EMAIL : undefined,
-        });
-
-        // 7. Background Async Tasks (Dispatched via c.executionCtx.waitUntil for ultra-low latency)
-        const backgroundTasks: Promise<any>[] = [];
-
-        // 7a. Admin Notification Email
-        const shouldNotifyAdmins = site.notify_on_submission === undefined || site.notify_on_submission === 1 || site.notify_on_submission === true;
-        if (shouldNotifyAdmins) {
-            // Determine recipient emails
-            const recipientList: string[] = [];
-            if (site.notification_emails) {
-                const parsed = site.notification_emails.split(/[,;\n]/).map((e: string) => e.trim()).filter((e: string) => emailRegex.test(e));
-                recipientList.push(...parsed);
-            }
-            if (recipientList.length === 0 && site.admin_email && emailRegex.test(site.admin_email.trim())) {
-                recipientList.push(site.admin_email.trim());
-            }
-
-            if (recipientList.length > 0) {
-                const htmlEmail = renderFormSubmissionEmail({
-                    siteDomain: site.domain,
-                    formData: fields,
-                    companyName: site.name || company.name || site.domain,
-                    timezone: site.timezone,
-                    submissionId,
-                    attachments: emailAttachments.map(f => ({ filename: f.filename })),
-                });
-
-                for (const recipient of recipientList) {
-                    const sendPromise = emailService.send({
-                        from: company.from_email || 'no-reply@entrywise.webbound.in',
-                        fromName: site.name || company.from_name || 'EntryWise',
-                        to: recipient,
-                        subject: `New Form Submission: ${site.name || site.domain}`,
-                        html: htmlEmail,
-                        replyTo: submitterEmail,
-                        attachments: emailAttachments,
-                    }).catch(err => console.error(`Admin notification email to ${recipient} failed:`, err));
-
-                    backgroundTasks.push(sendPromise);
+        if (c.env.SUBMISSIONS_QUEUE) {
+            try {
+                await c.env.SUBMISSIONS_QUEUE.send(queuePayload);
+            } catch (queueErr) {
+                console.error('[SubmitForm] Failed to enqueue submission message, falling back to waitUntil:', queueErr);
+                if (c.executionCtx) {
+                    c.executionCtx.waitUntil(processSubmissionDelivery(queuePayload, c.env));
+                } else {
+                    processSubmissionDelivery(queuePayload, c.env).catch(console.error);
                 }
             }
-        }
-
-        // 7b. Submitter Auto-Responder Email
-        if (site.auto_responder_enabled && submitterEmail) {
-            const companyDisplayName = site.name || company.name || company.from_name || site.domain;
-            let interpolatedSubject = site.auto_responder_subject || `Thank you for reaching out — ${companyDisplayName}`;
-            let interpolatedBody = site.auto_responder_body || '';
-
-            const templateVars: Record<string, string> = {
-                ...fields,
-                name: submitterName || '',
-                email: submitterEmail,
-                company: companyDisplayName,
-                company_name: companyDisplayName,
-                domain: site.domain,
-                site_domain: site.domain,
-                submission_id: submissionId,
-            };
-
-            for (const [k, val] of Object.entries(templateVars)) {
-                const regex = new RegExp(`{{\\s*${k}\\s*}}`, 'gi');
-                interpolatedSubject = interpolatedSubject.replace(regex, val);
-                if (interpolatedBody) {
-                    interpolatedBody = interpolatedBody.replace(regex, val);
-                }
+        } else {
+            // Self-hosted / Free plan / Local dev fallback
+            if (c.executionCtx) {
+                c.executionCtx.waitUntil(processSubmissionDelivery(queuePayload, c.env));
+            } else {
+                processSubmissionDelivery(queuePayload, c.env).catch(console.error);
             }
-
-            const autoReplyHtml = renderAutoResponderEmail({
-                siteDomain: site.domain,
-                companyName: companyDisplayName,
-                recipientName: submitterName,
-                customBody: interpolatedBody || null,
-                customSubject: interpolatedSubject,
-                submissionId,
-                timezone: site.timezone,
-            });
-
-            const autoReplyPromise = emailService.send({
-                from: company.from_email || 'no-reply@entrywise.webbound.in',
-                fromName: site.name || company.from_name || 'EntryWise',
-                to: submitterEmail,
-                subject: interpolatedSubject,
-                html: autoReplyHtml,
-                replyTo: recipientListFirst(site),
-            }).catch(err => console.error('Auto-responder delivery failed:', err));
-
-            backgroundTasks.push(autoReplyPromise);
-        }
-
-        // 7c. Webhook Notification
-        if (site.webhook_url) {
-            const webhookPromise = dispatchWebhook(
-                site.webhook_url,
-                {
-                    event: 'submission.created',
-                    timestamp: new Date().toISOString(),
-                    site_id: site.id,
-                    domain: site.domain,
-                    submission_id: submissionId,
-                    data: fields,
-                    attachments: savedAttachmentMeta,
-                },
-                site.webhook_secret
-            ).catch(err => console.error('Webhook notification error:', err));
-
-            backgroundTasks.push(webhookPromise);
-        }
-
-        // 7d. Slack Connector
-        if (site.slack_webhook_url) {
-            const slackPromise = dispatchSlackNotification(site.slack_webhook_url, {
-                siteDomain: site.name ? `${site.name} (${site.domain})` : site.domain,
-                submissionId,
-                formData: fields,
-                submittedAt: new Date().toISOString(),
-            }).catch(err => console.error('Slack connector dispatch error:', err));
-
-            backgroundTasks.push(slackPromise);
-        }
-
-        // 7e. Discord Connector
-        if (site.discord_webhook_url) {
-            const discordPromise = dispatchDiscordNotification(site.discord_webhook_url, {
-                siteDomain: site.name ? `${site.name} (${site.domain})` : site.domain,
-                submissionId,
-                formData: fields,
-                submittedAt: new Date().toISOString(),
-            }).catch(err => console.error('Discord connector dispatch error:', err));
-
-            backgroundTasks.push(discordPromise);
-        }
-
-        // 7f. Google Sheets Connector
-        if (site.google_sheets_url) {
-            const sheetsPromise = dispatchGoogleSheets(site.google_sheets_url, {
-                siteDomain: site.domain,
-                submissionId,
-                formData: fields,
-                submittedAt: new Date().toISOString(),
-            }).catch(err => console.error('Google Sheets dispatch error:', err));
-
-            backgroundTasks.push(sheetsPromise);
-        }
-
-        // Pass all background tasks to Cloudflare execution context
-        if (c.executionCtx && backgroundTasks.length > 0) {
-            c.executionCtx.waitUntil(Promise.allSettled(backgroundTasks));
         }
 
         // 8. Response Handling
@@ -480,11 +335,3 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
         return sendProblemDetails(c, 500, 'Internal server error while processing submission');
     }
 };
-
-function recipientListFirst(site: any): string | undefined {
-    if (site.notification_emails) {
-        const first = site.notification_emails.split(/[,;\n]/)[0]?.trim();
-        if (first && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(first)) return first;
-    }
-    return site.admin_email || undefined;
-}

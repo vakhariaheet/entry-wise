@@ -1,4 +1,4 @@
-import { D1Database, KVNamespace, R2Bucket } from "@cloudflare/workers-types";
+import { D1Database, KVNamespace, R2Bucket, Queue } from "@cloudflare/workers-types";
 import { z } from "zod";
 
 export interface CloudflareEmailBinding {
@@ -35,6 +35,7 @@ export interface Env {
     BASE_URL: string;
     EMAIL: CloudflareEmailBinding;
     ADMIN_API_KEY?: string;
+    SUBMISSIONS_QUEUE?: Queue<any>;
 }
 
 
