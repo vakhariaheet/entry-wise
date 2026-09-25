@@ -9,7 +9,8 @@ function buildMimeMessage(
     to: string,
     subject: string,
     html: string,
-    attachments: EmailAttachment[] = []
+    attachments: EmailAttachment[] = [],
+    replyTo?: string
 ): string {
     const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substring(2)}`;
     const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`;
@@ -17,6 +18,7 @@ function buildMimeMessage(
     const lines: string[] = [
         `From: ${fromName} <${fromEmail}>`,
         `To: ${to}`,
+        ...(replyTo ? [`Reply-To: ${replyTo}`] : []),
         `Subject: ${encodedSubject}`,
         `MIME-Version: 1.0`,
         `Content-Type: multipart/mixed; boundary="${boundary}"`,
@@ -53,7 +55,7 @@ export class CloudflareEmailService implements EmailService {
 
         // 1. Try structured message format (supported by modern Cloudflare Email Service)
         try {
-            const result = await this.binding.send({
+            const sendOptions: any = {
                 to: params.to,
                 from: { email: fromEmail, name: fromName },
                 subject: params.subject,
@@ -65,7 +67,12 @@ export class CloudflareEmailService implements EmailService {
                     type: att.type || 'application/octet-stream',
                     disposition: 'attachment' as const,
                 })),
-            });
+            };
+            if (params.replyTo) {
+                sendOptions.replyTo = params.replyTo;
+            }
+
+            const result = await this.binding.send(sendOptions);
             return { messageId: result?.messageId || `cf_${Date.now()}` };
         } catch (builderError: any) {
             // 2. Fallback to EmailMessage MIME API if binding expects EmailMessage class
@@ -76,7 +83,8 @@ export class CloudflareEmailService implements EmailService {
                     params.to,
                     params.subject,
                     params.html,
-                    params.attachments || []
+                    params.attachments || [],
+                    params.replyTo
                 );
                 const message = new EmailMessage(fromEmail, params.to, rawMime);
                 await this.binding.send(message);

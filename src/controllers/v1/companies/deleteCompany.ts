@@ -9,12 +9,23 @@ export const deleteCompany = async (c: Context<{ Bindings: Env }>) => {
             return sendProblemDetails(c, 400, 'Company ID path parameter is required');
         }
 
-        const { results } = await c.env.DB.prepare(`
-            SELECT id FROM companies WHERE id = ?
-        `).bind(id).all();
+        if (id === 'comp_default') {
+            return sendProblemDetails(c, 403, 'The default workspace cannot be deleted');
+        }
+
+        const jwtPayload = c.get('jwtPayload') as any;
+        let checkSql = `SELECT id FROM companies WHERE id = ?`;
+        const params: any[] = [id];
+
+        if (jwtPayload?.role === 'clerk_user' && jwtPayload?.user_id) {
+            checkSql += ` AND user_id = ?`;
+            params.push(jwtPayload.user_id);
+        }
+
+        const { results } = await c.env.DB.prepare(checkSql).bind(...params).all();
 
         if (!results?.length) {
-            return sendProblemDetails(c, 404, `Company with ID '${id}' not found`);
+            return sendProblemDetails(c, 404, `Workspace with ID '${id}' not found or access denied`);
         }
 
         const { success } = await c.env.DB.prepare(`
@@ -22,12 +33,12 @@ export const deleteCompany = async (c: Context<{ Bindings: Env }>) => {
         `).bind(id).run();
 
         if (!success) {
-            return sendProblemDetails(c, 500, 'Failed to delete company');
+            return sendProblemDetails(c, 500, 'Failed to delete workspace');
         }
 
         return sendNoContent(c);
     } catch (error) {
         console.error('Delete company error:', error);
-        return sendProblemDetails(c, 500, 'Internal server error while deleting company');
+        return sendProblemDetails(c, 500, 'Internal server error while deleting workspace');
     }
 };

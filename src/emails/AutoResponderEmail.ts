@@ -1,3 +1,5 @@
+import { escapeHtml } from '../utils/escapeHtml';
+
 export interface AutoResponderEmailProps {
     siteDomain: string;
     companyName?: string;
@@ -15,11 +17,14 @@ export const renderAutoResponderEmail = ({
     customBody,
     timezone = 'UTC',
 }: AutoResponderEmailProps): string => {
-    const cleanDomain = siteDomain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
-    const displayName = companyName?.trim() || cleanDomain;
-    const greeting = recipientName ? `Hi ${recipientName},` : 'Hello,';
-    const messageBody = customBody || `Thank you for getting in touch with us at ${displayName}. We have received your message and our team will get back to you shortly.`;
-    const returnUrl = `https://${cleanDomain}`;
+    const rawCleanDomain = siteDomain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
+    const cleanDomain = escapeHtml(rawCleanDomain);
+    const displayName = escapeHtml(companyName?.trim() || rawCleanDomain);
+    const greeting = recipientName ? `Hi ${escapeHtml(recipientName)},` : 'Hello,';
+    
+    const unescapedBody = customBody || `Thank you for getting in touch with us at ${companyName?.trim() || rawCleanDomain}. We have received your message and our team will get back to you shortly.`;
+    const messageBodySafe = escapeHtml(unescapedBody).replace(/\n/g, '<br/>');
+    const returnUrl = `https://${encodeURIComponent(rawCleanDomain)}`;
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -27,15 +32,6 @@ export const renderAutoResponderEmail = ({
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>We Received Your Message — ${displayName}</title>
-    <!--[if mso]>
-    <noscript>
-        <xml>
-            <o:OfficeDocumentSettings>
-                <o:PixelsPerInch>96</o:PixelsPerInch>
-            </o:OfficeDocumentSettings>
-        </xml>
-    </noscript>
-    <![endif]-->
     <style>
         body {
             margin: 0;
@@ -159,9 +155,8 @@ export const renderAutoResponderEmail = ({
                             <h1 class="headline">We Received Your Message</h1>
                             <p class="greeting">${greeting}</p>
                             <p class="message-text">
-                                ${messageBody.replace(/\n/g, '<br/>')}
+                                ${messageBodySafe}
                             </p>
-
 
                             <!-- Clean Action Link / Button -->
                             <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">

@@ -9,13 +9,14 @@ export class ResendEmailService implements EmailService {
     }
 
     async send(params: SendEmailParams) {
-        const { from, fromName, to, subject, html, attachments = [] } = params;
+        const { from, fromName, to, subject, html, replyTo, attachments = [] } = params;
 
         return await this.client.emails.send({
             from: `${fromName} <${from}>`,
             to,
             subject,
             html,
+            replyTo,
             attachments: attachments.map(file => ({
                 filename: file.filename,
                 content: file.content,

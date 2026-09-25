@@ -1,6 +1,5 @@
 import { EmailService, SendEmailParams } from './types';
 
-
 interface SMTP2GOResponse {
   request_id: string;
   data: SMTP2GOSuccessData | SMTP2GOErrorResponse;
@@ -17,14 +16,16 @@ interface SMTP2GOSuccessData {
   failures: any[];
   email_id: string;
 }
+
 class Smtp2GoEmailService implements EmailService {
     private readonly SMTP2GO_API = 'https://api.smtp2go.com/v3/email/send';
     
     constructor(private readonly apiKey: string) {}
-    async send(params: SendEmailParams): Promise<void> {
-        const { from, fromName, to, subject, html, attachments = [] } = params;
 
-        const payload = {
+    async send(params: SendEmailParams): Promise<void> {
+        const { from, fromName, to, subject, html, replyTo, attachments = [] } = params;
+
+        const payload: Record<string, any> = {
             sender: `${fromName} <${from}>`,
             to: [to],
             subject,
@@ -36,6 +37,10 @@ class Smtp2GoEmailService implements EmailService {
             })) : undefined
         };
 
+        if (replyTo) {
+            payload.custom_headers = [{ header: 'Reply-To', value: replyTo }];
+        }
+
         const response = await fetch(this.SMTP2GO_API, {
             method: 'POST',
             headers: {
@@ -45,12 +50,12 @@ class Smtp2GoEmailService implements EmailService {
             },
             body: JSON.stringify(payload)
         }).then<Promise<SMTP2GOResponse>>(res => res.json() as Promise<SMTP2GOResponse>);
+
         if ('error_code' in response.data) {
             const error: SMTP2GOErrorResponse = response.data;
             throw new Error(`SMTP2GO API error (${response.request_id}): ${JSON.stringify(error)}`);
         }
     }
 }
-
 
 export { Smtp2GoEmailService };

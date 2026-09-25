@@ -10,11 +10,32 @@ import v1Router from './routes/v1';
 import { cors } from 'hono/cors';
 import { Env } from './types/env';
 import { openAPISpecs } from 'hono-openapi';
+import { submitForm } from './controllers/v1/submissions/submitForm';
+import { corsMiddleware, verifyDomain, rateLimiter } from './middleware/publicAuth';
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use('/public/*', cors({ origin: '*' }));
-app.use('/v1/submissions/*', cors({ origin: '*' }));
+app.use(
+  '*',
+  cors({
+    origin: (origin) => {
+      if (!origin) return '*';
+      if (
+        origin.endsWith('entrywise.webbound.in') ||
+        origin.endsWith('webbound.in') ||
+        origin.includes('pages.dev') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
+        return origin;
+      }
+      return '*';
+    },
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Api-Key', 'X-Admin-Key', 'X-Admin-Api-Key', 'cf-turnstile-response'],
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    exposeHeaders: ['Content-Disposition'],
+  })
+);
 
 app.get('/openapi', openAPISpecs(app, {
   documentation: {
@@ -90,6 +111,11 @@ app.get(
 
 // Version 1 Routes (Zalando RESTful Guidelines Compliant)
 app.route('/v1', v1Router);
+
+// Universal Public Form Ingestion Endpoint (/f/:key)
+app.use('/f/*', corsMiddleware);
+app.post('/f/:key', verifyDomain, rateLimiter, submitForm);
+app.get('/f/:key', (c) => c.text('EntryWise Form Ingestion Endpoint. Submit submissions via POST.', 405));
 
 // Legacy Root & Aliases
 app.route('/auth', authRoutes);

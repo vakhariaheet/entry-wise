@@ -10,6 +10,7 @@ export const patchSite = async (c: Context<{ Bindings: Env }>) => {
             return sendProblemDetails(c, 400, 'Site ID path parameter is required');
         }
 
+        const jwtPayload = c.get('jwtPayload') as any;
         const body = (await c.req.json()) as UpdateSiteBody;
 
         // Check if site exists
@@ -19,6 +20,15 @@ export const patchSite = async (c: Context<{ Bindings: Env }>) => {
 
         if (!existingSites?.length) {
             return sendProblemDetails(c, 404, `Site with ID '${id}' not found`);
+        }
+
+        const site = existingSites[0];
+
+        // Verify Clerk ownership
+        if (jwtPayload?.role === 'clerk_user' && jwtPayload?.user_id) {
+            if (site.user_id && site.user_id !== jwtPayload.user_id) {
+                return sendProblemDetails(c, 403, 'You do not have permission to modify this site');
+            }
         }
 
         // If domain is being updated, check uniqueness
@@ -41,6 +51,9 @@ export const patchSite = async (c: Context<{ Bindings: Env }>) => {
         const updateBody: Record<string, any> = { ...body };
         if (typeof updateBody.auto_responder_enabled === 'boolean') {
             updateBody.auto_responder_enabled = updateBody.auto_responder_enabled ? 1 : 0;
+        }
+        if (typeof updateBody.notify_on_submission === 'boolean') {
+            updateBody.notify_on_submission = updateBody.notify_on_submission ? 1 : 0;
         }
 
         const updateFields = Object.entries(updateBody)
@@ -68,10 +81,11 @@ export const patchSite = async (c: Context<{ Bindings: Env }>) => {
             SELECT * FROM sites WHERE id = ?
         `).bind(id).all<any>();
 
-        const site = updated[0];
+        const updatedSite = updated[0];
         const formattedSite: Site = {
-            ...site,
-            auto_responder_enabled: site.auto_responder_enabled === 1,
+            ...updatedSite,
+            auto_responder_enabled: updatedSite.auto_responder_enabled === 1,
+            notify_on_submission: updatedSite.notify_on_submission === 1,
         };
 
         return sendOk(c, formattedSite);

@@ -6,9 +6,9 @@ export class MailtrapEmailService implements EmailService {
     constructor(private readonly apiKey: string) {}
 
     async send(params: SendEmailParams) {
-        const { from, fromName, to, subject, html, attachments = [] } = params;
+        const { from, fromName, to, subject, html, replyTo, attachments = [] } = params;
 
-        const payload = {
+        const payload: Record<string, any> = {
             from: {
                 email: from,
                 name: fromName
@@ -18,6 +18,10 @@ export class MailtrapEmailService implements EmailService {
             html,
             attachments: attachments.length > 0 ? attachments : undefined
         };
+
+        if (replyTo) {
+            payload.headers = { 'Reply-To': replyTo };
+        }
 
         const response = await fetch(this.MAILTRAP_API, {
             method: 'POST',

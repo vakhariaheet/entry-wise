@@ -12,9 +12,15 @@ submissionsRouter.use('*', corsMiddleware);
 submissionsRouter.use('*', verifyDomain);
 submissionsRouter.use('*', rateLimiter);
 
-// Primary public submission endpoint
+// Primary public submission endpoints (both root and /:key)
 submissionsRouter.post(
     '/',
+    describeRoute(submitFormDocs),
+    submitForm
+);
+
+submissionsRouter.post(
+    '/:key',
     describeRoute(submitFormDocs),
     submitForm
 );

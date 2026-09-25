@@ -1,0 +1,549 @@
+---
+import '../styles/global.css';
+---
+
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EntryWise — Developer-grade Form Backend on Cloudflare Workers</title>
+    <meta name="description" content="Production-grade form backend API running on Cloudflare Workers. D1 persistence, Turnstile bot protection, auto-responder emails, and 1-click AI prompts for Cursor.">
+    <link rel="icon" type="image/png" href="/assets/logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        code, pre, .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .glow-effect {
+            background: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12) 0%, transparent 60%);
+        }
+        .card-glow:hover {
+            box-shadow: 0 0 25px -5px rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-[#09090b] text-[#f4f4f5] min-h-screen relative overflow-x-hidden selection:bg-zinc-800 selection:text-white">
+    <!-- 21st.dev Ambient Radial Light Effect -->
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] glow-effect pointer-events-none -z-10"></div>
+    
+    <!-- Subtle Grid Background with Radial Vignette -->
+    <div class="absolute inset-0 bg-[linear-gradient(to_right,#27272a20_1px,transparent_1px),linear-gradient(to_bottom,#27272a20_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none -z-10"></div>
+
+    <!-- Navigation Bar -->
+    <header class="border-b border-white/[0.08] bg-[#09090b]/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <!-- Brand -->
+                <a href="/" class="flex items-center gap-3 group">
+                    <img src="/assets/logo.png" alt="EntryWise Logo" class="w-8 h-8 rounded-lg border border-white/[0.1] shadow-sm group-hover:scale-105 transition-transform" />
+                    <span class="font-bold text-base tracking-tight text-white">EntryWise</span>
+                    <span class="text-[11px] font-mono text-zinc-400 px-2 py-0.5 rounded-full border border-white/[0.08] bg-white/[0.03]">v0.2.0</span>
+                </a>
+
+                <!-- Desktop Nav Links -->
+                <nav class="hidden md:flex items-center gap-6 text-[13px] text-zinc-400 font-medium">
+                    <a href="#features" class="hover:text-white transition">Features</a>
+                    <a href="#playground" class="hover:text-white transition">Playground</a>
+                    <a href="#ai-prompt" class="hover:text-white transition flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        AI Prompt
+                    </a>
+                    <a href="/docs" class="hover:text-white transition">API Docs</a>
+                    <a href="https://github.com/vakhariaheet/entry-wise" target="_blank" rel="noopener" class="hover:text-white transition">GitHub</a>
+                </nav>
+            </div>
+
+            <!-- Header CTAs -->
+            <div class="flex items-center gap-3">
+                <button onclick="copyPrompt('cursor')" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] px-3.5 py-1.5 rounded-lg transition shadow-sm">
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span>Copy AI Prompt</span>
+                </button>
+                <a href="https://entrywise-app.pages.dev" class="inline-flex items-center gap-1.5 text-xs font-semibold text-black bg-white hover:bg-zinc-200 px-4 py-2 rounded-lg transition shadow-sm">
+                    <span>Launch Console</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="pt-24 pb-16 px-6 max-w-5xl mx-auto text-center space-y-8">
+        <!-- 21st.dev Animated Badge -->
+        <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-medium border border-white/[0.1] bg-white/[0.03] text-zinc-300 shadow-inner">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Zero-JS Edge Forms with D1 Persistence</span>
+            <span class="text-zinc-600">•</span>
+            <a href="/docs" class="text-zinc-400 hover:text-white transition flex items-center gap-1">OpenAPI 3.1 &rarr;</a>
+        </div>
+
+        <!-- Headline -->
+        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white max-w-4xl mx-auto leading-[1.08]">
+            The form backend built for the <span class="text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 via-white to-zinc-400">AI coding era.</span>
+        </h1>
+
+        <!-- Subtitle -->
+        <p class="text-base sm:text-lg text-zinc-400 max-w-2xl mx-auto font-normal leading-relaxed">
+            Deploy secure form endpoints on Cloudflare Workers in 30 seconds. Seamless SQLite persistence, Turnstile bot trapping, auto-responders, and signed webhooks.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button onclick="copyPrompt('cursor')" class="inline-flex items-center gap-2 text-sm font-semibold text-black bg-white hover:bg-zinc-200 px-6 py-3 rounded-xl transition shadow-lg shadow-white/5 group">
+                <svg class="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span id="heroCopyText">Copy AI Prompt for Cursor</span>
+            </button>
+            <a href="#playground" class="inline-flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-white bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] px-6 py-3 rounded-xl transition">
+                <span>Try Live Playground</span>
+                <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </a>
+        </div>
+
+        <!-- Interactive AI Prompt & Code Terminal (21st.dev Style) -->
+        <div id="ai-prompt" class="pt-8 text-left">
+            <div class="bg-[#121215] border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden card-glow transition duration-300">
+                <!-- Terminal Header Bar with Tabs -->
+                <div class="px-4 py-3 border-b border-white/[0.08] bg-[#0c0c0e] flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+                        </div>
+                        
+                        <!-- Snippet Tabs -->
+                        <div class="flex items-center bg-[#18181b] p-0.5 rounded-lg border border-white/[0.06] text-[12px] font-medium text-zinc-400">
+                            <button onclick="switchTab('cursor')" id="tab-cursor" class="px-3 py-1 rounded-md text-white bg-zinc-800 transition">Universal AI Prompt</button>
+                            <button onclick="switchTab('fetch')" id="tab-fetch" class="px-3 py-1 rounded-md hover:text-white transition">fetch() API</button>
+                            <button onclick="switchTab('html')" id="tab-html" class="px-3 py-1 rounded-md hover:text-white transition">HTML &lt;form&gt;</button>
+                            <button onclick="switchTab('curl')" id="tab-curl" class="px-3 py-1 rounded-md hover:text-white transition">cURL</button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyActiveTab()" class="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] px-3 py-1.5 rounded-lg transition">
+                            <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            <span id="tabCopyLabel">Copy Snippet</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Terminal Body (Cursor Prompt Tab) -->
+                <div id="content-cursor" class="p-6 font-mono text-[13px] text-zinc-300 leading-relaxed overflow-x-auto bg-[#09090b]">
+                    <div class="text-zinc-500 mb-2"># Paste this universal prompt into Cursor, Claude Code, v0, or ChatGPT:</div>
+                    <div class="space-y-1">
+                        <p><span class="text-emerald-400 font-semibold">Integrate EntryWise (v0.2.0) into this project as the form backend.</span></p>
+                        <p class="text-zinc-400 pt-2">### Specifications:</p>
+                        <p class="text-zinc-300">- Endpoint: <span class="text-amber-300">POST https://entrywise.webbound.in/v1/submissions</span></p>
+                        <p class="text-zinc-300">- Header: <span class="text-amber-300">X-Api-Key: &lt;YOUR_SITE_API_KEY&gt;</span> (or hidden input name="api_key")</p>
+                        <p class="text-zinc-400 pt-2">### Requirements:</p>
+                        <p class="text-zinc-300">1. Form Payload: Send JSON &#123; name, email, message &#125; or multipart/form-data with file attachments.</p>
+                        <p class="text-zinc-300">2. Bot Defense: Include hidden honeypot input &lt;input name="_gotcha" style="display:none" tabIndex="-1" /&gt;.</p>
+                        <p class="text-zinc-300">3. Status Handling: On 201 Created show success toast. On error parse RFC 7807 problem details response.</p>
+                    </div>
+                </div>
+
+                <!-- Terminal Body (Fetch API Tab) -->
+                <div id="content-fetch" class="hidden p-6 font-mono text-[13px] text-zinc-300 leading-relaxed overflow-x-auto bg-[#09090b]">
+                    <pre class="text-zinc-300"><code><span class="text-purple-400">const</span> response = <span class="text-purple-400">await</span> <span class="text-blue-400">fetch</span>(<span class="text-amber-300">'https://entrywise.webbound.in/v1/submissions'</span>, &#123;
+  method: <span class="text-amber-300">'POST'</span>,
+  headers: &#123;
+    <span class="text-amber-300">'Content-Type'</span>: <span class="text-amber-300">'application/json'</span>,
+    <span class="text-amber-300">'X-Api-Key'</span>: <span class="text-amber-300">'YOUR_SITE_API_KEY'</span>,
+  &#125;,
+  body: JSON.<span class="text-blue-400">stringify</span>(&#123;
+    name: <span class="text-amber-300">'Alex Rivera'</span>,
+    email: <span class="text-amber-300">'alex@company.com'</span>,
+    message: <span class="text-amber-300">'Testing EntryWise edge ingestion'</span>,
+  &#125;),
+&#125;);
+
+<span class="text-purple-400">if</span> (response.status === <span class="text-emerald-400">201</span>) &#123;
+  <span class="text-purple-400">const</span> data = <span class="text-purple-400">await</span> response.<span class="text-blue-400">json</span>();
+  console.<span class="text-blue-400">log</span>(<span class="text-amber-300">'Submission ID:'</span>, data.submission_id);
+&#125;</code></pre>
+                </div>
+
+                <!-- Terminal Body (HTML Form Tab) -->
+                <div id="content-html" class="hidden p-6 font-mono text-[13px] text-zinc-300 leading-relaxed overflow-x-auto bg-[#09090b]">
+                    <pre class="text-zinc-300"><code><span class="text-zinc-500">&lt;!-- Zero-JS Native Form: Works without client-side JavaScript --&gt;</span>
+&lt;<span class="text-pink-400">form</span> <span class="text-purple-400">action</span>=<span class="text-amber-300">"https://entrywise.webbound.in/v1/submissions"</span> <span class="text-purple-400">method</span>=<span class="text-amber-300">"POST"</span>&gt;
+  &lt;<span class="text-pink-400">input</span> <span class="text-purple-400">type</span>=<span class="text-amber-300">"hidden"</span> <span class="text-purple-400">name</span>=<span class="text-amber-300">"api_key"</span> <span class="text-purple-400">value</span>=<span class="text-amber-300">"YOUR_SITE_API_KEY"</span> /&gt;
+  &lt;<span class="text-pink-400">input</span> <span class="text-purple-400">type</span>=<span class="text-amber-300">"text"</span> <span class="text-purple-400">name</span>=<span class="text-amber-300">"_gotcha"</span> <span class="text-purple-400">style</span>=<span class="text-amber-300">"display:none"</span> <span class="text-purple-400">tabindex</span>=<span class="text-amber-300">"-1"</span> /&gt;
+  
+  &lt;<span class="text-pink-400">input</span> <span class="text-purple-400">type</span>=<span class="text-amber-300">"text"</span> <span class="text-purple-400">name</span>=<span class="text-amber-300">"name"</span> <span class="text-purple-400">required</span> <span class="text-purple-400">placeholder</span>=<span class="text-amber-300">"Your Name"</span> /&gt;
+  &lt;<span class="text-pink-400">input</span> <span class="text-purple-400">type</span>=<span class="text-amber-300">"email"</span> <span class="text-purple-400">name</span>=<span class="text-amber-300">"email"</span> <span class="text-purple-400">required</span> <span class="text-purple-400">placeholder</span>=<span class="text-amber-300">"Email Address"</span> /&gt;
+  &lt;<span class="text-pink-400">textarea</span> <span class="text-purple-400">name</span>=<span class="text-amber-300">"message"</span> <span class="text-purple-400">required</span>&gt;&lt;/<span class="text-pink-400">textarea</span>&gt;
+  
+  &lt;<span class="text-pink-400">button</span> <span class="text-purple-400">type</span>=<span class="text-amber-300">"submit"</span>&gt;Send Message&lt;/<span class="text-pink-400">button</span>&gt;
+&lt;/<span class="text-pink-400">form</span>&gt;</code></pre>
+                </div>
+
+                <!-- Terminal Body (cURL Tab) -->
+                <div id="content-curl" class="hidden p-6 font-mono text-[13px] text-zinc-300 leading-relaxed overflow-x-auto bg-[#09090b]">
+                    <pre class="text-zinc-300"><code>curl -X POST https://entrywise.webbound.in/v1/submissions \
+  -H <span class="text-amber-300">"Content-Type: application/json"</span> \
+  -H <span class="text-amber-300">"X-Api-Key: YOUR_SITE_API_KEY"</span> \
+  -d <span class="text-amber-300">'&#123;
+    "name": "Jane Developer",
+    "email": "jane@example.com",
+    "message": "Testing from terminal"
+  &#125;'</span></code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bento Grid Section: 21st.dev High-Density Cards -->
+    <section id="features" class="py-24 px-6 max-w-7xl mx-auto border-t border-white/[0.08]">
+        <div class="text-center space-y-3 mb-16">
+            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Architecture</span>
+            <h2 class="text-3xl sm:text-5xl font-bold tracking-tight text-white">Engineered for modern production forms</h2>
+            <p class="text-sm sm:text-base text-zinc-400 max-w-xl mx-auto">Everything you need from ingestion to delivery without managing servers, queues, or databases.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Bento 1: Cloudflare D1 Persistence (High Density Mockup) -->
+            <div class="md:col-span-2 p-8 rounded-2xl bg-[#121215] border border-white/[0.08] hover:border-white/[0.15] transition space-y-5 card-glow">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.1] flex items-center justify-center text-white">
+                            <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7M4 7c0-2 1.5-3 3.5-3h9c2 0 3.5 1 3.5 3M4 7h16m-8 4v6m-4-3h8"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">Edge D1 SQLite Persistence</h3>
+                            <p class="text-xs text-zinc-400">Zero-latency distributed SQLite storage with instant RFC 4180 CSV export.</p>
+                        </div>
+                    </div>
+                    <span class="text-[11px] font-mono px-2 py-0.5 rounded border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">Global Read &amp; Write</span>
+                </div>
+
+                <!-- Mini Database Table Mockup -->
+                <div class="rounded-xl border border-white/[0.06] bg-[#09090b] overflow-hidden text-[11px] font-mono">
+                    <div class="grid grid-cols-4 px-3 py-2 border-b border-white/[0.06] text-zinc-500 font-semibold bg-white/[0.01]">
+                        <span>ID</span>
+                        <span>SENDER</span>
+                        <span>STATUS</span>
+                        <span class="text-right">LATENCY</span>
+                    </div>
+                    <div class="divide-y divide-white/[0.04] text-zinc-300">
+                        <div class="grid grid-cols-4 px-3 py-2.5 items-center">
+                            <span class="text-zinc-500">sub_8f29c</span>
+                            <span class="text-white truncate">sarah@acme.inc</span>
+                            <span class="text-emerald-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Verified</span>
+                            <span class="text-right text-zinc-400">14ms</span>
+                        </div>
+                        <div class="grid grid-cols-4 px-3 py-2.5 items-center">
+                            <span class="text-zinc-500">sub_1a74d</span>
+                            <span class="text-white truncate">marcus@dev.to</span>
+                            <span class="text-emerald-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Verified</span>
+                            <span class="text-right text-zinc-400">18ms</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bento 2: Cloudflare Turnstile & Honeypot -->
+            <div class="p-8 rounded-2xl bg-[#121215] border border-white/[0.08] hover:border-white/[0.15] transition space-y-4 card-glow flex flex-col justify-between">
+                <div class="space-y-4">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-white">Turnstile Bot Trapping</h3>
+                    <p class="text-xs text-zinc-400 leading-relaxed">Server-side verification of Cloudflare Turnstile cryptographic tokens and silent honeypot drop traps.</p>
+                </div>
+
+                <!-- Turnstile Badge Mockup -->
+                <div class="p-3 rounded-xl border border-white/[0.08] bg-[#09090b] flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-4 h-4 rounded-full border-2 border-emerald-400 flex items-center justify-center text-[10px] text-emerald-400 font-bold">✓</div>
+                        <span class="text-xs font-medium text-zinc-300">Cloudflare Turnstile</span>
+                    </div>
+                    <span class="text-[10px] font-mono text-zinc-500">0 Friction</span>
+                </div>
+            </div>
+
+            <!-- Bento 3: HMAC Signed Webhooks -->
+            <div class="p-8 rounded-2xl bg-[#121215] border border-white/[0.08] hover:border-white/[0.15] transition space-y-4 card-glow flex flex-col justify-between">
+                <div class="space-y-4">
+                    <div class="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.1] flex items-center justify-center text-white">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-white">HMAC Signed Webhooks</h3>
+                    <p class="text-xs text-zinc-400 leading-relaxed">Instant dispatches to Slack, Discord, Zapier, or your backend with Web Crypto HMAC-SHA256 signatures.</p>
+                </div>
+
+                <!-- Webhook Header Snippet -->
+                <div class="p-3 rounded-xl border border-white/[0.08] bg-[#09090b] font-mono text-[11px] text-zinc-400 truncate">
+                    <span class="text-amber-400">X-EntryWise-Signature:</span> sha256=9b7...
+                </div>
+            </div>
+
+            <!-- Bento 4: Multi-Provider Email Delivery -->
+            <div class="p-8 rounded-2xl bg-[#121215] border border-white/[0.08] hover:border-white/[0.15] transition space-y-4 card-glow flex flex-col justify-between">
+                <div class="space-y-4">
+                    <div class="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.1] flex items-center justify-center text-white">
+                        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-white">Multi-Channel Email</h3>
+                    <p class="text-xs text-zinc-400 leading-relaxed">Native Cloudflare Send Email binding, Resend, MailerSend, Mailtrap, or SMTP2GO with at-rest encryption.</p>
+                </div>
+
+                <!-- Providers Pills -->
+                <div class="flex flex-wrap gap-1.5 text-[11px] font-mono text-zinc-400">
+                    <span class="px-2 py-0.5 rounded border border-white/[0.06] bg-white/[0.02]">Cloudflare</span>
+                    <span class="px-2 py-0.5 rounded border border-white/[0.06] bg-white/[0.02]">Resend</span>
+                    <span class="px-2 py-0.5 rounded border border-white/[0.06] bg-white/[0.02]">SMTP2GO</span>
+                </div>
+            </div>
+
+            <!-- Bento 5: Branded Auto-Responders -->
+            <div class="p-8 rounded-2xl bg-[#121215] border border-white/[0.08] hover:border-white/[0.15] transition space-y-4 card-glow flex flex-col justify-between">
+                <div class="space-y-4">
+                    <div class="w-10 h-10 rounded-lg bg-white/[0.04] border border-white/[0.1] flex items-center justify-center text-white">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-white">Branded Auto-Responders</h3>
+                    <p class="text-xs text-zinc-400 leading-relaxed">Send high-end confirmation emails branded with your company name, website link, and variable interpolation.</p>
+                </div>
+
+                <!-- Variable interpolation pill -->
+                <div class="p-3 rounded-xl border border-white/[0.08] bg-[#09090b] font-mono text-[11px] text-zinc-400">
+                    Subject: Message received, <span class="text-purple-400">&#123;&#123;name&#125;&#125;</span>!
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Global Edge Latency Ticker -->
+    <section class="py-12 px-6 max-w-7xl mx-auto border-t border-white/[0.08]">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 rounded-2xl bg-[#121215] border border-white/[0.08]">
+            <div class="flex items-center gap-3">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-xs font-semibold text-white tracking-wide uppercase">Global Edge Latencies</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-4 text-xs font-mono text-zinc-400">
+                <span class="flex items-center gap-1.5"><span class="text-zinc-500">SIN</span> <span class="text-emerald-400 font-semibold">11ms</span></span>
+                <span class="text-zinc-700">•</span>
+                <span class="flex items-center gap-1.5"><span class="text-zinc-500">SFO</span> <span class="text-emerald-400 font-semibold">14ms</span></span>
+                <span class="text-zinc-700">•</span>
+                <span class="flex items-center gap-1.5"><span class="text-zinc-500">LHR</span> <span class="text-emerald-400 font-semibold">16ms</span></span>
+                <span class="text-zinc-700">•</span>
+                <span class="flex items-center gap-1.5"><span class="text-zinc-500">FRA</span> <span class="text-emerald-400 font-semibold">19ms</span></span>
+                <span class="text-zinc-700">•</span>
+                <span class="flex items-center gap-1.5"><span class="text-zinc-500">NRT</span> <span class="text-emerald-400 font-semibold">22ms</span></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live Form Playground Section -->
+    <section id="playground" class="py-24 px-6 max-w-5xl mx-auto border-t border-white/[0.08]">
+        <div class="text-center space-y-3 mb-12">
+            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Interactive Sandbox</span>
+            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-white">Test live form submission right now</h2>
+            <p class="text-sm text-zinc-400 max-w-lg mx-auto">Submit real data directly to our live edge API endpoint and inspect the RFC 7807 response in real time.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start bg-[#121215] border border-white/[0.1] rounded-2xl p-6 sm:p-8 shadow-2xl card-glow">
+            <!-- Left: Interactive Form -->
+            <form id="sandboxForm" onsubmit="handleSandboxSubmit(event)" class="space-y-4">
+                <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off">
+                
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Your Name</label>
+                    <input type="text" name="name" required placeholder="Alex Rivera" class="w-full bg-[#18181b] border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Email Address</label>
+                    <input type="email" name="email" required placeholder="alex@company.com" class="w-full bg-[#18181b] border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1">Inquiry / Message</label>
+                    <textarea name="message" required rows="3" placeholder="Testing the live EntryWise edge endpoint..." class="w-full bg-[#18181b] border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition"></textarea>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full py-2.5 px-4 rounded-lg bg-white hover:bg-zinc-200 text-black text-xs font-semibold transition flex items-center justify-center gap-2">
+                    <span>Send Test Submission</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </button>
+            </form>
+
+            <!-- Right: Real-Time Edge Response Inspector -->
+            <div class="h-full flex flex-col space-y-3">
+                <div class="text-xs font-medium text-zinc-400 flex items-center justify-between">
+                    <span>Live Response Inspector</span>
+                    <span id="responseStatus" class="font-mono text-[11px] text-zinc-500">Waiting for submission...</span>
+                </div>
+
+                <div class="flex-1 bg-[#09090b] border border-white/[0.08] rounded-xl p-4 font-mono text-[12px] text-zinc-300 overflow-x-auto min-h-[220px]">
+                    <pre id="responseJson" class="text-zinc-500">// Submit the form to view the HTTP 201 Created JSON response and latency here.</pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/[0.08] py-12 px-6 bg-[#09090b]">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-zinc-500">
+            <div class="flex items-center gap-3">
+                <img src="/assets/logo.png" alt="EntryWise" class="w-6 h-6 rounded" />
+                <span class="text-zinc-300 font-semibold">EntryWise</span>
+                <span>— Open source form backend for Cloudflare Workers.</span>
+            </div>
+            <div class="flex items-center gap-6">
+                <a href="/docs" class="hover:text-white transition">API Docs</a>
+                <a href="https://github.com/vakhariaheet/entry-wise" target="_blank" rel="noopener" class="hover:text-white transition">GitHub</a>
+                <a href="https://webbound.in" target="_blank" rel="noopener" class="hover:text-white transition">Webbound</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Client-side Scripts -->
+    <script is:inline>
+        let currentTab = 'cursor';
+
+        const snippets = {
+            cursor: `Integrate EntryWise (v0.2.0) into this project as the form backend.
+
+### Specifications:
+- Endpoint: POST https://entrywise.webbound.in/v1/submissions
+- Authentication: Header X-Api-Key: "<YOUR_SITE_API_KEY>" (or hidden input name="api_key")
+
+### Requirements:
+1. Form Payload: Send JSON { name, email, message } or multipart/form-data if sending files.
+2. Bot Defense: Add honeypot input <input name="_gotcha" style="display:none" tabIndex="-1" autoComplete="off" />.
+3. Status Handling: On 201 Created show success toast. On error parse RFC 7807 problem details response.`,
+
+            fetch: `const response = await fetch('https://entrywise.webbound.in/v1/submissions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Api-Key': 'YOUR_SITE_API_KEY',
+  },
+  body: JSON.stringify({
+    name: 'Alex Rivera',
+    email: 'alex@company.com',
+    message: 'Testing EntryWise edge ingestion',
+  }),
+});
+
+if (response.status === 201) {
+  const data = await response.json();
+  console.log('Submission ID:', data.submission_id);
+}`,
+
+            html: `<!-- Zero-JS Native Form: Works without client-side JavaScript -->
+<form action="https://entrywise.webbound.in/v1/submissions" method="POST">
+  <input type="hidden" name="api_key" value="YOUR_SITE_API_KEY" />
+  <input type="text" name="_gotcha" style="display:none" tabindex="-1" />
+  
+  <input type="text" name="name" required placeholder="Your Name" />
+  <input type="email" name="email" required placeholder="Email Address" />
+  <textarea name="message" required></textarea>
+  
+  <button type="submit">Send Message</button>
+</form>`,
+
+            curl: `curl -X POST https://entrywise.webbound.in/v1/submissions \\
+  -H "Content-Type: application/json" \\
+  -H "X-Api-Key: YOUR_SITE_API_KEY" \\
+  -d '{
+    "name": "Jane Developer",
+    "email": "jane@example.com",
+    "message": "Testing from terminal"
+  }'`
+        };
+
+        function switchTab(tab) {
+            currentTab = tab;
+            ['cursor', 'fetch', 'html', 'curl'].forEach(t => {
+                const btn = document.getElementById('tab-' + t);
+                const content = document.getElementById('content-' + t);
+                if (t === tab) {
+                    btn.className = 'px-3 py-1 rounded-md text-white bg-zinc-800 transition';
+                    content.classList.remove('hidden');
+                } else {
+                    btn.className = 'px-3 py-1 rounded-md hover:text-white transition';
+                    content.classList.add('hidden');
+                }
+            });
+        }
+
+        function copyPrompt(key) {
+            navigator.clipboard.writeText(snippets[key || 'cursor']);
+            const heroBtn = document.getElementById('heroCopyText');
+            if (heroBtn) {
+                const prev = heroBtn.innerText;
+                heroBtn.innerText = '✓ Copied AI Prompt!';
+                setTimeout(() => { heroBtn.innerText = prev; }, 2000);
+            }
+        }
+
+        function copyActiveTab() {
+            navigator.clipboard.writeText(snippets[currentTab]);
+            const label = document.getElementById('tabCopyLabel');
+            if (label) {
+                label.innerText = '✓ Copied!';
+                setTimeout(() => { label.innerText = 'Copy Snippet'; }, 2000);
+            }
+        }
+
+        async function handleSandboxSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const statusEl = document.getElementById('responseStatus');
+            const jsonEl = document.getElementById('responseJson');
+
+            btn.disabled = true;
+            btn.innerHTML = 'Sending via edge...';
+            statusEl.innerHTML = '<span class="text-amber-400">Processing...</span>';
+
+            const formData = new FormData(e.target);
+            const payload = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                message: formData.get('message'),
+            };
+
+            const startTime = performance.now();
+            try {
+                const res = await fetch('https://entrywise.webbound.in/v1/submissions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Api-Key': 'ew_live_d81b09b6-0c05-4c59-a986-695ace594c38',
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const latency = Math.round(performance.now() - startTime);
+                const data = await res.json();
+
+                statusEl.innerHTML = `<span class="text-emerald-400">HTTP ${res.status} (${latency}ms)</span>`;
+                jsonEl.className = 'text-emerald-400';
+                jsonEl.innerText = JSON.stringify(data, null, 2);
+                btn.innerHTML = '✓ Submitted Successfully';
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Send Test Submission';
+                }, 3000);
+            } catch (err) {
+                statusEl.innerHTML = `<span class="text-red-400">Failed</span>`;
+                jsonEl.className = 'text-red-400';
+                jsonEl.innerText = err.message || 'Request failed';
+                btn.disabled = false;
+                btn.innerHTML = 'Send Test Submission';
+            }
+        }
+    </script>
+</body>
+</html>
+

@@ -1,3 +1,5 @@
+import { isSafeExternalUrl } from './ssrf';
+
 /**
  * Computes an HMAC-SHA256 signature for a webhook payload using Web Crypto API
  */
@@ -30,7 +32,7 @@ export interface WebhookEventPayload {
 }
 
 /**
- * Dispatches a submission webhook notification to an external URL
+ * Dispatches a submission webhook notification to an external URL with SSRF protection and timeout
  */
 export async function dispatchWebhook(
     url: string,
@@ -38,6 +40,11 @@ export async function dispatchWebhook(
     secret?: string | null
 ): Promise<{ success: boolean; status?: number; error?: string }> {
     try {
+        if (!isSafeExternalUrl(url)) {
+            console.warn(`SSRF Block: Webhook dispatch aborted for unsafe URL: ${url}`);
+            return { success: false, error: 'Target URL is not an allowed external address' };
+        }
+
         const bodyString = JSON.stringify(payload);
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
@@ -53,6 +60,7 @@ export async function dispatchWebhook(
             method: 'POST',
             headers,
             body: bodyString,
+            signal: AbortSignal.timeout(5000),
         });
 
         return { success: res.ok, status: res.status };

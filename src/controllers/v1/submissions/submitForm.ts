@@ -1,6 +1,6 @@
 import { Context } from 'hono';
 import { Env } from '../../../types/env';
-import { sendProblemDetails, sendResponse } from '../../../utils/sendResponse';
+import { sendProblemDetails } from '../../../utils/sendResponse';
 import { HONEYPOT_FIELDS, MAX_FILE_SIZE, VALID_FILE_TYPES } from '../../../types/submission';
 import { decrypt } from '../../../utils/encryption';
 import { renderFormSubmissionEmail } from '../../../emails/FormSubmissionEmail';
@@ -9,6 +9,10 @@ import { renderConfirmationPage } from '../../../templates/ConfirmationPage';
 import { EmailServiceFactory, EmailAttachment } from '../../../services/email';
 import { verifyTurnstileToken } from '../../../utils/turnstile';
 import { dispatchWebhook } from '../../../utils/webhook';
+import { dispatchSlackNotification } from '../../../services/connectors/slack';
+import { dispatchDiscordNotification } from '../../../services/connectors/discord';
+import { dispatchGoogleSheets } from '../../../services/connectors/googleSheets';
+import { validateRedirectUrl } from '../../../utils/redirectGuard';
 import { getConnInfo } from 'hono/cloudflare-workers';
 
 interface ParsedSubmissionPayload {
@@ -31,8 +35,8 @@ async function parseSubmissionRequest(c: Context<{ Bindings: Env }>): Promise<Pa
     let redirectUrl: string | undefined;
 
     if (contentType.includes('application/json')) {
-        const json = (await c.req.json()) as Record<string, any>;
-        
+        const json = (await c.req.json().catch(() => ({}))) as Record<string, any>;
+
         // Check for honeypot
         for (const hp of HONEYPOT_FIELDS) {
             if (json[hp]) honeypotTriggered = true;
@@ -45,7 +49,7 @@ async function parseSubmissionRequest(c: Context<{ Bindings: Env }>): Promise<Pa
         const sourceFields = json.fields && typeof json.fields === 'object' ? json.fields : json;
         for (const [key, value] of Object.entries(sourceFields)) {
             if (!HONEYPOT_FIELDS.includes(key) && !key.startsWith('_') && key !== 'cf-turnstile-response' && key !== 'api_key') {
-                fields[key] = typeof value === 'string' ? value : JSON.stringify(value);
+                fields[key] = typeof value === 'string' ? value : (value !== null && value !== undefined ? JSON.stringify(value) : '');
             }
         }
     } else {
@@ -94,12 +98,24 @@ async function parseSubmissionRequest(c: Context<{ Bindings: Env }>): Promise<Pa
 
 export const submitForm = async (c: Context<{ Bindings: Env }>) => {
     try {
-        const siteId = c.get('site_id');
-        const companyId = c.get('company_id');
+        let siteId = c.get('site_id');
+        let companyId = c.get('company_id');
         const ipAddress = getConnInfo(c)?.remote?.address || 'unknown';
 
+        // Fallback: If not passed by middleware, look up directly via param or header
+        if (!siteId) {
+            const apiKey = c.req.param('key') || c.req.header('X-API-Key') || c.req.query('api_key');
+            if (apiKey) {
+                const foundSite = await c.env.DB.prepare('SELECT id, company_id FROM sites WHERE api_key = ?').bind(apiKey).first<{ id: string; company_id: string }>();
+                if (foundSite) {
+                    siteId = foundSite.id;
+                    companyId = foundSite.company_id;
+                }
+            }
+        }
+
         if (!siteId || !companyId) {
-            return sendProblemDetails(c, 403, 'Site or company context missing from authentication');
+            return sendProblemDetails(c, 403, 'Site configuration not found or invalid API key');
         }
 
         const { fields, files, honeypotTriggered, turnstileToken, redirectUrl } = await parseSubmissionRequest(c);
@@ -114,16 +130,17 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
         }
 
         const site = sites[0];
+        const validRedirectUrl = validateRedirectUrl(redirectUrl, site.domain, site.allowed_origins);
 
         // 1. Honeypot Anti-Spam Check: Silent drop if bot trapped
         if (honeypotTriggered) {
-            if (redirectUrl) {
-                return c.redirect(redirectUrl, 303);
+            if (validRedirectUrl) {
+                return c.redirect(validRedirectUrl, 303);
             }
             const acceptHeader = c.req.header('Accept') || '';
             if (acceptHeader.includes('text/html') && !acceptHeader.includes('application/json')) {
                 return c.html(renderConfirmationPage({
-                    companyName: site.domain,
+                    companyName: site.name || site.domain,
                     siteDomain: site.domain,
                 }), 200);
             }
@@ -146,75 +163,68 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
             }
         }
 
-        // 3. Dynamic Field Validation against database schema
+        // 3. Dynamic Field Identification (Schema-Less with Intelligent Auto-Detection)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        let submitterEmail: string | undefined;
+        let submitterName: string | undefined;
+
+        // Auto-detect submitter email
+        for (const [key, val] of Object.entries(fields)) {
+            const lowerKey = key.toLowerCase();
+            if (lowerKey === 'email' || lowerKey === 'e-mail' || lowerKey.includes('email') || lowerKey.includes('e_mail')) {
+                if (emailRegex.test(val.trim())) {
+                    submitterEmail = val.trim();
+                    break;
+                }
+            }
+        }
+        if (!submitterEmail) {
+            for (const val of Object.values(fields)) {
+                if (typeof val === 'string' && emailRegex.test(val.trim())) {
+                    submitterEmail = val.trim();
+                    break;
+                }
+            }
+        }
+
+        // Auto-detect submitter name
+        for (const [key, val] of Object.entries(fields)) {
+            const lowerKey = key.toLowerCase();
+            if (
+                lowerKey === 'name' ||
+                lowerKey === 'fullname' ||
+                lowerKey === 'full_name' ||
+                lowerKey === 'first_name' ||
+                lowerKey === 'firstname'
+            ) {
+                submitterName = val.trim();
+                break;
+            }
+        }
+
+        // Optional schema field check if user defined explicit fields
         const { results: definedFields } = await c.env.DB.prepare(`
             SELECT name, type FROM fields WHERE site_id = ?
         `).bind(siteId).all<{ name: string; type: string }>();
 
-        const invalidParams: Array<{ name: string; reason: string }> = [];
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const phoneRegex = /^\+?[\d\s-()]+$/;
-        let submitterEmail: string | undefined;
-        let submitterName: string | undefined;
-
-        for (const field of definedFields) {
-            const value = fields[field.name];
-
-            if (field.type === 'file') {
-                // File fields are validated through attachments map
-                continue;
+        if (definedFields && definedFields.length > 0) {
+            const invalidParams: Array<{ name: string; reason: string }> = [];
+            for (const field of definedFields) {
+                const value = fields[field.name];
+                if (value && field.type === 'email' && !emailRegex.test(value)) {
+                    invalidParams.push({ name: field.name, reason: 'Invalid email address format' });
+                }
             }
-
-            if (!value) {
-                invalidParams.push({ name: field.name, reason: `Missing required field: ${field.name}` });
-                continue;
+            if (invalidParams.length > 0) {
+                return sendProblemDetails(c, 422, 'Form submission validation failed', { invalidParams });
             }
-
-            switch (field.type) {
-                case 'email':
-                    if (!emailRegex.test(value)) {
-                        invalidParams.push({ name: field.name, reason: 'Invalid email address format' });
-                    } else {
-                        submitterEmail = value;
-                    }
-                    break;
-                case 'phone':
-                    if (!phoneRegex.test(value)) {
-                        invalidParams.push({ name: field.name, reason: 'Invalid phone number format' });
-                    }
-                    break;
-                case 'url':
-                    try {
-                        new URL(value);
-                    } catch {
-                        invalidParams.push({ name: field.name, reason: 'Invalid URL format' });
-                    }
-                    break;
-            }
-
-            if (field.name.toLowerCase().includes('name')) {
-                submitterName = value;
-            }
-        }
-
-        if (invalidParams.length > 0) {
-            return sendProblemDetails(c, 422, 'Form submission validation failed', { invalidParams });
         }
 
         // 4. File Attachments Processing
-        const fileFields = definedFields.filter(f => f.type === 'file');
-        const fileFieldNames = fileFields.map(f => f.name);
-
         const emailAttachments: EmailAttachment[] = [];
         const savedAttachmentMeta: Array<{ filename: string; size: number; type: string; field: string }> = [];
 
         for (const [fieldName, file] of files.entries()) {
-            if (!fileFieldNames.includes(fieldName) && fieldName !== 'attachments') {
-                return sendProblemDetails(c, 422, `File field '${fieldName}' is not defined in the site schema`, {
-                    invalidParams: [{ name: fieldName, reason: 'Field not defined in form schema' }],
-                });
-            }
-
             if (file.size > MAX_FILE_SIZE) {
                 return sendProblemDetails(c, 422, `File '${file.name}' exceeds the maximum allowed size of 5MB`, {
                     invalidParams: [{ name: fieldName, reason: `File size exceeds 5MB limit (${file.size} bytes)` }],
@@ -244,7 +254,7 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
             });
         }
 
-        // 5. Database Persistence (Feature 1: Submission Persistence)
+        // 5. Database Persistence (Store Submission in D1)
         const submissionId = `sub_${crypto.randomUUID()}`;
         const submissionDataJson = JSON.stringify(fields);
         const attachmentsJson = JSON.stringify(savedAttachmentMeta);
@@ -254,17 +264,19 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
             VALUES (?, ?, ?, ?, 'new', ?)
         `).bind(submissionId, siteId, submissionDataJson, attachmentsJson, ipAddress).run();
 
-        // 6. Fetch Company for Email Service Config
+        // 6. Fetch Company Configuration for Email Service
         const { results: companies } = await c.env.DB.prepare(`
             SELECT name, email_provider, email_provider_token, from_email, from_name
             FROM companies WHERE id = ?
         `).bind(companyId).all<any>();
 
-        if (!companies?.length) {
-            return sendProblemDetails(c, 500, 'Company email configuration not found');
-        }
+        const company = companies?.[0] || {
+            name: 'EntryWise',
+            email_provider: 'cloudflare',
+            from_email: 'no-reply@entrywise.webbound.in',
+            from_name: 'EntryWise Forms',
+        };
 
-        const company = companies[0];
         let providerToken: string | null = null;
         if (company.email_provider !== 'cloudflare' && company.email_provider_token) {
             providerToken = await decrypt(company.email_provider_token, c.env.ENCRYPTION_KEY);
@@ -276,32 +288,52 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
             binding: company.email_provider === 'cloudflare' ? c.env.EMAIL : undefined,
         });
 
-        // 7. Render & Dispatch Admin Notification Email
-        const htmlEmail = renderFormSubmissionEmail({
-            siteDomain: site.domain,
-            formData: fields,
-            companyName: company.name,
-            timezone: site.timezone,
-            attachments: emailAttachments.map(f => ({ filename: f.filename })),
-        });
+        // 7. Background Async Tasks (Dispatched via c.executionCtx.waitUntil for ultra-low latency)
+        const backgroundTasks: Promise<any>[] = [];
 
-        try {
-            await emailService.send({
-                from: company.from_email,
-                fromName: company.from_name,
-                to: site.admin_email,
-                subject: `New Form Submission - ${site.domain}`,
-                html: htmlEmail,
-                attachments: emailAttachments,
-            });
-        } catch (emailErr: any) {
-            console.error('Admin email delivery failed:', emailErr.message || emailErr);
+        // 7a. Admin Notification Email
+        const shouldNotifyAdmins = site.notify_on_submission === undefined || site.notify_on_submission === 1 || site.notify_on_submission === true;
+        if (shouldNotifyAdmins) {
+            // Determine recipient emails
+            const recipientList: string[] = [];
+            if (site.notification_emails) {
+                const parsed = site.notification_emails.split(/[,;\n]/).map((e: string) => e.trim()).filter((e: string) => emailRegex.test(e));
+                recipientList.push(...parsed);
+            }
+            if (recipientList.length === 0 && site.admin_email && emailRegex.test(site.admin_email.trim())) {
+                recipientList.push(site.admin_email.trim());
+            }
+
+            if (recipientList.length > 0) {
+                const htmlEmail = renderFormSubmissionEmail({
+                    siteDomain: site.domain,
+                    formData: fields,
+                    companyName: site.name || company.name || site.domain,
+                    timezone: site.timezone,
+                    submissionId,
+                    attachments: emailAttachments.map(f => ({ filename: f.filename })),
+                });
+
+                for (const recipient of recipientList) {
+                    const sendPromise = emailService.send({
+                        from: company.from_email || 'no-reply@entrywise.webbound.in',
+                        fromName: site.name || company.from_name || 'EntryWise',
+                        to: recipient,
+                        subject: `New Form Submission: ${site.name || site.domain}`,
+                        html: htmlEmail,
+                        replyTo: submitterEmail,
+                        attachments: emailAttachments,
+                    }).catch(err => console.error(`Admin notification email to ${recipient} failed:`, err));
+
+                    backgroundTasks.push(sendPromise);
+                }
+            }
         }
 
-        // 8. Auto-Responder Email (Feature 2: Confirmation Email to Submitter)
+        // 7b. Submitter Auto-Responder Email
         if (site.auto_responder_enabled && submitterEmail) {
-            const companyDisplayName = company.name || company.from_name || site.domain;
-            let interpolatedSubject = site.auto_responder_subject || `Thank you for reaching out - ${companyDisplayName}`;
+            const companyDisplayName = site.name || company.name || company.from_name || site.domain;
+            let interpolatedSubject = site.auto_responder_subject || `Thank you for reaching out — ${companyDisplayName}`;
             let interpolatedBody = site.auto_responder_body || '';
 
             const templateVars: Record<string, string> = {
@@ -315,8 +347,8 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
                 submission_id: submissionId,
             };
 
-            for (const [key, val] of Object.entries(templateVars)) {
-                const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'gi');
+            for (const [k, val] of Object.entries(templateVars)) {
+                const regex = new RegExp(`{{\\s*${k}\\s*}}`, 'gi');
                 interpolatedSubject = interpolatedSubject.replace(regex, val);
                 if (interpolatedBody) {
                     interpolatedBody = interpolatedBody.replace(regex, val);
@@ -333,22 +365,19 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
                 timezone: site.timezone,
             });
 
-            const autoResponderSenderName = company.name?.trim() ? company.name.trim() : (company.from_name || 'EntryWise');
-
             const autoReplyPromise = emailService.send({
-                from: company.from_email,
-                fromName: autoResponderSenderName,
+                from: company.from_email || 'no-reply@entrywise.webbound.in',
+                fromName: site.name || company.from_name || 'EntryWise',
                 to: submitterEmail,
                 subject: interpolatedSubject,
                 html: autoReplyHtml,
-            }).catch(err => console.error('Auto-responder delivery error:', err));
+                replyTo: recipientListFirst(site),
+            }).catch(err => console.error('Auto-responder delivery failed:', err));
 
-            if (c.executionCtx) {
-                c.executionCtx.waitUntil(autoReplyPromise);
-            }
+            backgroundTasks.push(autoReplyPromise);
         }
 
-        // 9. Webhook Notification (Feature 3: Real-time Dispatch)
+        // 7c. Webhook Notification
         if (site.webhook_url) {
             const webhookPromise = dispatchWebhook(
                 site.webhook_url,
@@ -364,18 +393,57 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
                 site.webhook_secret
             ).catch(err => console.error('Webhook notification error:', err));
 
-            if (c.executionCtx) {
-                c.executionCtx.waitUntil(webhookPromise);
-            }
+            backgroundTasks.push(webhookPromise);
         }
 
-        // 10. Response handling
-        // If client specified _redirect / _next, redirect with 303 See Other
-        if (redirectUrl) {
-            return c.redirect(redirectUrl, 303);
+        // 7d. Slack Connector
+        if (site.slack_webhook_url) {
+            const slackPromise = dispatchSlackNotification(site.slack_webhook_url, {
+                siteDomain: site.name ? `${site.name} (${site.domain})` : site.domain,
+                submissionId,
+                formData: fields,
+                submittedAt: new Date().toISOString(),
+            }).catch(err => console.error('Slack connector dispatch error:', err));
+
+            backgroundTasks.push(slackPromise);
         }
 
-        // If client requested HTML browser view, render thank-you page
+        // 7e. Discord Connector
+        if (site.discord_webhook_url) {
+            const discordPromise = dispatchDiscordNotification(site.discord_webhook_url, {
+                siteDomain: site.name ? `${site.name} (${site.domain})` : site.domain,
+                submissionId,
+                formData: fields,
+                submittedAt: new Date().toISOString(),
+            }).catch(err => console.error('Discord connector dispatch error:', err));
+
+            backgroundTasks.push(discordPromise);
+        }
+
+        // 7f. Google Sheets Connector
+        if (site.google_sheets_url) {
+            const sheetsPromise = dispatchGoogleSheets(site.google_sheets_url, {
+                siteDomain: site.domain,
+                submissionId,
+                formData: fields,
+                submittedAt: new Date().toISOString(),
+            }).catch(err => console.error('Google Sheets dispatch error:', err));
+
+            backgroundTasks.push(sheetsPromise);
+        }
+
+        // Pass all background tasks to Cloudflare execution context
+        if (c.executionCtx && backgroundTasks.length > 0) {
+            c.executionCtx.waitUntil(Promise.allSettled(backgroundTasks));
+        }
+
+        // 8. Response Handling
+        // If client specified safe _redirect / _next, redirect with 303 See Other
+        if (validRedirectUrl) {
+            return c.redirect(validRedirectUrl, 303);
+        }
+
+        // If client requested HTML browser view, render confirmation page
         const acceptHeader = c.req.header('Accept') || '';
         if (acceptHeader.includes('text/html') && !acceptHeader.includes('application/json')) {
             let submittedAtFormatted = new Date().toUTCString();
@@ -393,7 +461,7 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
             const returnUrl = referer && !referer.includes(c.req.url) ? referer : undefined;
 
             return c.html(renderConfirmationPage({
-                companyName: company.name || company.from_name,
+                companyName: site.name || company.name || site.domain,
                 siteDomain: site.domain,
                 submissionId,
                 submittedAt: submittedAtFormatted,
@@ -412,3 +480,11 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
         return sendProblemDetails(c, 500, 'Internal server error while processing submission');
     }
 };
+
+function recipientListFirst(site: any): string | undefined {
+    if (site.notification_emails) {
+        const first = site.notification_emails.split(/[,;\n]/)[0]?.trim();
+        if (first && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(first)) return first;
+    }
+    return site.admin_email || undefined;
+}

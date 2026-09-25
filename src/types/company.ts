@@ -7,6 +7,7 @@ export interface Company {
     email_provider_token: string | null;
     from_email: string;
     from_name: string;
+    user_id?: string | null;
     created_at: string;
 }
 

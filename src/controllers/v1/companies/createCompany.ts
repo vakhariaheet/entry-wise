@@ -9,6 +9,9 @@ const CF_FROM_NAME = 'EntryWise';
 
 export const createCompany = async (c: Context<{ Bindings: Env }>) => {
     try {
+        const jwtPayload = c.get('jwtPayload') as any;
+        const userId = jwtPayload?.user_id || null;
+
         const body = await c.req.json() as CreateCompanyBody;
         const id = `company_${crypto.randomUUID()}`;
 
@@ -16,7 +19,7 @@ export const createCompany = async (c: Context<{ Bindings: Env }>) => {
         const isCloudflare = provider === 'cloudflare';
 
         if (!body.name) {
-            return sendProblemDetails(c, 422, 'Company name is required', {
+            return sendProblemDetails(c, 422, 'Workspace / Company name is required', {
                 invalidParams: [{ name: 'name', reason: 'Field is required' }],
             });
         }
@@ -34,18 +37,18 @@ export const createCompany = async (c: Context<{ Bindings: Env }>) => {
         }
 
         const fromEmail = isCloudflare ? CF_FROM_EMAIL : (body.from_email ?? CF_FROM_EMAIL);
-        const fromName = isCloudflare ? CF_FROM_NAME : body.from_name!;
+        const fromName = isCloudflare ? (body.from_name || body.name || CF_FROM_NAME) : body.from_name!;
         const encryptedToken = body.email_provider_token
             ? await encrypt(body.email_provider_token, c.env.ENCRYPTION_KEY)
             : null;
 
         const { success } = await c.env.DB.prepare(`
-            INSERT INTO companies (id, name, email_provider, email_provider_token, from_email, from_name)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `).bind(id, body.name, provider, encryptedToken, fromEmail, fromName).run();
+            INSERT INTO companies (id, name, email_provider, email_provider_token, from_email, from_name, user_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).bind(id, body.name, provider, encryptedToken, fromEmail, fromName, userId).run();
 
         if (!success) {
-            return sendProblemDetails(c, 500, 'Database write failed while creating company');
+            return sendProblemDetails(c, 500, 'Database write failed while creating workspace');
         }
 
         const createdResource = {
@@ -54,12 +57,13 @@ export const createCompany = async (c: Context<{ Bindings: Env }>) => {
             email_provider: provider,
             from_email: fromEmail,
             from_name: fromName,
+            user_id: userId,
             created_at: new Date().toISOString(),
         };
 
         return sendCreated(c, createdResource, `/v1/companies/${id}`);
     } catch (error) {
         console.error('Create company error:', error);
-        return sendProblemDetails(c, 500, 'Internal server error while creating company');
+        return sendProblemDetails(c, 500, 'Internal server error while creating workspace');
     }
 };

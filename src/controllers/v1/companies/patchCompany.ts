@@ -11,15 +11,21 @@ export const patchCompany = async (c: Context<{ Bindings: Env }>) => {
             return sendProblemDetails(c, 400, 'Company ID path parameter is required');
         }
 
+        const jwtPayload = c.get('jwtPayload') as any;
         const body = (await c.req.json()) as UpdateCompanyBody;
 
-        // Check if company exists
-        const { results } = await c.env.DB.prepare(`
-            SELECT id, email_provider FROM companies WHERE id = ?
-        `).bind(id).all<{ id: string; email_provider: string }>();
+        let checkSql = `SELECT id, email_provider, user_id FROM companies WHERE id = ?`;
+        const checkParams: any[] = [id];
+
+        if (jwtPayload?.role === 'clerk_user' && jwtPayload?.user_id) {
+            checkSql += ` AND user_id = ?`;
+            checkParams.push(jwtPayload.user_id);
+        }
+
+        const { results } = await c.env.DB.prepare(checkSql).bind(...checkParams).all<{ id: string; email_provider: string; user_id: string }>();
 
         if (!results?.length) {
-            return sendProblemDetails(c, 404, `Company with ID '${id}' not found`);
+            return sendProblemDetails(c, 404, `Workspace with ID '${id}' not found or access denied`);
         }
 
         const currentProvider = results[0].email_provider;
@@ -60,16 +66,16 @@ export const patchCompany = async (c: Context<{ Bindings: Env }>) => {
         `).bind(...updateValues, id).run();
 
         if (!success) {
-            return sendProblemDetails(c, 500, 'Failed to update company record');
+            return sendProblemDetails(c, 500, 'Failed to update workspace record');
         }
 
         const { results: updated } = await c.env.DB.prepare(`
-            SELECT id, name, email_provider, from_email, from_name, created_at FROM companies WHERE id = ?
+            SELECT id, name, email_provider, from_email, from_name, user_id, created_at FROM companies WHERE id = ?
         `).bind(id).all();
 
         return sendOk(c, updated[0]);
     } catch (error) {
         console.error('Patch company error:', error);
-        return sendProblemDetails(c, 500, 'Internal server error while patching company');
+        return sendProblemDetails(c, 500, 'Internal server error while patching workspace');
     }
 };
