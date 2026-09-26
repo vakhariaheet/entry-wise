@@ -147,20 +147,20 @@ export const testSiteEmail = async (c: Context<{ Bindings: Env }>) => {
       return result;
     };
 
-interface StoredTemplateConfig {
-  mode?: string;
-  theme?: string;
-  customHtml?: string;
-  compiledHtml?: string;
-  subject?: string;
-}
+    interface StoredTemplateConfig {
+      mode?: string;
+      theme?: string;
+      customHtml?: string;
+      compiledHtml?: string;
+      subject?: string;
+    }
 
-interface StoredSiteConfig {
-  autoResponder?: StoredTemplateConfig;
-  submissionAlert?: StoredTemplateConfig;
-  customHtml?: string;
-  compiledHtml?: string;
-}
+    interface StoredSiteConfig {
+      autoResponder?: StoredTemplateConfig;
+      submissionAlert?: StoredTemplateConfig;
+      customHtml?: string;
+      compiledHtml?: string;
+    }
 
     let finalHtml = '';
     let finalSubject = '';

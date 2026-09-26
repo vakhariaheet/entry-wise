@@ -29,7 +29,7 @@ import {
   X,
 } from 'lucide-react';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib';
 import type { Site } from '@/types';
 
@@ -228,11 +228,22 @@ const createPresetBlocks = (presetId: string, site: Site): EmailBlock[] => {
         {
           id: 'b-2',
           type: 'text',
-          text: 'We have received your inquiry sent via {{domain}}. Below is a summary of the details you submitted:\n\n{{formData}}\n\nIf you have any urgent details to add, feel free to reply directly to this email.',
+          text: 'We have received your inquiry sent via {{domain}}. Below is a summary of the details you submitted:',
           alignment: 'left',
         },
         {
+          id: 'b-table',
+          type: 'summary_table',
+          title: 'Submitted Details',
+        },
+        {
           id: 'b-3',
+          type: 'text',
+          text: 'If you have any urgent details to add, feel free to reply directly to this email.',
+          alignment: 'left',
+        },
+        {
+          id: 'b-4',
           type: 'button',
           buttonText: 'Visit Our Website',
           buttonUrl: 'https://{{domain}}',
@@ -242,13 +253,13 @@ const createPresetBlocks = (presetId: string, site: Site): EmailBlock[] => {
           alignment: 'left',
         },
         {
-          id: 'b-4',
+          id: 'b-5',
           type: 'divider',
           dividerHeight: 24,
           dividerColor: '#e2e8f0',
         },
         {
-          id: 'b-5',
+          id: 'b-6',
           type: 'footer',
           footerText: `${brandName} • {{domain}} • Delivered securely via EntryWise`,
           alignment: 'left',
@@ -1337,19 +1348,11 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
     URL.revokeObjectURL(url);
   };
 
-  // Simulated values for live preview
-  const simulateText = useCallback(
+  // Simulated inline text values for live preview (leaves formData token intact)
+  const simulateInlineText = useCallback(
     (input?: string): string => {
       if (!input) return '';
       if (!simulateVariables) return input;
-
-      const sampleTableHtml = `
-        <table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:540px;border-collapse:collapse;margin:12px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
-          <tr style="background:#f8fafc;"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;width:30%;">Name</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;">Alex Taylor</td></tr>
-          <tr style="background:#ffffff;"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">Email</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;">alex.taylor@example.com</td></tr>
-          <tr style="background:#f8fafc;"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">Message</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;">We are interested in discussing partnership and enterprise licensing.</td></tr>
-        </table>
-      `;
 
       return input
         .replace(/{{\s*name\s*}}/gi, 'Alex Taylor')
@@ -1365,10 +1368,140 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
             day: 'numeric',
             year: 'numeric',
           })
-        )
-        .replace(/{{\s*(formData|form_data|submission_summary|all_fields)\s*}}/gi, sampleTableHtml);
+        );
     },
     [simulateVariables, site]
+  );
+
+  // Simulated full HTML string for iframe preview
+  const simulateHtml = useCallback(
+    (input?: string): string => {
+      if (!input) return '';
+      if (!simulateVariables) return input;
+
+      const sampleTableHtml = `
+        <table cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:540px;border-collapse:collapse;margin:12px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+          <tr style="background:#f8fafc;"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;width:30%;">Name</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;">Alex Taylor</td></tr>
+          <tr style="background:#ffffff;"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">Email</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;">alex.taylor@example.com</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:600;color:#475569;">Message</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;color:#0f172a;">We are interested in discussing partnership and enterprise licensing.</td></tr>
+        </table>
+      `;
+
+      return simulateInlineText(input).replace(
+        /{{\s*(?:formData|form_data|submission_summary|all_fields)\s*}}/gi,
+        sampleTableHtml
+      );
+    },
+    [simulateInlineText, simulateVariables]
+  );
+
+  // Render text blocks in the visual simulator: renders simulated text inline,
+  // and dynamically expands {{formData}} into an interactive mock table widget in JSX!
+  const renderSimulatedBlockText = useCallback(
+    (text?: string) => {
+      if (!text) return null;
+      if (!simulateVariables) {
+        return text;
+      }
+
+      const tokenSplitRegex = /({{\s*(?:formData|form_data|submission_summary|all_fields)\s*}})/i;
+      const isFormDataToken = /^{{\s*(?:formData|form_data|submission_summary|all_fields)\s*}}$/i;
+      const rawParts = text.split(tokenSplitRegex);
+
+      let offset = 0;
+      const segments = rawParts.map((part) => {
+        const segId = `seg-${offset}-${part.length}`;
+        offset += part.length;
+        return {
+          id: segId,
+          content: part,
+          isTable: isFormDataToken.test(part.trim()),
+        };
+      });
+
+      return (
+        <>
+          {segments.map((seg) => {
+            if (seg.isTable) {
+              return (
+                <span key={seg.id} className="block my-2.5 text-left not-italic font-normal">
+                  <div
+                    className={`rounded-lg overflow-hidden text-xs border ${
+                      theme === 'clean_light'
+                        ? 'border-slate-200 bg-white shadow-sm'
+                        : 'border-white/[0.08] bg-black/20'
+                    }`}
+                  >
+                    <div
+                      className={`flex border-b p-2.5 ${
+                        theme === 'clean_light'
+                          ? 'border-slate-100 bg-slate-50/80 text-slate-700'
+                          : 'border-white/[0.06] bg-white/[0.02] text-zinc-300'
+                      }`}
+                    >
+                      <span
+                        className={`w-1/3 font-semibold ${
+                          theme === 'clean_light' ? 'text-slate-500' : 'text-zinc-400'
+                        }`}
+                      >
+                        Name
+                      </span>
+                      <span
+                        className={`font-medium ${
+                          theme === 'clean_light' ? 'text-slate-900' : 'text-white'
+                        }`}
+                      >
+                        Alex Taylor
+                      </span>
+                    </div>
+                    <div
+                      className={`flex border-b p-2.5 ${
+                        theme === 'clean_light'
+                          ? 'border-slate-100 bg-white text-slate-700'
+                          : 'border-white/[0.06] bg-transparent text-zinc-300'
+                      }`}
+                    >
+                      <span
+                        className={`w-1/3 font-semibold ${
+                          theme === 'clean_light' ? 'text-slate-500' : 'text-zinc-400'
+                        }`}
+                      >
+                        Email
+                      </span>
+                      <span
+                        className={`font-medium ${
+                          theme === 'clean_light' ? 'text-slate-900' : 'text-white'
+                        }`}
+                      >
+                        alex.taylor@example.com
+                      </span>
+                    </div>
+                    <div className="flex p-2.5">
+                      <span
+                        className={`w-1/3 font-semibold ${
+                          theme === 'clean_light' ? 'text-slate-500' : 'text-zinc-400'
+                        }`}
+                      >
+                        Message
+                      </span>
+                      <span
+                        className={`font-medium leading-relaxed ${
+                          theme === 'clean_light' ? 'text-slate-900' : 'text-white'
+                        }`}
+                      >
+                        We are interested in discussing partnership and enterprise licensing.
+                      </span>
+                    </div>
+                  </div>
+                </span>
+              );
+            }
+            return <Fragment key={seg.id}>{simulateInlineText(seg.content)}</Fragment>;
+          })}
+        </>
+      );
+    },
+    [simulateVariables, simulateInlineText, theme]
   );
 
   return (
@@ -2382,11 +2515,11 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                             {block.type === 'heading' && (
                               <div className={`px-6 py-2 text-${align}`}>
                                 <h3 className="text-lg font-bold tracking-tight">
-                                  {simulateText(block.title)}
+                                  {simulateInlineText(block.title)}
                                 </h3>
                                 {block.subtitle && (
                                   <p className="text-xs text-zinc-400 mt-0.5">
-                                    {simulateText(block.subtitle)}
+                                    {simulateInlineText(block.subtitle)}
                                   </p>
                                 )}
                               </div>
@@ -2422,7 +2555,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                                 className={`px-6 py-2 text-xs leading-relaxed whitespace-pre-line text-${align}`}
                                 style={{ color: theme === 'clean_light' ? '#475569' : '#94a3b8' }}
                               >
-                                {simulateText(block.text)}
+                                {renderSimulatedBlockText(block.text)}
                               </div>
                             )}
 
@@ -2442,7 +2575,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                                     color: theme === 'clean_light' ? '#065f46' : '#34d399',
                                   }}
                                 >
-                                  {simulateText(block.calloutText)}
+                                  {renderSimulatedBlockText(block.calloutText)}
                                 </div>
                               </div>
                             )}
@@ -2451,7 +2584,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                               <div className="px-6 py-2">
                                 {block.title && (
                                   <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2">
-                                    {block.title}
+                                    {simulateInlineText(block.title)}
                                   </div>
                                 )}
                                 <div className="border border-zinc-200 dark:border-white/[0.08] rounded-lg overflow-hidden text-xs">
@@ -2494,7 +2627,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                                     borderRadius: `${block.buttonRadius ?? 8}px`,
                                   }}
                                 >
-                                  {block.buttonText || 'Click Here'}
+                                  {simulateInlineText(block.buttonText || 'Click Here')}
                                 </span>
                               </div>
                             )}
@@ -2521,7 +2654,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                                   color: theme === 'clean_light' ? '#94a3b8' : '#71717a',
                                 }}
                               >
-                                {simulateText(block.footerText)}
+                                {simulateInlineText(block.footerText)}
                               </div>
                             )}
                           </button>
@@ -2647,7 +2780,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                   >
                     <iframe
                       title="HTML Email Preview"
-                      srcDoc={simulateText(customHtml)}
+                      srcDoc={simulateHtml(customHtml)}
                       className="w-full h-[520px] border-0"
                       sandbox="allow-same-origin"
                     />
