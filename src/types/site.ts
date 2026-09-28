@@ -20,6 +20,10 @@ export interface Site {
   slack_webhook_url?: string | null;
   discord_webhook_url?: string | null;
   allowed_origins?: string | null;
+  block_disposable_emails?: number | boolean | null;
+  spam_keywords?: string | null;
+  data_retention_days?: number | null;
+  anonymize_ip?: number | boolean | null;
   created_at: string;
 }
 

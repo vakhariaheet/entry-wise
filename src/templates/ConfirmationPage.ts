@@ -1,3 +1,5 @@
+import { escapeHtml } from '../utils/escapeHtml';
+
 export interface ConfirmationPageProps {
   companyName?: string;
   siteDomain: string;
@@ -13,10 +15,17 @@ export const renderConfirmationPage = ({
   submittedAt,
   returnUrl,
 }: ConfirmationPageProps): string => {
-  const displayName = companyName?.trim() || siteDomain;
-  const cleanDomain = siteDomain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
-  const targetReturnUrl = returnUrl || `https://${cleanDomain}`;
-  const displayDate = submittedAt || new Date().toUTCString();
+  const rawDisplayName = companyName?.trim() || siteDomain;
+  const rawCleanDomain = siteDomain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/.*$/, '');
+  const rawTargetReturnUrl = returnUrl || `https://${rawCleanDomain}`;
+  const rawDisplayDate = submittedAt || new Date().toUTCString();
+
+  const displayName = escapeHtml(rawDisplayName);
+  const cleanDomain = escapeHtml(rawCleanDomain);
+  const targetReturnUrl = escapeHtml(rawTargetReturnUrl);
+  const displayDate = escapeHtml(rawDisplayDate);
+  const safeSubId = submissionId ? escapeHtml(submissionId) : '';
+  const jsSafeSubId = submissionId ? submissionId.replace(/[^a-zA-Z0-9_-]/g, '') : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -376,13 +385,13 @@ export const renderConfirmationPage = ({
                     </span>
                 </div>
                 ${
-                  submissionId
+                  safeSubId
                     ? `
                 <div class="receipt-row">
                     <span class="receipt-label">Reference ID</span>
                     <span class="receipt-value">
-                        <span class="ref-code" title="Click to copy" onclick="navigator.clipboard.writeText('${submissionId}')">
-                            ${submissionId}
+                        <span class="ref-code" title="Click to copy" onclick="navigator.clipboard.writeText('${jsSafeSubId}')">
+                            ${safeSubId}
                         </span>
                     </span>
                 </div>

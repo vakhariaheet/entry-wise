@@ -4052,6 +4052,53 @@
                     "description": "Cloudflare Turnstile secret key. When provided, cf-turnstile-response is strictly verified.",
                     "example": "0x4AAAAAA...",
                     "format": "text"
+                  },
+                  "block_disposable_emails": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Whether to automatically reject submissions from temporary/disposable email services",
+                    "example": true
+                  },
+                  "spam_keywords": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Comma-separated list of keywords, domains, or phrases to block as spam",
+                    "example": "crypto,casino,telegram.me",
+                    "format": "text"
+                  },
+                  "data_retention_days": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Number of days to retain submissions before auto-pruning (0 for indefinite)",
+                    "example": 90
+                  },
+                  "anonymize_ip": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Whether to anonymize/mask submitter IP addresses for zero-cookie GDPR compliance",
+                    "example": true
                   }
                 },
                 "required": [
@@ -6562,6 +6609,53 @@
                     "description": "Cloudflare Turnstile secret key. When provided, cf-turnstile-response is strictly verified.",
                     "example": "0x4AAAAAA...",
                     "format": "text"
+                  },
+                  "block_disposable_emails": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Whether to automatically reject submissions from temporary/disposable email services",
+                    "example": true
+                  },
+                  "spam_keywords": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Comma-separated list of keywords, domains, or phrases to block as spam",
+                    "example": "crypto,casino,telegram.me",
+                    "format": "text"
+                  },
+                  "data_retention_days": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Number of days to retain submissions before auto-pruning (0 for indefinite)",
+                    "example": 90
+                  },
+                  "anonymize_ip": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Whether to anonymize/mask submitter IP addresses for zero-cookie GDPR compliance",
+                    "example": true
                   }
                 }
               }
@@ -20492,6 +20586,53 @@
                           "example": "0x4AAAAAA...",
                           "format": "text"
                         },
+                        "block_disposable_emails": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "Whether to automatically reject submissions from temporary/disposable email services",
+                          "example": true
+                        },
+                        "spam_keywords": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Comma-separated list of keywords, domains, or phrases to block as spam",
+                          "example": "crypto,casino,telegram.me",
+                          "format": "text"
+                        },
+                        "data_retention_days": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "description": "Number of days to retain submissions before auto-pruning (0 for indefinite)",
+                          "example": 90
+                        },
+                        "anonymize_ip": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "Whether to anonymize/mask submitter IP addresses for zero-cookie GDPR compliance",
+                          "example": true
+                        },
                         "created_at": {
                           "type": "string",
                           "format": "date-time",
@@ -20522,6 +20663,10 @@
                         "webhook_url": "https://hooks.slack.com/services/...",
                         "webhook_secret": "whsec_secret_key_123",
                         "turnstile_secret_key": "0x4AAAAAA...",
+                        "block_disposable_emails": true,
+                        "spam_keywords": "crypto,casino,telegram.me",
+                        "data_retention_days": 90,
+                        "anonymize_ip": true,
                         "created_at": "2021-01-01T00:00:00Z"
                       }
                     },
@@ -21099,6 +21244,53 @@
                     "description": "Cloudflare Turnstile secret key. When provided, cf-turnstile-response is strictly verified.",
                     "example": "0x4AAAAAA...",
                     "format": "text"
+                  },
+                  "block_disposable_emails": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Whether to automatically reject submissions from temporary/disposable email services",
+                    "example": true
+                  },
+                  "spam_keywords": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Comma-separated list of keywords, domains, or phrases to block as spam",
+                    "example": "crypto,casino,telegram.me",
+                    "format": "text"
+                  },
+                  "data_retention_days": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Number of days to retain submissions before auto-pruning (0 for indefinite)",
+                    "example": 90
+                  },
+                  "anonymize_ip": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Whether to anonymize/mask submitter IP addresses for zero-cookie GDPR compliance",
+                    "example": true
                   }
                 },
                 "required": [
@@ -21238,6 +21430,53 @@
                             "example": "0x4AAAAAA...",
                             "format": "text"
                           },
+                          "block_disposable_emails": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "Whether to automatically reject submissions from temporary/disposable email services",
+                            "example": true
+                          },
+                          "spam_keywords": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "description": "Comma-separated list of keywords, domains, or phrases to block as spam",
+                            "example": "crypto,casino,telegram.me",
+                            "format": "text"
+                          },
+                          "data_retention_days": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "description": "Number of days to retain submissions before auto-pruning (0 for indefinite)",
+                            "example": 90
+                          },
+                          "anonymize_ip": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "Whether to anonymize/mask submitter IP addresses for zero-cookie GDPR compliance",
+                            "example": true
+                          },
                           "created_at": {
                             "type": "string",
                             "format": "date-time",
@@ -21270,6 +21509,10 @@
                           "webhook_url": "https://hooks.slack.com/services/...",
                           "webhook_secret": "whsec_secret_key_123",
                           "turnstile_secret_key": "0x4AAAAAA...",
+                          "block_disposable_emails": true,
+                          "spam_keywords": "crypto,casino,telegram.me",
+                          "data_retention_days": 90,
+                          "anonymize_ip": true,
                           "created_at": "2021-01-01T00:00:00Z"
                         }
                       ]
@@ -21873,6 +22116,53 @@
                           "example": "0x4AAAAAA...",
                           "format": "text"
                         },
+                        "block_disposable_emails": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "Whether to automatically reject submissions from temporary/disposable email services",
+                          "example": true
+                        },
+                        "spam_keywords": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Comma-separated list of keywords, domains, or phrases to block as spam",
+                          "example": "crypto,casino,telegram.me",
+                          "format": "text"
+                        },
+                        "data_retention_days": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "description": "Number of days to retain submissions before auto-pruning (0 for indefinite)",
+                          "example": 90
+                        },
+                        "anonymize_ip": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "Whether to anonymize/mask submitter IP addresses for zero-cookie GDPR compliance",
+                          "example": true
+                        },
                         "created_at": {
                           "type": "string",
                           "format": "date-time",
@@ -21903,6 +22193,10 @@
                         "webhook_url": "https://hooks.slack.com/services/...",
                         "webhook_secret": "whsec_secret_key_123",
                         "turnstile_secret_key": "0x4AAAAAA...",
+                        "block_disposable_emails": true,
+                        "spam_keywords": "crypto,casino,telegram.me",
+                        "data_retention_days": 90,
+                        "anonymize_ip": true,
                         "created_at": "2021-01-01T00:00:00Z"
                       }
                     },
@@ -22578,6 +22872,53 @@
                           "example": "0x4AAAAAA...",
                           "format": "text"
                         },
+                        "block_disposable_emails": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "Whether to automatically reject submissions from temporary/disposable email services",
+                          "example": true
+                        },
+                        "spam_keywords": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "description": "Comma-separated list of keywords, domains, or phrases to block as spam",
+                          "example": "crypto,casino,telegram.me",
+                          "format": "text"
+                        },
+                        "data_retention_days": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "description": "Number of days to retain submissions before auto-pruning (0 for indefinite)",
+                          "example": 90
+                        },
+                        "anonymize_ip": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "Whether to anonymize/mask submitter IP addresses for zero-cookie GDPR compliance",
+                          "example": true
+                        },
                         "created_at": {
                           "type": "string",
                           "format": "date-time",
@@ -22608,6 +22949,10 @@
                         "webhook_url": "https://hooks.slack.com/services/...",
                         "webhook_secret": "whsec_secret_key_123",
                         "turnstile_secret_key": "0x4AAAAAA...",
+                        "block_disposable_emails": true,
+                        "spam_keywords": "crypto,casino,telegram.me",
+                        "data_retention_days": 90,
+                        "anonymize_ip": true,
                         "created_at": "2021-01-01T00:00:00Z"
                       }
                     },
@@ -23196,6 +23541,53 @@
                     "description": "Cloudflare Turnstile secret key. When provided, cf-turnstile-response is strictly verified.",
                     "example": "0x4AAAAAA...",
                     "format": "text"
+                  },
+                  "block_disposable_emails": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Whether to automatically reject submissions from temporary/disposable email services",
+                    "example": true
+                  },
+                  "spam_keywords": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Comma-separated list of keywords, domains, or phrases to block as spam",
+                    "example": "crypto,casino,telegram.me",
+                    "format": "text"
+                  },
+                  "data_retention_days": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "description": "Number of days to retain submissions before auto-pruning (0 for indefinite)",
+                    "example": 90
+                  },
+                  "anonymize_ip": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Whether to anonymize/mask submitter IP addresses for zero-cookie GDPR compliance",
+                    "example": true
                   }
                 }
               }

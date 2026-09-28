@@ -1,7 +1,33 @@
 import type { Context, Next } from 'hono';
 import { verify } from 'hono/jwt';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { Env } from '../types/env';
 import { sendProblemDetails } from '../utils/sendResponse';
+
+// Cache remote JWKS instances per issuer URL so we don't refetch on every request
+const jwksMap = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
+
+function getRemoteJWKS(issuer: string) {
+  let jwks = jwksMap.get(issuer);
+  if (!jwks) {
+    const cleanIssuer = issuer.replace(/\/+$/, '');
+    jwks = createRemoteJWKSet(new URL(`${cleanIssuer}/.well-known/jwks.json`));
+    jwksMap.set(issuer, jwks);
+  }
+  return jwks;
+}
+
+/**
+ * Constant-time string comparison to prevent timing side-channel attacks on secret keys
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
 
 export const verifyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
   try {
@@ -9,27 +35,33 @@ export const verifyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
     const apiKeyHeader = c.req.header('X-Api-Key');
     const authHeader = c.req.header('Authorization');
 
-    // 1. Check for Static Admin API Key if configured
+    // 1. Check for Static Admin API Key if configured (constant-time check)
     if (c.env.ADMIN_API_KEY) {
-      if (adminKeyHeader && adminKeyHeader === c.env.ADMIN_API_KEY) {
+      if (adminKeyHeader && timingSafeEqual(adminKeyHeader, c.env.ADMIN_API_KEY)) {
         c.set('jwtPayload', { sub: 'admin', role: 'admin_api_key' });
         return await next();
       }
-      if (authHeader?.startsWith('Bearer ') && authHeader.split(' ')[1] === c.env.ADMIN_API_KEY) {
-        c.set('jwtPayload', { sub: 'admin', role: 'admin_api_key' });
-        return await next();
+      if (authHeader?.startsWith('Bearer ')) {
+        const candidateKey = authHeader.slice(7).trim();
+        if (timingSafeEqual(candidateKey, c.env.ADMIN_API_KEY)) {
+          c.set('jwtPayload', { sub: 'admin', role: 'admin_api_key' });
+          return await next();
+        }
       }
     }
 
     // 2. Check for Site API Key (ew_live_...) in header or Bearer
     const potentialApiKey =
-      apiKeyHeader || (authHeader?.startsWith('Bearer ew_live_') ? authHeader.split(' ')[1] : null);
+      apiKeyHeader ||
+      (authHeader?.startsWith('Bearer ew_live_') ? authHeader.slice(7).trim() : null);
+
     if (potentialApiKey && potentialApiKey.startsWith('ew_live_')) {
       const site = await c.env.DB.prepare(
         'SELECT id, company_id, domain FROM sites WHERE api_key = ?'
       )
         .bind(potentialApiKey)
         .first<{ id: string; company_id: string; domain: string }>();
+
       if (site) {
         c.set('jwtPayload', {
           sub: site.id,
@@ -46,18 +78,23 @@ export const verifyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
       return sendProblemDetails(c, 401, 'Authentication token or valid API key is required');
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.slice(7).trim();
     if (!token) {
       return sendProblemDetails(c, 401, 'Invalid Bearer token format');
     }
 
     // Check for Clerk JWT or Internal JWT
     try {
-      // If internal JWT_SECRET is configured, attempt verify
+      // 3a. If internal JWT_SECRET is configured, attempt verify
       if (c.env.JWT_SECRET) {
         try {
           const payload = await verify(token, c.env.JWT_SECRET);
-          if (payload.exp && payload.exp < Date.now()) {
+          const expSec =
+            typeof payload.exp === 'number' && payload.exp > 1e11
+              ? Math.floor(payload.exp / 1000)
+              : (payload.exp as number | undefined);
+
+          if (expSec && expSec < Math.floor(Date.now() / 1000)) {
             return sendProblemDetails(c, 401, 'Authentication token has expired');
           }
           c.set('jwtPayload', payload);
@@ -67,20 +104,31 @@ export const verifyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
         }
       }
 
-      // Parse Clerk JWT claims (Clerk tokens contain sub, iss, sid)
+      // 3b. Cryptographically verify Clerk JWT via JWKS
       const parts = token.split('.');
       if (parts.length === 3) {
-        const payloadJson = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
-        const claims = JSON.parse(payloadJson);
+        try {
+          const payloadJson = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+          const unverifiedClaims = JSON.parse(payloadJson);
+          const issuer = unverifiedClaims.iss;
 
-        // If Clerk token
-        if (claims && (claims.iss?.includes('clerk') || claims.sub?.startsWith('user_'))) {
-          // Check expiry (exp is in seconds in standard JWTs)
-          if (claims.exp && claims.exp * 1000 < Date.now()) {
-            return sendProblemDetails(c, 401, 'Clerk session has expired');
+          if (issuer && (issuer.includes('clerk') || unverifiedClaims.sub?.startsWith('user_'))) {
+            const jwks = getRemoteJWKS(issuer);
+            const { payload } = await jwtVerify(token, jwks, {
+              issuer,
+            });
+
+            c.set('jwtPayload', {
+              sub: payload.sub,
+              role: 'clerk_user',
+              user_id: payload.sub,
+              claims: payload,
+            });
+            return await next();
           }
-          c.set('jwtPayload', { sub: claims.sub, role: 'clerk_user', user_id: claims.sub, claims });
-          return await next();
+        } catch (clerkErr) {
+          console.error('Clerk JWKS cryptographic verification failed:', clerkErr);
+          return sendProblemDetails(c, 401, 'Invalid or untrusted Clerk authentication token');
         }
       }
 

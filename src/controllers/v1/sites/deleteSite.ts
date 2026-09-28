@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { Env } from '../../../types/env';
 import { sendNoContent, sendProblemDetails } from '../../../utils/sendResponse';
 
@@ -9,23 +10,13 @@ export const deleteSite = async (c: Context<{ Bindings: Env }>) => {
       return sendProblemDetails(c, 400, 'Site ID path parameter is required');
     }
 
-    const jwtPayload = c.get('jwtPayload') as any;
-
-    const { results } = await c.env.DB.prepare(`
-            SELECT id, user_id FROM sites WHERE id = ?
-        `)
-      .bind(id)
-      .all<{ id: string; user_id: string }>();
-
-    if (!results?.length) {
-      return sendProblemDetails(c, 404, `Site with ID '${id}' not found`);
-    }
-
-    if (jwtPayload?.role === 'clerk_user' && jwtPayload?.user_id) {
-      const site = results[0];
-      if (site.user_id && site.user_id !== jwtPayload.user_id) {
-        return sendProblemDetails(c, 403, 'You do not have permission to delete this site');
-      }
+    const authorized = await assertSiteOwnership(c, id);
+    if (!authorized) {
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: You do not have permission to delete this site'
+      );
     }
 
     const { success } = await c.env.DB.prepare(`

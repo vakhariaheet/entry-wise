@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { Env } from '../../../types/env';
 import { sendNoContent, sendProblemDetails } from '../../../utils/sendResponse';
 
@@ -11,7 +12,7 @@ export const deleteSubmission = async (c: Context<{ Bindings: Env }>) => {
       return sendProblemDetails(c, 400, 'id path parameter is required');
     }
 
-    let sql = `SELECT id FROM submissions WHERE id = ?`;
+    let sql = `SELECT id, site_id FROM submissions WHERE id = ?`;
     const params: any[] = [id];
     if (siteId) {
       sql += ` AND site_id = ?`;
@@ -20,9 +21,19 @@ export const deleteSubmission = async (c: Context<{ Bindings: Env }>) => {
 
     const { results } = await c.env.DB.prepare(sql)
       .bind(...params)
-      .all();
+      .all<{ id: string; site_id: string }>();
     if (!results?.length) {
       return sendProblemDetails(c, 404, `Submission with ID '${id}' not found`);
+    }
+
+    const row = results[0];
+    const site = await assertSiteOwnership(c, row.site_id);
+    if (!site) {
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: You do not have permission to delete this submission'
+      );
     }
 
     const { success } = await c.env.DB.prepare(`

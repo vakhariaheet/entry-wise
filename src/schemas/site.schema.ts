@@ -68,6 +68,24 @@ export const siteSchema = z.object({
     example: '0x4AAAAAA...',
     format: 'text',
   }),
+  block_disposable_emails: z.union([z.boolean(), z.number()]).nullable().optional().openapi({
+    description:
+      'Whether to automatically reject submissions from temporary/disposable email services',
+    example: true,
+  }),
+  spam_keywords: z.string().nullable().optional().openapi({
+    description: 'Comma-separated list of keywords, domains, or phrases to block as spam',
+    example: 'crypto,casino,telegram.me',
+    format: 'text',
+  }),
+  data_retention_days: z.number().nullable().optional().openapi({
+    description: 'Number of days to retain submissions before auto-pruning (0 for indefinite)',
+    example: 90,
+  }),
+  anonymize_ip: z.union([z.boolean(), z.number()]).nullable().optional().openapi({
+    description: 'Whether to anonymize/mask submitter IP addresses for zero-cookie GDPR compliance',
+    example: true,
+  }),
   created_at: z.string().datetime().openapi({
     description: 'The date and time the site was created',
     example: '2021-01-01T00:00:00Z',

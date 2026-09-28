@@ -8,6 +8,11 @@ import type { SubmissionQueueMessage } from '../../../types/queue';
 import { HONEYPOT_FIELDS, MAX_FILE_SIZE, VALID_FILE_TYPES } from '../../../types/submission';
 import { validateRedirectUrl } from '../../../utils/redirectGuard';
 import { sendProblemDetails } from '../../../utils/sendResponse';
+import {
+  anonymizeIpAddress,
+  containsSpamKeywords,
+  isDisposableEmail,
+} from '../../../utils/spamGuard';
 import { verifyTurnstileToken } from '../../../utils/turnstile';
 
 interface ParsedSubmissionPayload {
@@ -222,6 +227,33 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
       }
     }
 
+    // 3a. Disposable Email Blocker Check
+    if (site.block_disposable_emails === 1 && submitterEmail && isDisposableEmail(submitterEmail)) {
+      if (validRedirectUrl) {
+        return c.redirect(validRedirectUrl, 303);
+      }
+      const acceptHeader = c.req.header('Accept') || '';
+      if (acceptHeader.includes('text/html') && !acceptHeader.includes('application/json')) {
+        return c.html(
+          renderConfirmationPage({
+            companyName: site.name || site.domain,
+            siteDomain: site.domain,
+          }),
+          200
+        );
+      }
+      return c.json({ is_success: true, message: 'Submission received successfully' }, 200);
+    }
+
+    // 3b. Spam Keyword Filter Check
+    let isSpamSubmission = false;
+    if (site.spam_keywords) {
+      const { isSpam } = containsSpamKeywords(fields, site.spam_keywords);
+      if (isSpam) {
+        isSpamSubmission = true;
+      }
+    }
+
     // Auto-detect submitter name
     for (const [key, val] of Object.entries(fields)) {
       const lowerKey = key.toLowerCase();
@@ -314,48 +346,75 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
     const submissionId = `sub_${crypto.randomUUID()}`;
     const submissionDataJson = JSON.stringify(fields);
     const attachmentsJson = JSON.stringify(savedAttachmentMeta);
+    const submissionStatus = isSpamSubmission ? 'spam' : 'new';
+    const effectiveIp = site.anonymize_ip === 1 ? anonymizeIpAddress(ipAddress) : ipAddress;
 
     await c.env.DB.prepare(`
             INSERT INTO submissions (id, site_id, data, attachments, status, ip_address)
-            VALUES (?, ?, ?, ?, 'new', ?)
+            VALUES (?, ?, ?, ?, ?, ?)
         `)
-      .bind(submissionId, siteId, submissionDataJson, attachmentsJson, ipAddress)
+      .bind(
+        submissionId,
+        siteId,
+        submissionDataJson,
+        attachmentsJson,
+        submissionStatus,
+        effectiveIp
+      )
       .run();
 
-    // 6. Async Delivery: Cloudflare Queue (Primary) or waitUntil fallback (Self-Hosted / Dev)
-    const queuePayload: SubmissionQueueMessage = {
-      type: 'submission.process',
-      submissionId,
-      siteId: site.id,
-      companyId,
-      fields,
-      savedAttachmentMeta,
-      submitterEmail: submitterEmail || null,
-      submitterName: submitterName || null,
-      ipAddress,
-      submittedAt: new Date().toISOString(),
-    };
+    // 5b. Automated Data Retention Cleanup (Auto-Prune)
+    if (site.data_retention_days && Number(site.data_retention_days) > 0) {
+      const retentionDays = String(Number(site.data_retention_days));
+      const prunePromise = c.env.DB.prepare(`
+        DELETE FROM submissions 
+        WHERE site_id = ? AND created_at < datetime('now', '-' || ? || ' days')
+      `)
+        .bind(siteId, retentionDays)
+        .run()
+        .catch((err) => console.error('[AutoPrune] Error pruning old submissions:', err));
 
-    if (c.env.SUBMISSIONS_QUEUE) {
-      try {
-        await c.env.SUBMISSIONS_QUEUE.send(queuePayload);
-      } catch (queueErr) {
-        console.error(
-          '[SubmitForm] Failed to enqueue submission message, falling back to waitUntil:',
-          queueErr
-        );
+      if (c.executionCtx) {
+        c.executionCtx.waitUntil(prunePromise);
+      }
+    }
+
+    // 6. Async Delivery: Cloudflare Queue (Skip delivery for spam submissions)
+    if (!isSpamSubmission) {
+      const queuePayload: SubmissionQueueMessage = {
+        type: 'submission.process',
+        submissionId,
+        siteId: site.id,
+        companyId,
+        fields,
+        savedAttachmentMeta,
+        submitterEmail: submitterEmail || null,
+        submitterName: submitterName || null,
+        ipAddress: effectiveIp,
+        submittedAt: new Date().toISOString(),
+      };
+
+      if (c.env.SUBMISSIONS_QUEUE) {
+        try {
+          await c.env.SUBMISSIONS_QUEUE.send(queuePayload);
+        } catch (queueErr) {
+          console.error(
+            '[SubmitForm] Failed to enqueue submission message, falling back to waitUntil:',
+            queueErr
+          );
+          if (c.executionCtx) {
+            c.executionCtx.waitUntil(processSubmissionDelivery(queuePayload, c.env));
+          } else {
+            processSubmissionDelivery(queuePayload, c.env).catch(console.error);
+          }
+        }
+      } else {
+        // Self-hosted / Free plan / Local dev fallback
         if (c.executionCtx) {
           c.executionCtx.waitUntil(processSubmissionDelivery(queuePayload, c.env));
         } else {
           processSubmissionDelivery(queuePayload, c.env).catch(console.error);
         }
-      }
-    } else {
-      // Self-hosted / Free plan / Local dev fallback
-      if (c.executionCtx) {
-        c.executionCtx.waitUntil(processSubmissionDelivery(queuePayload, c.env));
-      } else {
-        processSubmissionDelivery(queuePayload, c.env).catch(console.error);
       }
     }
 

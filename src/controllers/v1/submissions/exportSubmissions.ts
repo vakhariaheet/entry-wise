@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { Env } from '../../../types/env';
 import type { SubmissionRecord } from '../../../types/submission';
 import { generateSubmissionsCsv } from '../../../utils/csv';
@@ -12,6 +13,15 @@ export const exportSubmissions = async (c: Context<{ Bindings: Env }>) => {
 
     if (!siteId) {
       return sendProblemDetails(c, 400, 'site_id path parameter is required');
+    }
+
+    const site = await assertSiteOwnership(c, siteId);
+    if (!site) {
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: You do not have permission to export submissions for this site'
+      );
     }
 
     let sql = `SELECT * FROM submissions WHERE site_id = ?`;

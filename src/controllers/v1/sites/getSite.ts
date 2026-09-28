@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { Env } from '../../../types/env';
 import type { Site } from '../../../types/site';
 import { sendOk, sendProblemDetails } from '../../../utils/sendResponse';
@@ -8,6 +9,15 @@ export const getSite = async (c: Context<{ Bindings: Env }>) => {
     const id = c.req.param('site_id') || c.req.param('id');
     if (!id) {
       return sendProblemDetails(c, 400, 'Site ID path parameter is required');
+    }
+
+    const authorized = await assertSiteOwnership(c, id);
+    if (!authorized) {
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: You do not have permission to view this site'
+      );
     }
 
     const { results } = await c.env.DB.prepare(`

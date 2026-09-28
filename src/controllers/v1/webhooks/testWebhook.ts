@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { Env } from '../../../types/env';
 import type { Site } from '../../../types/site';
 import type { Webhook } from '../../../types/webhook';
@@ -10,6 +11,19 @@ export const testWebhook = async (c: Context<{ Bindings: Env }>) => {
     const siteId = c.req.param('site_id');
     const webhookId = c.req.param('webhook_id');
 
+    if (!siteId || !webhookId) {
+      return sendProblemDetails(c, 400, 'site_id and webhook_id are required');
+    }
+
+    const site = await assertSiteOwnership(c, siteId);
+    if (!site) {
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: You do not have permission to test webhooks for this site'
+      );
+    }
+
     const webhook = await c.env.DB.prepare('SELECT * FROM webhooks WHERE id = ? AND site_id = ?')
       .bind(webhookId, siteId)
       .first<Webhook>();
@@ -18,11 +32,7 @@ export const testWebhook = async (c: Context<{ Bindings: Env }>) => {
       return sendProblemDetails(c, 404, `Webhook '${webhookId}' not found`);
     }
 
-    const site = await c.env.DB.prepare('SELECT * FROM sites WHERE id = ?')
-      .bind(siteId)
-      .first<Site>();
-
-    const domain = site?.domain || 'entrywise.webbound.in';
+    const domain = site.domain || 'entrywise.webbound.in';
 
     const testPayload = {
       event: 'submission.created' as const,

@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { PatchSubmissionBody } from '../../../schemas/submission.schema';
 import type { Env } from '../../../types/env';
 import { sendOk, sendProblemDetails } from '../../../utils/sendResponse';
@@ -36,9 +37,19 @@ export const patchSubmission = async (c: Context<{ Bindings: Env }>) => {
 
     const { results } = await c.env.DB.prepare(sql)
       .bind(...params)
-      .all();
+      .all<any>();
     if (!results?.length) {
       return sendProblemDetails(c, 404, `Submission with ID '${id}' not found`);
+    }
+
+    const row = results[0];
+    const site = await assertSiteOwnership(c, row.site_id);
+    if (!site) {
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: You do not have permission to modify this submission'
+      );
     }
 
     const { success } = await c.env.DB.prepare(`
@@ -57,18 +68,18 @@ export const patchSubmission = async (c: Context<{ Bindings: Env }>) => {
       .bind(id)
       .all<any>();
 
-    const row = updated[0];
+    const updatedRow = updated[0];
     return sendOk(c, {
-      id: row.id,
-      site_id: row.site_id,
-      data: typeof row.data === 'string' ? JSON.parse(row.data) : row.data,
+      id: updatedRow.id,
+      site_id: updatedRow.site_id,
+      data: typeof updatedRow.data === 'string' ? JSON.parse(updatedRow.data) : updatedRow.data,
       attachments:
-        row.attachments && typeof row.attachments === 'string'
-          ? JSON.parse(row.attachments)
+        updatedRow.attachments && typeof updatedRow.attachments === 'string'
+          ? JSON.parse(updatedRow.attachments)
           : undefined,
-      status: row.status,
-      ip_address: row.ip_address,
-      created_at: row.created_at,
+      status: updatedRow.status,
+      ip_address: updatedRow.ip_address,
+      created_at: updatedRow.created_at,
     });
   } catch (error) {
     console.error('Patch submission error:', error);

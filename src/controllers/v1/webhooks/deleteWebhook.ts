@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { Env } from '../../../types/env';
 import { sendNoContent, sendProblemDetails } from '../../../utils/sendResponse';
 
@@ -9,6 +10,15 @@ export const deleteWebhook = async (c: Context<{ Bindings: Env }>) => {
 
     if (!siteId || !webhookId) {
       return sendProblemDetails(c, 400, 'site_id and webhook_id are required');
+    }
+
+    const site = await assertSiteOwnership(c, siteId);
+    if (!site) {
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: You do not have permission to delete webhooks for this site'
+      );
     }
 
     const { success } = await c.env.DB.prepare('DELETE FROM webhooks WHERE id = ? AND site_id = ?')

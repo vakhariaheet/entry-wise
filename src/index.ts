@@ -1,6 +1,7 @@
 import { Scalar } from '@scalar/hono-api-reference';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { secureHeaders } from 'hono/secure-headers';
 import { openAPISpecs } from 'hono-openapi';
 import { submitForm } from './controllers/v1/submissions/submitForm';
 import { corsMiddleware, rateLimiter, verifyDomain } from './middleware/publicAuth';
@@ -17,19 +18,35 @@ const app = new Hono<{ Bindings: Env }>();
 
 app.use(
   '*',
+  secureHeaders({
+    xFrameOptions: 'DENY',
+    xContentTypeOptions: 'nosniff',
+    referrerPolicy: 'strict-origin-when-cross-origin',
+  })
+);
+
+app.use(
+  '*',
   cors({
     origin: (origin) => {
       if (!origin) return '*';
-      if (
-        origin.endsWith('entrywise.webbound.in') ||
-        origin.endsWith('webbound.in') ||
-        origin.includes('pages.dev') ||
-        origin.includes('localhost') ||
-        origin.includes('127.0.0.1')
-      ) {
-        return origin;
+      try {
+        const url = new URL(origin);
+        const host = url.hostname.toLowerCase();
+        if (
+          host === 'entrywise.webbound.in' ||
+          host.endsWith('.entrywise.webbound.in') ||
+          host === 'entrywise-app.pages.dev' ||
+          host.endsWith('.entrywise-app.pages.dev') ||
+          host === 'localhost' ||
+          host === '127.0.0.1'
+        ) {
+          return origin;
+        }
+      } catch {
+        // Invalid origin header
       }
-      return '*';
+      return null;
     },
     allowHeaders: [
       'Content-Type',

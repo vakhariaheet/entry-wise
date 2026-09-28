@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { CreateWebhookBody, Webhook } from '../../../schemas/webhook.schema';
 import type { Env } from '../../../types/env';
 import { sendCreated, sendProblemDetails } from '../../../utils/sendResponse';
@@ -21,11 +22,14 @@ export const createWebhook = async (c: Context<{ Bindings: Env }>) => {
       });
     }
 
-    // Verify site exists
-    const site = await c.env.DB.prepare('SELECT id FROM sites WHERE id = ?').bind(siteId).first();
-
+    // Verify site ownership
+    const site = await assertSiteOwnership(c, siteId);
     if (!site) {
-      return sendProblemDetails(c, 404, `Site with ID '${siteId}' not found`);
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: You do not have permission to create webhooks for this site'
+      );
     }
 
     const id = `wh_${crypto.randomUUID()}`;

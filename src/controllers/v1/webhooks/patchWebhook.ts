@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { UpdateWebhookBody, Webhook } from '../../../schemas/webhook.schema';
 import type { Env } from '../../../types/env';
 import { sendOk, sendProblemDetails } from '../../../utils/sendResponse';
@@ -12,6 +13,15 @@ export const patchWebhook = async (c: Context<{ Bindings: Env }>) => {
 
     if (!siteId || !webhookId) {
       return sendProblemDetails(c, 400, 'site_id and webhook_id are required');
+    }
+
+    const site = await assertSiteOwnership(c, siteId);
+    if (!site) {
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: You do not have permission to modify webhooks for this site'
+      );
     }
 
     const existing = await c.env.DB.prepare('SELECT * FROM webhooks WHERE id = ? AND site_id = ?')

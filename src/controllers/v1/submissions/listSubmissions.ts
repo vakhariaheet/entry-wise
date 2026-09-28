@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { Env } from '../../../types/env';
 import type { SubmissionRecord } from '../../../types/submission';
 import { sendPaginated, sendProblemDetails } from '../../../utils/sendResponse';
@@ -8,6 +9,15 @@ export const listSubmissions = async (c: Context<{ Bindings: Env }>) => {
     const siteId = c.req.param('site_id');
     if (!siteId) {
       return sendProblemDetails(c, 400, 'site_id path parameter is required');
+    }
+
+    const site = await assertSiteOwnership(c, siteId);
+    if (!site) {
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: You do not have permission to view submissions for this site'
+      );
     }
 
     const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '20', 10), 1), 100);

@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { Env } from '../../../types/env';
 import type { SubmissionRecord } from '../../../types/submission';
 import { sendOk, sendProblemDetails } from '../../../utils/sendResponse';
@@ -29,6 +30,14 @@ export const getSubmission = async (c: Context<{ Bindings: Env }>) => {
     }
 
     const row = results[0];
+    const site = await assertSiteOwnership(c, row.site_id);
+    if (!site) {
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: You do not have permission to view this submission'
+      );
+    }
     const formatted: SubmissionRecord = {
       id: row.id,
       site_id: row.site_id,

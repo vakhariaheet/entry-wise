@@ -3,9 +3,15 @@ import type { SubmissionRecord } from '../types/submission';
 /**
  * Escapes a cell according to RFC 4180 CSV specifications
  */
-function escapeCsvCell(value: any): string {
+export function escapeCsvCell(value: any): string {
   if (value === null || value === undefined) return '';
-  const str = typeof value === 'object' ? JSON.stringify(value) : String(value);
+  let str = typeof value === 'object' ? JSON.stringify(value) : String(value);
+
+  // Neutralize CSV Formula Injection (CWE-1236) for Excel / Google Sheets
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+
   if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
     return `"${str.replace(/"/g, '""')}"`;
   }
