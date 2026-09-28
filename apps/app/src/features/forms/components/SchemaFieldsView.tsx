@@ -170,7 +170,7 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
       )}
 
       {/* Form Profile Details */}
-      <div className="p-5 rounded-2xl border border-white/[0.08] bg-[#121318] grid grid-cols-1 md:grid-cols-2 gap-5 shadow-lg">
+      <div className="p-5 rounded-2xl border border-white/[0.08] bg-[#0e1017] grid grid-cols-1 md:grid-cols-2 gap-5 shadow-lg">
         <div>
           <label
             htmlFor="schema-form-name-input"
@@ -184,7 +184,7 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Contact Us Form"
-            className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/40 transition"
+            className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/40 transition"
           />
           <p className="text-[11px] text-zinc-500 mt-1.5">
             Display name visible in your dashboard, email subjects, and alerts.
@@ -205,7 +205,7 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
             placeholder="acme.com or localhost:3000"
-            className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 font-mono placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/40 transition"
+            className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 font-mono placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/40 transition"
           />
           <p className="text-[11px] text-zinc-500 mt-1.5">
             Origin domain verified during form submission ingestion.
@@ -214,7 +214,7 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
       </div>
 
       {/* Fields Definition Card */}
-      <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-5 shadow-lg">
+      <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#0e1017] space-y-5 shadow-lg">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/[0.06]">
           <div>
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
@@ -297,7 +297,7 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
         </div>
 
         {/* Fields List */}
-        <div className="rounded-xl border border-white/[0.08] bg-[#0a0a0d] divide-y divide-white/[0.04] overflow-hidden">
+        <div className="rounded-xl border border-white/[0.08] bg-[#090a0f] divide-y divide-white/[0.04] overflow-hidden">
           {localFields.length === 0 ? (
             <div className="p-8 text-center space-y-1.5">
               <div className="text-sm font-semibold text-zinc-300">No fields defined yet</div>
@@ -343,7 +343,7 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
         {/* Add Field Inline Bar */}
         <form
           onSubmit={handleAddField}
-          className="p-4 rounded-xl border border-white/[0.08] bg-[#0c0d10] space-y-3"
+          className="p-4 rounded-xl border border-white/[0.08] bg-[#0c0e14] space-y-3"
         >
           <div className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
             <Plus className="w-3.5 h-3.5 text-emerald-400" />
@@ -356,14 +356,14 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
                 placeholder="Field name (e.g. phone_number, company_size, budget)"
                 value={newFieldName}
                 onChange={(e) => setNewFieldName(e.target.value)}
-                className="w-full bg-[#070709] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 font-mono placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/40 transition"
+                className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 font-mono placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/40 transition"
               />
             </div>
             <div className="w-full sm:w-48">
               <select
                 value={newFieldType}
                 onChange={(e) => setNewFieldType(e.target.value as FieldType)}
-                className="w-full bg-[#070709] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 transition font-mono"
+                className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 transition font-mono"
               >
                 <option value="text">text (string)</option>
                 <option value="email">email (validated)</option>

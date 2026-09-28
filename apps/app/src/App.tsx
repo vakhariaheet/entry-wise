@@ -26,7 +26,7 @@ import {
   CreateSiteModal,
   EmailTemplateView,
   GeneralSettingsView,
-  TemplateStudioView,
+  SchemaFieldsView,
 } from '@/features/forms';
 import { SubmissionDetailDrawer, SubmissionsTable } from '@/features/submissions';
 import { WorkspaceModal } from '@/features/workspaces';
@@ -35,7 +35,7 @@ import type { Company, FormField, Site, Submission } from '@/types';
 
 export type DashboardTab =
   | 'submissions'
-  | 'builder'
+  | 'fields'
   | 'template'
   | 'connectors'
   | 'embed'
@@ -269,7 +269,7 @@ export const AppContent: React.FC<AppProps> = () => {
       if (e.key === '1') {
         setActiveTab('submissions');
       } else if (e.key === '2') {
-        setActiveTab('builder');
+        setActiveTab('fields');
       } else if (e.key === '3') {
         setActiveTab('template');
       } else if (e.key === '4') {
@@ -493,8 +493,8 @@ export const AppContent: React.FC<AppProps> = () => {
                           : totalSubmissions,
                     },
                     {
-                      id: 'builder' as DashboardTab,
-                      label: 'Form Builder',
+                      id: 'fields' as DashboardTab,
+                      label: 'Form Schema',
                       icon: SlidersHorizontal,
                       shortcut: '2',
                       count: siteFields.length,
@@ -513,7 +513,7 @@ export const AppContent: React.FC<AppProps> = () => {
                     },
                     {
                       id: 'embed' as DashboardTab,
-                      label: 'Code & Embed',
+                      label: 'Code & SDK',
                       icon: Code2,
                       shortcut: '5',
                     },
@@ -584,11 +584,13 @@ export const AppContent: React.FC<AppProps> = () => {
                   />
                 )}
 
-                {activeTab === 'builder' && (
-                  <TemplateStudioView
+                {activeTab === 'fields' && (
+                  <SchemaFieldsView
                     site={currentSite}
                     fields={siteFields}
                     onFieldsUpdated={setSiteFields}
+                    onSiteUpdated={handleSiteUpdated}
+                    onNavigateToEmbed={() => setActiveTab('embed')}
                   />
                 )}
 
