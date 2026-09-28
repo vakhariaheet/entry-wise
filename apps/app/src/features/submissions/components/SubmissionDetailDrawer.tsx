@@ -20,7 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Submission } from '@/types';
 
 interface SubmissionDetailDrawerProps {
@@ -48,35 +48,129 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [copiedJson, setCopiedJson] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const drawerRef = useRef<HTMLElement>(null);
 
-  // Keyboard navigation & escape key
+  // Animate in when submission changes
+  useEffect(() => {
+    if (submission) {
+      // Trigger enter animation on next frame
+      requestAnimationFrame(() => setIsVisible(true));
+    } else {
+      setIsVisible(false);
+    }
+  }, [submission]);
+
+  // Auto-focus the drawer panel when it opens for keyboard capture
+  useEffect(() => {
+    if (submission && drawerRef.current) {
+      drawerRef.current.focus();
+    }
+  }, [submission]);
+
+  // Stable close handler for animated exit
+  const handleClose = useCallback(() => {
+    setIsVisible(false);
+    setTimeout(() => onClose(), 200); // match transition duration
+  }, [onClose]);
+
+  const handleCopyId = useCallback(() => {
+    if (!submission) return;
+    navigator.clipboard.writeText(submission.id);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
+  }, [submission]);
+
+  const handleCopyJson = useCallback(() => {
+    if (!submission) return;
+    navigator.clipboard.writeText(JSON.stringify(submission, null, 2));
+    setCopiedJson(true);
+    setTimeout(() => setCopiedJson(false), 2000);
+  }, [submission]);
+
+  const handleCopyFieldValue = (key: string, value: string) => {
+    navigator.clipboard.writeText(value);
+    setCopiedField(key);
+    setTimeout(() => setCopiedField(null), 1800);
+  };
+
+  // Keyboard navigation & actions
   useEffect(() => {
     if (!submission) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if focus is in an input or textarea
-      if (
-        document.activeElement instanceof HTMLInputElement ||
-        document.activeElement instanceof HTMLTextAreaElement
-      ) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        if (e.key === 'Escape') {
+          // Still allow Escape from inputs
+          e.preventDefault();
+          handleClose();
+        }
         return;
       }
 
+      const key = e.key.toLowerCase();
+
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
-      } else if ((e.key === 'k' || e.key === 'ArrowUp') && hasPrev && onNavigatePrev) {
+        handleClose();
+      } else if ((key === 'k' || e.key === 'ArrowUp') && hasPrev && onNavigatePrev) {
         e.preventDefault();
         onNavigatePrev();
-      } else if ((e.key === 'j' || e.key === 'ArrowDown') && hasNext && onNavigateNext) {
+      } else if ((key === 'j' || e.key === 'ArrowDown') && hasNext && onNavigateNext) {
         e.preventDefault();
         onNavigateNext();
+      } else if (e.key === '1') {
+        e.preventDefault();
+        setActiveTab('fields');
+      } else if (e.key === '2') {
+        e.preventDefault();
+        setActiveTab('json');
+      } else if (e.key === '3') {
+        e.preventDefault();
+        setActiveTab('meta');
+      } else if (key === 'c' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        handleCopyJson();
+      } else if (key === 'i' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        handleCopyId();
+      } else if (key === 'r' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        onUpdateStatus(submission.id, 'read');
+      } else if (key === 'n' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        onUpdateStatus(submission.id, 'new');
+      } else if (key === 'e' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        onUpdateStatus(submission.id, 'archived');
+      } else if (key === 's' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        onUpdateStatus(submission.id, submission.status === 'spam' ? 'new' : 'spam');
+      } else if ((e.key === 'Backspace' || e.key === 'Delete') && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        if (window.confirm('Are you sure you want to permanently delete this submission?')) {
+          onDeleteSubmission(submission.id);
+          handleClose();
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [submission, onClose, onNavigatePrev, onNavigateNext, hasPrev, hasNext]);
+  }, [
+    submission,
+    handleClose,
+    onNavigatePrev,
+    onNavigateNext,
+    hasPrev,
+    hasNext,
+    handleCopyId,
+    handleCopyJson,
+    onUpdateStatus,
+    onDeleteSubmission,
+  ]);
 
   // Extract submitter identity if present in data
   const submitter = useMemo(() => {
@@ -97,24 +191,6 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
   }, [submission]);
 
   if (!submission) return null;
-
-  const handleCopyId = () => {
-    navigator.clipboard.writeText(submission.id);
-    setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 2000);
-  };
-
-  const handleCopyJson = () => {
-    navigator.clipboard.writeText(JSON.stringify(submission, null, 2));
-    setCopiedJson(true);
-    setTimeout(() => setCopiedJson(false), 2000);
-  };
-
-  const handleCopyFieldValue = (key: string, value: string) => {
-    navigator.clipboard.writeText(value);
-    setCopiedField(key);
-    setTimeout(() => setCopiedField(null), 1800);
-  };
 
   const getStatusBadge = (status: Submission['status']) => {
     switch (status) {
@@ -148,17 +224,24 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
 
   return (
     <>
-      {/* Dimmed backdrop */}
+      {/* Dimmed backdrop with fade transition */}
       <button
         type="button"
-        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity border-0 p-0 m-0 cursor-default"
-        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm border-0 p-0 m-0 cursor-default transition-opacity duration-200 ${
+          isVisible ? 'opacity-100' : 'opacity-0'
+        }`}
+        onClick={handleClose}
         aria-label="Close submission drawer"
       />
 
-      {/* Slide-over Drawer Panel */}
+      {/* Slide-over Drawer Panel with slide + fade transition */}
       <aside
-        className="fixed inset-y-0 right-0 z-50 w-full sm:w-[560px] bg-[#0c0e14] border-l border-white/[0.08] shadow-2xl flex flex-col focus:outline-none"
+        ref={drawerRef}
+        tabIndex={-1}
+        className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[560px] bg-[#0c0e14] border-l border-white/[0.08] shadow-2xl flex flex-col focus:outline-none transition-all duration-[220ms] ${
+          isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+        }`}
+        style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
         aria-labelledby="drawer-submission-title"
       >
         {/* Drawer Header Bar */}
@@ -217,7 +300,7 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition"
               title="Close (Esc)"
             >
@@ -280,6 +363,9 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
             <span className="text-[10px] font-mono px-1 rounded-full bg-white/[0.08] text-zinc-400 ml-0.5">
               {Object.keys(submission.data || {}).length}
             </span>
+            <kbd className="text-[9px] font-mono px-1 rounded bg-white/[0.06] text-zinc-500 ml-1">
+              1
+            </kbd>
           </button>
 
           <button
@@ -293,6 +379,9 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
           >
             <Code2 className="w-3.5 h-3.5" />
             <span>Raw JSON</span>
+            <kbd className="text-[9px] font-mono px-1 rounded bg-white/[0.06] text-zinc-500 ml-1">
+              2
+            </kbd>
           </button>
 
           <button
@@ -306,6 +395,9 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
           >
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Security &amp; Origin</span>
+            <kbd className="text-[9px] font-mono px-1 rounded bg-white/[0.06] text-zinc-500 ml-1">
+              3
+            </kbd>
           </button>
         </nav>
 
@@ -398,6 +490,9 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
                     <>
                       <Copy className="w-3.5 h-3.5 text-zinc-400" />
                       <span>Copy JSON</span>
+                      <kbd className="text-[9px] font-mono px-1 rounded bg-white/[0.08] text-zinc-400">
+                        C
+                      </kbd>
                     </>
                   )}
                 </button>
@@ -468,6 +563,9 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
               >
                 <Check className="w-3.5 h-3.5 text-zinc-400" />
                 <span>Mark Read</span>
+                <kbd className="text-[9px] font-mono px-1 rounded bg-white/[0.08] text-zinc-400">
+                  R
+                </kbd>
               </button>
             )}
 
@@ -479,6 +577,9 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>Mark New</span>
+                <kbd className="text-[9px] font-mono px-1 rounded bg-emerald-500/20 text-emerald-300">
+                  N
+                </kbd>
               </button>
             )}
 
@@ -490,6 +591,9 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
               >
                 <Archive className="w-3.5 h-3.5 text-purple-400" />
                 <span>Archive</span>
+                <kbd className="text-[9px] font-mono px-1 rounded bg-white/[0.08] text-zinc-400">
+                  E
+                </kbd>
               </button>
             )}
 
@@ -501,6 +605,9 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
               >
                 <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
                 <span>Spam</span>
+                <kbd className="text-[9px] font-mono px-1 rounded bg-white/[0.08] text-zinc-400">
+                  S
+                </kbd>
               </button>
             ) : (
               <button
@@ -509,6 +616,9 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
                 className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 transition flex items-center gap-1.5"
               >
                 <span>Not Spam</span>
+                <kbd className="text-[9px] font-mono px-1 rounded bg-emerald-500/20 text-emerald-300">
+                  S
+                </kbd>
               </button>
             )}
           </div>
@@ -519,15 +629,51 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
             onClick={() => {
               if (window.confirm('Are you sure you want to permanently delete this submission?')) {
                 onDeleteSubmission(submission.id);
-                onClose();
+                handleClose();
               }
             }}
             className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
-            title="Delete submission"
+            title="Delete submission (Delete or Backspace)"
           >
             <Trash2 className="w-4 h-4" />
           </button>
         </footer>
+
+        {/* Keyboard Shortcut Hints */}
+        <div className="px-6 py-2 border-t border-white/[0.04] bg-[#08090d] flex items-center justify-between text-[10px] text-zinc-500 font-mono shrink-0 overflow-x-auto">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <kbd className="px-1 py-0.5 rounded border border-white/[0.08] bg-white/[0.04] text-zinc-400 text-[9px]">
+                J
+              </kbd>
+              <kbd className="px-1 py-0.5 rounded border border-white/[0.08] bg-white/[0.04] text-zinc-400 text-[9px]">
+                K
+              </kbd>
+              <span className="ml-0.5">navigate</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="px-1 py-0.5 rounded border border-white/[0.08] bg-white/[0.04] text-zinc-400 text-[9px]">
+                1-3
+              </kbd>
+              <span className="ml-0.5">tabs</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="px-1 py-0.5 rounded border border-white/[0.08] bg-white/[0.04] text-zinc-400 text-[9px]">
+                C
+              </kbd>
+              <span className="ml-0.5">copy json</span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1">
+              <kbd className="px-1 py-0.5 rounded border border-white/[0.08] bg-white/[0.04] text-zinc-400 text-[9px]">
+                Esc
+              </kbd>
+              <span className="ml-0.5">close</span>
+            </span>
+          </div>
+        </div>
       </aside>
     </>
   );

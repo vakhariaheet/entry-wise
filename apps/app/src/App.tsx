@@ -258,6 +258,33 @@ export const AppContent: React.FC<AppProps> = () => {
     }
   }, [hasNextSubmission, selectedIndex, submissions]);
 
+  // Global dashboard tab shortcuts (1-6) when no modal or drawer is active
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (selectedSubmission) return; // drawer handles its own shortcuts
+      if (showAiPrompt || showCreateSite || showCreateWorkspace || showEditWorkspace) return;
+
+      if (e.key === '1') {
+        setActiveTab('submissions');
+      } else if (e.key === '2') {
+        setActiveTab('builder');
+      } else if (e.key === '3') {
+        setActiveTab('template');
+      } else if (e.key === '4') {
+        setActiveTab('connectors');
+      } else if (e.key === '5') {
+        setActiveTab('embed');
+      } else if (e.key === '6') {
+        setActiveTab('settings');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedSubmission, showAiPrompt, showCreateSite, showCreateWorkspace, showEditWorkspace]);
+
   const handleExportCsv = () => {
     if (!currentSite) return;
     window.open(api.getExportUrl(currentSite.id), '_blank');
@@ -401,28 +428,42 @@ export const AppContent: React.FC<AppProps> = () => {
                       )}
                     </div>
 
-                    <div className="text-xs text-zinc-400 font-mono flex items-center gap-2 flex-wrap">
-                      <span>POST https://entrywise.webbound.in/f/{currentSite.api_key}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(
-                            `https://entrywise.webbound.in/f/${currentSite.api_key}`
-                          );
-                          setCopiedEndpoint(true);
-                          setTimeout(() => setCopiedEndpoint(false), 2000);
-                        }}
-                        className="p-1 rounded hover:bg-white/[0.05] text-zinc-400 hover:text-emerald-400 transition"
-                        title="Copy Ingestion Endpoint"
-                      >
-                        {copiedEndpoint ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                      <span className="text-zinc-600">|</span>
-                      <span className="text-zinc-500">{currentSite.domain}</span>
+                    <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-[#090a0f] border border-white/[0.08] text-xs font-mono text-zinc-300">
+                        <span className="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-400 font-bold text-[10px]">
+                          POST
+                        </span>
+                        <span className="text-zinc-400 select-all">
+                          https://entrywise.webbound.in/f/{currentSite.api_key}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              `https://entrywise.webbound.in/f/${currentSite.api_key}`
+                            );
+                            setCopiedEndpoint(true);
+                            setTimeout(() => setCopiedEndpoint(false), 2000);
+                          }}
+                          className="p-1 -mr-1 rounded hover:bg-white/[0.08] text-zinc-400 hover:text-emerald-400 transition flex items-center gap-1"
+                          title="Copy Ingestion Endpoint"
+                        >
+                          {copiedEndpoint ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-400" />
+                              <span className="text-[10px] text-emerald-400 font-sans">
+                                Copied!
+                              </span>
+                            </>
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
+                      </div>
+
+                      <span className="text-xs text-zinc-500 font-mono hidden md:inline">
+                        domain: <span className="text-zinc-400">{currentSite.domain}</span>
+                      </span>
                     </div>
                   </div>
 
@@ -445,6 +486,7 @@ export const AppContent: React.FC<AppProps> = () => {
                       id: 'submissions' as DashboardTab,
                       label: 'Inbox',
                       icon: Inbox,
+                      shortcut: '1',
                       count:
                         submissions.filter((s) => s.status === 'new').length > 0
                           ? submissions.filter((s) => s.status === 'new').length
@@ -454,16 +496,33 @@ export const AppContent: React.FC<AppProps> = () => {
                       id: 'builder' as DashboardTab,
                       label: 'Form Builder',
                       icon: SlidersHorizontal,
+                      shortcut: '2',
                       count: siteFields.length,
                     },
                     {
                       id: 'template' as DashboardTab,
                       label: 'Email Studio',
                       icon: Mail,
+                      shortcut: '3',
                     },
-                    { id: 'connectors' as DashboardTab, label: 'Integrations', icon: Share2 },
-                    { id: 'embed' as DashboardTab, label: 'Code & Embed', icon: Code2 },
-                    { id: 'settings' as DashboardTab, label: 'Settings', icon: Settings },
+                    {
+                      id: 'connectors' as DashboardTab,
+                      label: 'Integrations',
+                      icon: Share2,
+                      shortcut: '4',
+                    },
+                    {
+                      id: 'embed' as DashboardTab,
+                      label: 'Code & Embed',
+                      icon: Code2,
+                      shortcut: '5',
+                    },
+                    {
+                      id: 'settings' as DashboardTab,
+                      label: 'Settings',
+                      icon: Settings,
+                      shortcut: '6',
+                    },
                   ].map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -493,6 +552,15 @@ export const AppContent: React.FC<AppProps> = () => {
                             {tab.count}
                           </span>
                         )}
+                        <kbd
+                          className={`hidden lg:inline-block text-[9px] font-mono px-1 py-0.2 rounded ${
+                            isActive
+                              ? 'bg-emerald-500/20 text-emerald-300'
+                              : 'bg-white/[0.05] text-zinc-500'
+                          }`}
+                        >
+                          {tab.shortcut}
+                        </kbd>
                       </button>
                     );
                   })}

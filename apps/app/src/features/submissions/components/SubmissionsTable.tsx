@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   Archive,
   CheckCircle2,
+  Command,
   Download,
   Inbox,
   Search,
@@ -9,9 +10,11 @@ import {
   ShieldCheck,
   Sparkles,
   Trash2,
+  X,
 } from 'lucide-react';
 import type React from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { KeyboardShortcutsModal } from '@/components/KeyboardShortcutsModal';
 import type { Submission } from '@/types';
 
 interface SubmissionsTableProps {
@@ -40,6 +43,12 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   selectedSubmissionId,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
 
   // Status Counts for Tabs & Stats
   const counts = useMemo(() => {
@@ -73,6 +82,170 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
       return dataStr.includes(term) || ipStr.includes(term);
     });
   }, [submissions, searchTerm]);
+
+  // Keep focused row scrolled into view
+  useEffect(() => {
+    if (focusedIndex !== null && rowRefs.current[focusedIndex]) {
+      rowRefs.current[focusedIndex]?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+    }
+  }, [focusedIndex]);
+
+  // Reset or bounds-check focusedIndex when filtered items change
+  useEffect(() => {
+    if (filteredSubmissions.length === 0) {
+      setFocusedIndex(null);
+    } else if (focusedIndex !== null && focusedIndex >= filteredSubmissions.length) {
+      setFocusedIndex(filteredSubmissions.length - 1);
+    }
+  }, [filteredSubmissions.length, focusedIndex]);
+
+  // Master Keyboard Navigation Engine (Linear, Superhuman, Attio standard)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+      if (isInput) {
+        if (e.key === 'Escape') {
+          (e.target as HTMLElement).blur();
+        }
+        return;
+      }
+
+      // If drawer is open (selectedSubmissionId is set) or shortcut modal is open, let drawer/modal handle keys
+      if (selectedSubmissionId || showShortcutsModal) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      if (e.key === '/') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      } else if (e.key === '?') {
+        e.preventDefault();
+        setShowShortcutsModal((prev) => !prev);
+      } else if (key === 'j' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setFocusedIndex((prev) => {
+          if (filteredSubmissions.length === 0) return null;
+          if (prev === null) return 0;
+          return Math.min(filteredSubmissions.length - 1, prev + 1);
+        });
+      } else if (key === 'k' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        setFocusedIndex((prev) => {
+          if (filteredSubmissions.length === 0) return null;
+          if (prev === null) return 0;
+          return Math.max(0, prev - 1);
+        });
+      } else if (e.key === 'Enter' || key === 'o') {
+        e.preventDefault();
+        if (focusedIndex !== null && filteredSubmissions[focusedIndex]) {
+          onSelectSubmission(filteredSubmissions[focusedIndex]);
+        }
+      } else if (key === 'x') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          // Toggle select all
+          setSelectedIds((prev) =>
+            prev.size === filteredSubmissions.length
+              ? new Set()
+              : new Set(filteredSubmissions.map((s) => s.id))
+          );
+        } else if (focusedIndex !== null && filteredSubmissions[focusedIndex]) {
+          const id = filteredSubmissions[focusedIndex].id;
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+          });
+        }
+      } else if (key === 'r' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        const targetIds =
+          selectedIds.size > 0
+            ? Array.from(selectedIds)
+            : focusedIndex !== null && filteredSubmissions[focusedIndex]
+              ? [filteredSubmissions[focusedIndex].id]
+              : [];
+        for (const id of targetIds) {
+          onUpdateStatus(id, 'read');
+        }
+      } else if (key === 'n' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        const targetIds =
+          selectedIds.size > 0
+            ? Array.from(selectedIds)
+            : focusedIndex !== null && filteredSubmissions[focusedIndex]
+              ? [filteredSubmissions[focusedIndex].id]
+              : [];
+        for (const id of targetIds) {
+          onUpdateStatus(id, 'new');
+        }
+      } else if (key === 'e' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        const targetIds =
+          selectedIds.size > 0
+            ? Array.from(selectedIds)
+            : focusedIndex !== null && filteredSubmissions[focusedIndex]
+              ? [filteredSubmissions[focusedIndex].id]
+              : [];
+        for (const id of targetIds) {
+          onUpdateStatus(id, 'archived');
+        }
+      } else if (key === 's' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        const targetIds =
+          selectedIds.size > 0
+            ? Array.from(selectedIds)
+            : focusedIndex !== null && filteredSubmissions[focusedIndex]
+              ? [filteredSubmissions[focusedIndex].id]
+              : [];
+        for (const id of targetIds) {
+          onUpdateStatus(id, 'spam');
+        }
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        const targetIds =
+          selectedIds.size > 0
+            ? Array.from(selectedIds)
+            : focusedIndex !== null && filteredSubmissions[focusedIndex]
+              ? [filteredSubmissions[focusedIndex].id]
+              : [];
+        if (
+          targetIds.length > 0 &&
+          window.confirm(`Permanently delete ${targetIds.length} submission(s)?`)
+        ) {
+          for (const id of targetIds) {
+            onDeleteSubmission(id);
+          }
+          setSelectedIds(new Set());
+        }
+      } else if (e.key === 'Escape') {
+        if (selectedIds.size > 0) {
+          e.preventDefault();
+          setSelectedIds(new Set());
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    selectedSubmissionId,
+    showShortcutsModal,
+    focusedIndex,
+    filteredSubmissions,
+    selectedIds,
+    onSelectSubmission,
+    onUpdateStatus,
+    onDeleteSubmission,
+  ]);
 
   const getStatusBadge = (status: Submission['status']) => {
     switch (status) {
@@ -171,7 +344,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
         </div>
       </div>
 
-      {/* 2. Toolbar: Status Filter Pills, Search, Export */}
+      {/* 2. Toolbar: Status Filter Pills, Search, Shortcuts & Export */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
         {/* Status Pills */}
         <div className="flex items-center bg-[#0d0f15] p-1 rounded-xl border border-white/[0.08] text-xs font-medium overflow-x-auto">
@@ -213,13 +386,14 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
           })}
         </div>
 
-        {/* Search & Export Actions */}
-        <div className="flex items-center gap-2.5">
-          <div className="relative flex-1 sm:w-64">
+        {/* Search, Keyboard Shortcuts Hint & Export Actions */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 sm:w-60">
             <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
+              ref={searchInputRef}
               type="text"
-              placeholder="Search sender, email, fields..."
+              placeholder="Search submissions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-[#0d0f15] border border-white/[0.08] rounded-xl pl-8 pr-8 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500/50 transition font-sans"
@@ -228,6 +402,19 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
               /
             </span>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowShortcutsModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-white/[0.08] bg-[#0d0f15] hover:bg-white/[0.06] text-xs font-medium text-zinc-400 hover:text-white transition shrink-0"
+            title="Keyboard Shortcuts (?)"
+          >
+            <Command className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden md:inline">Shortcuts</span>
+            <kbd className="text-[10px] font-mono text-zinc-500 bg-white/[0.05] px-1 py-0.2 rounded border border-white/[0.06]">
+              ?
+            </kbd>
+          </button>
 
           <button
             type="button"
@@ -242,12 +429,36 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
       </div>
 
       {/* 3. Submissions Table Card */}
-      <div className="rounded-2xl border border-white/[0.08] bg-[#0e1017] overflow-hidden shadow-xl">
+      <div className="rounded-2xl border border-white/[0.08] bg-[#0e1017] overflow-hidden shadow-xl relative">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-zinc-300">
             <thead className="bg-[#090a0f] border-b border-white/[0.06] text-zinc-400 font-semibold uppercase tracking-wider text-[10px]">
               <tr>
-                <th className="px-4 py-3 w-12">Status</th>
+                <th className="px-3.5 py-3 w-8">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all visible submissions"
+                    checked={
+                      filteredSubmissions.length > 0 &&
+                      selectedIds.size === filteredSubmissions.length
+                    }
+                    ref={(el) => {
+                      if (el) {
+                        el.indeterminate =
+                          selectedIds.size > 0 && selectedIds.size < filteredSubmissions.length;
+                      }
+                    }}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedIds(new Set(filteredSubmissions.map((s) => s.id)));
+                      } else {
+                        setSelectedIds(new Set());
+                      }
+                    }}
+                    className="rounded border-zinc-700 bg-zinc-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-zinc-950 accent-emerald-500 cursor-pointer w-3.5 h-3.5"
+                  />
+                </th>
+                <th className="px-3 py-3 w-16">Status</th>
                 <th className="px-4 py-3">Sender / Identity</th>
                 <th className="px-4 py-3">Submission Summary</th>
                 <th className="px-4 py-3 hidden md:table-cell">Client IP</th>
@@ -258,7 +469,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
             <tbody className="divide-y divide-white/[0.04]">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-14 text-center text-zinc-400">
+                  <td colSpan={7} className="px-6 py-14 text-center text-zinc-400">
                     <div className="inline-flex items-center gap-2.5">
                       <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                       <span>Syncing submissions from Cloudflare edge D1...</span>
@@ -267,7 +478,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                 </tr>
               ) : filteredSubmissions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center space-y-3">
+                  <td colSpan={7} className="px-6 py-16 text-center space-y-3">
                     <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mx-auto text-zinc-500">
                       <ShieldCheck className="w-6 h-6 text-emerald-400" />
                     </div>
@@ -281,8 +492,11 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredSubmissions.map((sub) => {
+                filteredSubmissions.map((sub, index) => {
                   const isSelected = selectedSubmissionId === sub.id;
+                  const isChecked = selectedIds.has(sub.id);
+                  const isFocused = focusedIndex === index;
+
                   const senderName = String(
                     sub.data.name || sub.data.fullName || sub.data.author || 'Anonymous'
                   );
@@ -301,6 +515,9 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                   return (
                     <tr
                       key={sub.id}
+                      ref={(el) => {
+                        rowRefs.current[index] = el;
+                      }}
                       onClick={() => onSelectSubmission(sub)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -309,48 +526,85 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                         }
                       }}
                       tabIndex={0}
-                      className={`cursor-pointer transition focus:outline-none ${
+                      className={`cursor-pointer focus:outline-none transition-colors duration-100 group/row ${
                         isSelected
-                          ? 'bg-emerald-500/[0.08] hover:bg-emerald-500/[0.12]'
-                          : 'hover:bg-white/[0.03]'
+                          ? 'bg-emerald-500/[0.10] hover:bg-emerald-500/[0.14] border-l-2 border-l-emerald-400'
+                          : isChecked
+                            ? 'bg-emerald-500/[0.05] hover:bg-emerald-500/[0.08] border-l-2 border-l-emerald-500/50'
+                            : isFocused
+                              ? 'bg-white/[0.04] hover:bg-white/[0.06] border-l-2 border-l-emerald-400'
+                              : 'hover:bg-white/[0.03] border-l-2 border-l-transparent'
                       }`}
                     >
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          {isSelected && (
-                            <span className="w-1 h-4 rounded-full bg-emerald-400 -ml-2" />
-                          )}
-                          {getStatusBadge(sub.status)}
-                        </div>
+                      {/* Checkbox column */}
+                      <td
+                        className="px-3.5 py-3 whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          aria-label={`Select submission from ${senderName}`}
+                          checked={isChecked}
+                          onChange={() => {
+                            setSelectedIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(sub.id)) next.delete(sub.id);
+                              else next.add(sub.id);
+                              return next;
+                            });
+                          }}
+                          className="rounded border-zinc-700 bg-zinc-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-zinc-950 accent-emerald-500 cursor-pointer w-3.5 h-3.5"
+                        />
                       </td>
+
+                      {/* Status Badge */}
+                      <td className="px-3 py-3 whitespace-nowrap">{getStatusBadge(sub.status)}</td>
+
+                      {/* Sender Identity */}
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="font-semibold text-white">{senderName}</div>
+                        <div className="font-semibold text-white flex items-center gap-1.5">
+                          <span>{senderName}</span>
+                          {isFocused && (
+                            <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-normal">
+                              ↵ enter
+                            </span>
+                          )}
+                        </div>
                         {senderEmail && (
                           <div className="text-[11px] text-zinc-400 font-mono mt-0.5">
                             {senderEmail}
                           </div>
                         )}
                       </td>
+
+                      {/* Summary preview */}
                       <td className="px-4 py-3 max-w-xs sm:max-w-md truncate">
                         <span className="text-zinc-300 font-normal">{messagePreview}</span>
                       </td>
+
+                      {/* Client IP */}
                       <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell font-mono text-[11px] text-zinc-500">
                         {sub.ip_address || '—'}
                       </td>
+
+                      {/* Timestamp */}
                       <td className="px-4 py-3 whitespace-nowrap text-zinc-400 font-mono text-[11px]">
                         {formatDate(sub.created_at)}
                       </td>
+
+                      {/* Actions */}
                       <td
                         className="px-4 py-3 whitespace-nowrap text-right"
                         onClick={(e) => e.stopPropagation()}
                         onKeyDown={(e) => e.stopPropagation()}
                       >
-                        <div className="inline-flex items-center gap-1 text-zinc-400">
+                        <div className="inline-flex items-center gap-1 text-zinc-400 opacity-0 group-hover/row:opacity-100 transition-opacity duration-100">
                           {sub.status === 'new' && (
                             <button
                               type="button"
                               onClick={() => onUpdateStatus(sub.id, 'read')}
-                              title="Mark Read"
+                              title="Mark Read (R)"
                               className="p-1 hover:text-white hover:bg-white/[0.08] rounded transition"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400" />
@@ -360,7 +614,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                             <button
                               type="button"
                               onClick={() => onUpdateStatus(sub.id, 'archived')}
-                              title="Archive"
+                              title="Archive (E)"
                               className="p-1 hover:text-purple-400 hover:bg-white/[0.08] rounded transition"
                             >
                               <Archive className="w-3.5 h-3.5" />
@@ -370,7 +624,7 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                             <button
                               type="button"
                               onClick={() => onUpdateStatus(sub.id, 'spam')}
-                              title="Mark Spam"
+                              title="Mark Spam (S)"
                               className="p-1 hover:text-rose-400 hover:bg-white/[0.08] rounded transition"
                             >
                               <AlertTriangle className="w-3.5 h-3.5" />
@@ -400,15 +654,130 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
 
         {/* Table Footer */}
         <div className="px-5 py-3 border-t border-white/[0.06] bg-[#090a0f] flex items-center justify-between text-xs text-zinc-500 font-mono">
-          <span>
-            Showing {filteredSubmissions.length} of {submissions.length} submissions
-          </span>
+          <div className="flex items-center gap-3">
+            <span>
+              Showing {filteredSubmissions.length} of {submissions.length} submissions
+            </span>
+            <span className="hidden sm:inline-block text-zinc-600">|</span>
+            <span className="hidden sm:flex items-center gap-1.5 text-zinc-400">
+              <kbd className="px-1 py-0.2 rounded border border-white/[0.08] bg-white/[0.04] text-[10px]">
+                J
+              </kbd>
+              <kbd className="px-1 py-0.2 rounded border border-white/[0.08] bg-white/[0.04] text-[10px]">
+                K
+              </kbd>
+              <span className="text-[11px]">to navigate</span>
+            </span>
+          </div>
           <span className="flex items-center gap-1.5 text-emerald-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             Edge Encrypted &amp; Replicated
           </span>
         </div>
       </div>
+
+      {/* Floating Multi-Row Bulk Action Bar (Attio / Mercury pattern from Refero) */}
+      {selectedIds.size > 0 && (
+        <aside
+          aria-label="Bulk actions"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#0c0e14]/95 border border-white/[0.14] backdrop-blur-md shadow-2xl animate-in slide-in-from-bottom-3 duration-200"
+        >
+          <div className="flex items-center gap-2 pr-3 border-r border-white/[0.08] text-xs font-semibold text-white">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>{selectedIds.size} selected</span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                for (const id of Array.from(selectedIds)) {
+                  onUpdateStatus(id, 'read');
+                }
+                setSelectedIds(new Set());
+              }}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/[0.08] transition flex items-center gap-1.5"
+              title="Mark Read (R)"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Read</span>
+              <kbd className="text-[9px] font-mono px-1 rounded bg-white/[0.06] text-zinc-500">
+                R
+              </kbd>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                for (const id of Array.from(selectedIds)) {
+                  onUpdateStatus(id, 'archived');
+                }
+                setSelectedIds(new Set());
+              }}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-zinc-300 hover:text-purple-300 hover:bg-white/[0.08] transition flex items-center gap-1.5"
+              title="Archive (E)"
+            >
+              <Archive className="w-3.5 h-3.5 text-purple-400" />
+              <span>Archive</span>
+              <kbd className="text-[9px] font-mono px-1 rounded bg-white/[0.06] text-zinc-500">
+                E
+              </kbd>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                for (const id of Array.from(selectedIds)) {
+                  onUpdateStatus(id, 'spam');
+                }
+                setSelectedIds(new Set());
+              }}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-zinc-300 hover:text-rose-400 hover:bg-white/[0.08] transition flex items-center gap-1.5"
+              title="Mark Spam (S)"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+              <span>Spam</span>
+              <kbd className="text-[9px] font-mono px-1 rounded bg-white/[0.06] text-zinc-500">
+                S
+              </kbd>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(`Delete ${selectedIds.size} submission(s) permanently?`)) {
+                  for (const id of Array.from(selectedIds)) {
+                    onDeleteSubmission(id);
+                  }
+                  setSelectedIds(new Set());
+                }
+              }}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-medium text-zinc-300 hover:text-rose-400 hover:bg-rose-500/10 transition flex items-center gap-1.5"
+              title="Delete (Delete or Backspace)"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete</span>
+            </button>
+          </div>
+
+          <div className="pl-2 border-l border-white/[0.08]">
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08] transition"
+              title="Deselect All (Esc)"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {/* Keyboard Shortcuts Cheat Sheet Modal */}
+      <KeyboardShortcutsModal
+        isOpen={showShortcutsModal}
+        onClose={() => setShowShortcutsModal(false)}
+      />
     </div>
   );
 };
