@@ -27,6 +27,8 @@ export const CodeEmbedView: React.FC<CodeEmbedViewProps> = ({ site, fields }) =>
           { name: 'message', type: 'text' as const, id: '3', site_id: site.id, created_at: '' },
         ];
 
+  const hasFile = activeFields.some((f) => f.type === 'file');
+
   const handleCopyEndpoint = () => {
     navigator.clipboard.writeText(endpointUrl);
     setCopiedEndpoint(true);
@@ -42,7 +44,10 @@ export const CodeEmbedView: React.FC<CodeEmbedViewProps> = ({ site, fields }) =>
   const generateSnippet = () => {
     switch (snippetFormat) {
       case 'react': {
-        const stateFields = activeFields.map((f) => `    ${f.name}: '',`).join('\n');
+        const stateFields = activeFields
+          .filter((f) => f.type !== 'file')
+          .map((f) => `    ${f.name}: '',`)
+          .join('\n');
 
         const inputs = activeFields
           .map((f) => {
@@ -67,6 +72,20 @@ export const CodeEmbedView: React.FC<CodeEmbedViewProps> = ({ site, fields }) =>
         </div>`;
             }
 
+            if (f.type === 'file') {
+              return `        <div>
+          <label htmlFor="${f.name}" className="block text-xs font-medium text-zinc-400 mb-1">
+            ${label}
+          </label>
+          <input
+            id="${f.name}"
+            name="${f.name}"
+            type="file"
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300 file:mr-3 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-500/10 file:text-emerald-400 hover:file:bg-emerald-500/20"
+          />
+        </div>`;
+            }
+
             const inputType =
               f.type === 'email'
                 ? 'email'
@@ -74,9 +93,7 @@ export const CodeEmbedView: React.FC<CodeEmbedViewProps> = ({ site, fields }) =>
                   ? 'tel'
                   : f.type === 'url'
                     ? 'url'
-                    : f.type === 'file'
-                      ? 'file'
-                      : 'text';
+                    : 'text';
 
             return `        <div>
           <label htmlFor="${f.name}" className="block text-xs font-medium text-zinc-400 mb-1">
@@ -94,6 +111,69 @@ export const CodeEmbedView: React.FC<CodeEmbedViewProps> = ({ site, fields }) =>
         </div>`;
           })
           .join('\n\n');
+
+        if (hasFile) {
+          return `'use client';
+
+import React, { useState } from 'react';
+
+export function ContactForm() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      // Automatic multipart/form-data upload for file attachments
+      const data = new FormData(e.currentTarget);
+
+      const res = await fetch('${endpointUrl}', {
+        method: 'POST',
+        body: data,
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to submit form');
+      }
+
+      setIsSuccess(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Network error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isSuccess) {
+    return (
+      <div className="p-6 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-center">
+        <h3 className="font-semibold text-sm">Submission Received!</h3>
+        <p className="text-xs text-zinc-400 mt-1">Thank you, your details have been received.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto">
+${inputs}
+
+      {error && <p className="text-xs text-rose-400">{error}</p>}
+
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="w-full py-2.5 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-semibold text-xs transition"
+      >
+        {isSubmitting ? 'Submitting...' : 'Submit Form'}
+      </button>
+    </form>
+  );
+}`;
+        }
 
         return `'use client';
 
@@ -134,8 +214,8 @@ ${stateFields}
   if (isSuccess) {
     return (
       <div className="p-6 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-center">
-        <h3 className="font-semibold text-sm">Message Sent!</h3>
-        <p className="text-xs text-zinc-400 mt-1">Thank you, we will get back to you shortly.</p>
+        <h3 className="font-semibold text-sm">Submission Received!</h3>
+        <p className="text-xs text-zinc-400 mt-1">Thank you, your details have been received.</p>
       </div>
     );
   }
@@ -159,27 +239,39 @@ ${inputs}
       }
 
       case 'nextjs': {
+        const fieldsMapping = activeFields
+          .map((f) => `    ${f.name}: formData.get('${f.name}'),`)
+          .join('\n');
+
         return `'use server';
 
 // app/actions/submitForm.ts
 export async function submitEntryWiseForm(formData: FormData) {
-  const data = Object.fromEntries(formData.entries());
+  // Extract typed fields matching your schema
+  const payload = {
+${fieldsMapping}
+  };
 
   const res = await fetch('${endpointUrl}', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
-    return { success: false, error: 'Failed to submit form' };
+    const errorBody = await res.json().catch(() => ({}));
+    return { success: false, error: errorBody.detail || 'Failed to submit form' };
   }
 
   return { success: true };
 }
 
-// In your Server or Client Component:
-// <form action={submitEntryWiseForm}> ... </form>`;
+// In your Next.js Page or Component:
+// <form action={submitEntryWiseForm}>
+//   <!-- Input fields matching your schema: -->
+//   ${activeFields.map((f) => `<input name="${f.name}" />`).join('\n//   ')}
+//   <button type="submit">Submit</button>
+// </form>`;
       }
 
       case 'typescript': {
@@ -199,6 +291,7 @@ export async function submitEntryWiseForm(formData: FormData) {
  * TypeScript Data Contract for EntryWise Form:
  * Domain: ${site.domain}
  * Site ID: ${site.id}
+ * Total Schema Fields: ${activeFields.length}
  */
 export interface ${site.name ? site.name.replace(/[^a-zA-Z0-9]/g, '') : 'Form'}SubmissionData {
 ${types}
@@ -212,6 +305,27 @@ export interface EntryWiseSubmissionResponse {
       }
 
       case 'curl': {
+        if (hasFile) {
+          const formParts = activeFields
+            .map((f) => {
+              if (f.type === 'file') {
+                return `  -F "${f.name}=@/path/to/attachment.pdf"`;
+              }
+              const val =
+                f.type === 'email'
+                  ? 'alex@example.com'
+                  : f.name === 'name'
+                    ? 'Alex Taylor'
+                    : `Sample ${f.name}`;
+              return `  -F "${f.name}=${val}"`;
+            })
+            .join(' \\\n');
+
+          return `# Test submission with file attachment (multipart/form-data)
+curl -X POST "${endpointUrl}" \\
+${formParts}`;
+        }
+
         const samplePayload = JSON.stringify(
           Object.fromEntries(
             activeFields.map((f) => [
@@ -227,7 +341,7 @@ export interface EntryWiseSubmissionResponse {
           2
         );
 
-        return `# Test submission to your live EntryWise endpoint
+        return `# Direct API Ingestion via cURL (JSON)
 curl -X POST "${endpointUrl}" \\
   -H "Content-Type: application/json" \\
   -d '${samplePayload}'`;
@@ -242,12 +356,18 @@ curl -X POST "${endpointUrl}" \\
             if (isTextarea) {
               return `  <div>\n    <label for="${f.name}">${label}</label>\n    <textarea id="${f.name}" name="${f.name}" required></textarea>\n  </div>`;
             }
+            if (f.type === 'file') {
+              return `  <div>\n    <label for="${f.name}">${label}</label>\n    <input type="file" id="${f.name}" name="${f.name}" />\n  </div>`;
+            }
             return `  <div>\n    <label for="${f.name}">${label}</label>\n    <input type="${f.type === 'email' ? 'email' : f.type === 'phone' ? 'tel' : f.type === 'url' ? 'url' : 'text'}" id="${f.name}" name="${f.name}" required />\n  </div>`;
           })
           .join('\n');
 
         return `<!-- Clean HTML form for Webflow, Framer, or static sites -->
-<form action="${endpointUrl}" method="POST">
+<form
+  action="${endpointUrl}"
+  method="POST"${hasFile ? '\n  enctype="multipart/form-data"' : ''}
+>
   <!-- Honeypot anti-spam (invisible to users) -->
   <input type="text" name="_gotcha" style="display:none !important" tabindex="-1" autocomplete="off" />
 
@@ -317,6 +437,23 @@ ${fieldInputs}
             <span>{copiedEndpoint ? 'Copied' : 'Copy Endpoint URL'}</span>
           </button>
         </div>
+      </div>
+
+      {/* Dynamic Schema Sync Status Pill */}
+      <div className="flex items-center justify-between px-4 py-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] text-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-zinc-300 font-medium">Dynamic Schema Sync:</span>
+          <span className="text-emerald-400 font-mono font-semibold">
+            {activeFields.length} {activeFields.length === 1 ? 'field' : 'fields'} mapped
+          </span>
+          <span className="text-zinc-500 hidden sm:inline">
+            ({activeFields.map((f) => f.name).join(', ')})
+          </span>
+        </div>
+        <span className="text-[11px] text-zinc-400 font-mono hidden md:inline">
+          Live synced to Form Schema
+        </span>
       </div>
 
       {/* Code Snippets Studio */}
