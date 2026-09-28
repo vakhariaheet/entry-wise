@@ -640,7 +640,13 @@ export const AppContent: React.FC<AppProps> = () => {
         hasNext={hasNextSubmission}
       />
 
-      {showAiPrompt && <AiPromptModal site={currentSite} onClose={() => setShowAiPrompt(false)} />}
+      {showAiPrompt && (
+        <AiPromptModal
+          site={currentSite}
+          fields={siteFields}
+          onClose={() => setShowAiPrompt(false)}
+        />
+      )}
 
       {showCreateSite && (
         <CreateSiteModal
