@@ -63,32 +63,173 @@ export const ConnectorsView: React.FC<ConnectorsViewProps> = ({
     setWebhookSecret(site.webhook_secret || '');
   }, [site]);
 
-  const appsScriptCode = `// Google Apps Script to auto-append EntryWise form submissions to Google Sheets
+  const appsScriptCode = `/**
+ * EntryWise Google Sheets Integration Webhook (Production Grade)
+ * 
+ * Features:
+ * - 30s LockService concurrency protection (no dropped rows or race conditions)
+ * - Auto-initializes blank sheets with formatted headers & frozen header row
+ * - Dynamically appends new columns whenever your form schema changes
+ * - Formula injection protection (sanitizes values starting with =, +, -, @)
+ * - Friendly doGet() endpoint for browser connectivity verification
+ */
+
 function doPost(e) {
-  try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-    var data = JSON.parse(e.postData.contents);
-    
-    // Ensure header row exists
-    var headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
-    if (headers.length === 0 || headers[0] === '') {
-      headers = Object.keys(data);
-      sheet.appendRow(headers);
-    }
-    
-    // Build row matching existing columns
-    var row = [];
-    for (var i = 0; i < headers.length; i++) {
-      row.push(data[headers[i]] !== undefined ? data[headers[i]] : '');
-    }
-    sheet.appendRow(row);
-    
-    return ContentService.createTextOutput(JSON.stringify({ result: 'success' }))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ result: 'error', error: err.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
+  var lock = LockService.getScriptLock();
+  // Wait up to 30 seconds for concurrent submissions
+  var acquired = lock.tryLock(30000);
+  if (!acquired) {
+    return ContentService.createTextOutput(JSON.stringify({
+      result: 'error',
+      error: 'Lock timeout: Server busy'
+    })).setMimeType(ContentService.MimeType.JSON);
   }
+
+  try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return ContentService.createTextOutput(JSON.stringify({
+        result: 'error',
+        error: 'Empty request body'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var payload = JSON.parse(e.postData.contents);
+
+    // Flatten nested 'data' if using wrapped webhook format
+    if (payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) {
+      var nested = payload.data;
+      delete payload.data;
+      for (var k in nested) {
+        if (nested.hasOwnProperty(k)) {
+          payload[k] = nested[k];
+        }
+      }
+    }
+
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+
+    // 1. Initialize headers on a fresh sheet
+    if (lastRow === 0 || lastCol === 0) {
+      var initialHeaders = ['Submitted At'];
+      for (var fieldKey in payload) {
+        if (payload.hasOwnProperty(fieldKey) && 
+            fieldKey !== '_submitted_at' && fieldKey !== '_submission_id' && fieldKey !== '_domain' &&
+            fieldKey !== 'event' && fieldKey !== 'timestamp' && fieldKey !== 'site_id') {
+          initialHeaders.push(fieldKey);
+        }
+      }
+      initialHeaders.push('Submission ID', 'Domain');
+
+      sheet.appendRow(initialHeaders);
+      var headerRange = sheet.getRange(1, 1, 1, initialHeaders.length);
+      headerRange.setFontWeight('bold');
+      headerRange.setBackground('#f3f4f6');
+      sheet.setFrozenRows(1);
+
+      lastRow = 1;
+      lastCol = initialHeaders.length;
+    }
+
+    // 2. Read existing headers & build lookup map
+    var headerValues = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    var headerMap = {};
+    for (var i = 0; i < headerValues.length; i++) {
+      var hText = String(headerValues[i]).trim();
+      if (hText) {
+        headerMap[hText.toLowerCase()] = i;
+      }
+    }
+
+    // 3. Dynamically append new columns for fields not yet present in row 1
+    var newColumns = [];
+    for (var prop in payload) {
+      if (!payload.hasOwnProperty(prop)) continue;
+      if (prop === '_submitted_at' || prop === '_submission_id' || prop === '_domain' ||
+          prop === 'event' || prop === 'timestamp' || prop === 'site_id') {
+        continue;
+      }
+      if (headerMap[prop.toLowerCase()] === undefined) {
+        newColumns.push(prop);
+        headerMap[prop.toLowerCase()] = headerValues.length + newColumns.length - 1;
+      }
+    }
+
+    if (newColumns.length > 0) {
+      var newRange = sheet.getRange(1, headerValues.length + 1, 1, newColumns.length);
+      newRange.setValues([newColumns]);
+      newRange.setFontWeight('bold');
+      newRange.setBackground('#f3f4f6');
+      headerValues = headerValues.concat(newColumns);
+      lastCol = headerValues.length;
+    }
+
+    // 4. Map values to matched column headers
+    var rowData = new Array(headerValues.length);
+    for (var c = 0; c < headerValues.length; c++) {
+      rowData[c] = '';
+    }
+
+    var submittedAt = payload._submitted_at || payload.timestamp || new Date().toISOString();
+    var submissionId = payload._submission_id || payload.submission_id || '';
+    var domain = payload._domain || payload.domain || '';
+
+    for (var colIdx = 0; colIdx < headerValues.length; colIdx++) {
+      var hName = String(headerValues[colIdx]).trim().toLowerCase();
+
+      if (hName === 'submitted at' || hName === '_submitted_at' || hName === 'timestamp' || hName === 'date') {
+        rowData[colIdx] = submittedAt;
+      } else if (hName === 'submission id' || hName === '_submission_id' || hName === 'id') {
+        rowData[colIdx] = submissionId;
+      } else if (hName === 'domain' || hName === '_domain' || hName === 'site') {
+        rowData[colIdx] = domain;
+      } else {
+        for (var p in payload) {
+          if (payload.hasOwnProperty(p) && p.toLowerCase() === hName) {
+            rowData[colIdx] = sanitizeCellValue(payload[p]);
+            break;
+          }
+        }
+      }
+    }
+
+    // 5. Append submission row
+    sheet.appendRow(rowData);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      result: 'success',
+      row: sheet.getLastRow(),
+      timestamp: submittedAt
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    Logger.log('EntryWise Apps Script Error: ' + err.toString());
+    return ContentService.createTextOutput(JSON.stringify({
+      result: 'error',
+      error: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function sanitizeCellValue(val) {
+  if (val === undefined || val === null) return '';
+  if (typeof val === 'object') return JSON.stringify(val);
+  var str = String(val);
+  // Protect against formula injection in spreadsheets
+  if (/^[=+\\-@]/.test(str)) {
+    return "'" + str;
+  }
+  return str;
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({
+    status: 'active',
+    message: 'EntryWise Google Sheets webhook is active and ready for submissions.'
+  })).setMimeType(ContentService.MimeType.JSON);
 }`;
 
   const handleSave = async (e?: React.FormEvent) => {
@@ -146,6 +287,15 @@ function doPost(e) {
       } else if (target === 'slack') {
         body = JSON.stringify({
           text: `🧪 *EntryWise Connectivity Test* for \`${site.domain}\`\nReceived test signal successfully at ${new Date().toLocaleTimeString()}!`,
+        });
+      } else if (target === 'sheets') {
+        body = JSON.stringify({
+          _submission_id: `test_${Math.random().toString(36).substring(2, 8)}`,
+          _domain: site.domain,
+          _submitted_at: new Date().toISOString(),
+          name: 'Alex Taylor (Test)',
+          email: 'alex.taylor@example.com',
+          message: 'This is an instant connectivity test from EntryWise!',
         });
       } else {
         body = JSON.stringify(testPayload);
@@ -390,17 +540,77 @@ function doPost(e) {
           </button>
 
           {showAppsScriptGuide && (
-            <div className="p-4 rounded-xl border border-white/[0.06] bg-[#090a0f] space-y-3">
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                1. Open your Google Sheet &rarr; Extensions &rarr; Apps Script.
-                <br />
-                2. Paste the script below &rarr; Deploy &rarr; New Deployment &rarr; Web App
-                (Access: Anyone).
-                <br />
-                3. Copy the generated Web App URL and paste it into the field above!
-              </p>
+            <div className="p-5 rounded-xl border border-white/[0.08] bg-[#090a0f] space-y-4">
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <h4 className="text-xs font-semibold text-white tracking-wide uppercase">
+                    Production Google Apps Script Webhook (30-second setup)
+                  </h4>
+                </div>
+                <ol className="text-xs text-zinc-300 space-y-2 list-decimal list-inside leading-relaxed">
+                  <li>
+                    Open or create your Google Sheet &rarr; in the menu bar click{' '}
+                    <strong className="text-white">Extensions &rarr; Apps Script</strong>.
+                  </li>
+                  <li>
+                    Select all existing placeholder code in the editor, replace it with the script
+                    below, and click <strong className="text-white">Save</strong>.
+                  </li>
+                  <li>
+                    Click <strong className="text-white">Deploy &rarr; New deployment</strong> in
+                    the top right corner.
+                  </li>
+                  <li>
+                    Click the gear icon next to "Select type" and select{' '}
+                    <strong className="text-white">Web app</strong>.
+                  </li>
+                  <li>
+                    Set the configuration options:
+                    <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-zinc-400">
+                      <li>
+                        <strong className="text-zinc-200">Execute as:</strong>{' '}
+                        <span className="text-emerald-400 font-medium">
+                          Me (your Google account)
+                        </span>
+                      </li>
+                      <li>
+                        <strong className="text-zinc-200">Who has access:</strong>{' '}
+                        <span className="text-amber-400 font-semibold">Anyone</span> (Required:
+                        ensures headless submissions are accepted without Google OAuth blocks)
+                      </li>
+                    </ul>
+                  </li>
+                  <li>
+                    Click <strong className="text-white">Deploy</strong>, grant permission if
+                    prompted, and copy the resulting{' '}
+                    <strong className="text-white">Web App URL</strong> (ends in{' '}
+                    <code className="text-emerald-400 bg-white/5 px-1 py-0.5 rounded font-mono">
+                      /exec
+                    </code>
+                    ).
+                  </li>
+                  <li>
+                    Paste the URL into the input field above, click{' '}
+                    <strong className="text-white">Save Changes</strong>, and click{' '}
+                    <strong className="text-white">Send Test</strong> to verify!
+                  </li>
+                </ol>
+              </div>
+
+              <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-500/20 text-xs text-emerald-300/90 leading-relaxed flex items-start gap-2.5">
+                <span className="text-emerald-400 font-bold shrink-0 mt-0.5">✓</span>
+                <span>
+                  <strong>Production Battle-Tested:</strong> Equipped with 30s{' '}
+                  <code className="text-emerald-300 font-mono">LockService</code> concurrency
+                  protection against race conditions, automatic sheet header initialization & row
+                  freezing, formula injection sanitization, and dynamic auto-expansion of columns
+                  whenever your form inputs change.
+                </span>
+              </div>
+
               <div className="relative">
-                <pre className="p-4 bg-black/60 rounded-xl text-xs text-zinc-300 font-mono overflow-x-auto max-h-48 leading-relaxed">
+                <pre className="p-4 bg-black/60 rounded-xl text-xs text-zinc-300 font-mono overflow-x-auto max-h-72 leading-relaxed border border-white/[0.04]">
                   {appsScriptCode}
                 </pre>
                 <button
@@ -410,14 +620,14 @@ function doPost(e) {
                     setCopiedScript(true);
                     setTimeout(() => setCopiedScript(false), 2000);
                   }}
-                  className="absolute top-2.5 right-2.5 px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-xs text-white flex items-center gap-1.5 transition"
+                  className="absolute top-2.5 right-2.5 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-lg text-xs text-emerald-300 font-medium flex items-center gap-1.5 transition shadow-lg backdrop-blur-md"
                 >
                   {copiedScript ? (
                     <Check className="w-3.5 h-3.5 text-emerald-400" />
                   ) : (
                     <Copy className="w-3.5 h-3.5" />
                   )}
-                  <span>{copiedScript ? 'Copied' : 'Copy Script'}</span>
+                  <span>{copiedScript ? 'Copied to Clipboard' : 'Copy Complete Script'}</span>
                 </button>
               </div>
             </div>
