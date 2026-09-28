@@ -26,20 +26,18 @@ import {
   CreateSiteModal,
   EmailTemplateView,
   GeneralSettingsView,
-  SchemaFieldsView,
   TemplateStudioView,
 } from '@/features/forms';
-import { SubmissionDetailModal, SubmissionsTable } from '@/features/submissions';
+import { SubmissionDetailDrawer, SubmissionsTable } from '@/features/submissions';
 import { WorkspaceModal } from '@/features/workspaces';
 import { api } from '@/lib';
 import type { Company, FormField, Site, Submission } from '@/types';
 
 export type DashboardTab =
   | 'submissions'
-  | 'template-studio'
-  | 'fields'
-  | 'connectors'
+  | 'builder'
   | 'template'
+  | 'connectors'
   | 'embed'
   | 'settings';
 
@@ -241,6 +239,25 @@ export const AppContent: React.FC<AppProps> = () => {
     }
   };
 
+  // Submission Drawer Navigation (J/K keyboard shortcuts & up/down arrow buttons)
+  const selectedIndex = selectedSubmission
+    ? submissions.findIndex((s) => s.id === selectedSubmission.id)
+    : -1;
+  const hasPrevSubmission = selectedIndex > 0;
+  const hasNextSubmission = selectedIndex >= 0 && selectedIndex < submissions.length - 1;
+
+  const handleNavigatePrevSubmission = useCallback(() => {
+    if (hasPrevSubmission) {
+      setSelectedSubmission(submissions[selectedIndex - 1]);
+    }
+  }, [hasPrevSubmission, selectedIndex, submissions]);
+
+  const handleNavigateNextSubmission = useCallback(() => {
+    if (hasNextSubmission) {
+      setSelectedSubmission(submissions[selectedIndex + 1]);
+    }
+  }, [hasNextSubmission, selectedIndex, submissions]);
+
   const handleExportCsv = () => {
     if (!currentSite) return;
     window.open(api.getExportUrl(currentSite.id), '_blank');
@@ -421,27 +438,30 @@ export const AppContent: React.FC<AppProps> = () => {
                   </div>
                 </div>
 
-                {/* Sub-Navigation Tabs (GitHub / Vercel style tabs) */}
+                {/* Sub-Navigation Tabs (Linear / Resend inspired 6 pillars) */}
                 <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-1 scrollbar-none">
                   {[
                     {
                       id: 'submissions' as DashboardTab,
-                      label: 'Submissions',
+                      label: 'Inbox',
                       icon: Inbox,
-                      count: totalSubmissions,
+                      count:
+                        submissions.filter((s) => s.status === 'new').length > 0
+                          ? submissions.filter((s) => s.status === 'new').length
+                          : totalSubmissions,
                     },
                     {
-                      id: 'template' as DashboardTab,
-                      label: 'Email Template Studio',
-                      icon: Mail,
-                    },
-                    {
-                      id: 'fields' as DashboardTab,
-                      label: 'Fields & Schema',
+                      id: 'builder' as DashboardTab,
+                      label: 'Form Builder',
                       icon: SlidersHorizontal,
                       count: siteFields.length,
                     },
-                    { id: 'connectors' as DashboardTab, label: 'Connectors', icon: Share2 },
+                    {
+                      id: 'template' as DashboardTab,
+                      label: 'Email Studio',
+                      icon: Mail,
+                    },
+                    { id: 'connectors' as DashboardTab, label: 'Integrations', icon: Share2 },
                     { id: 'embed' as DashboardTab, label: 'Code & Embed', icon: Code2 },
                     { id: 'settings' as DashboardTab, label: 'Settings', icon: Settings },
                   ].map((tab) => {
@@ -452,9 +472,9 @@ export const AppContent: React.FC<AppProps> = () => {
                         key={tab.id}
                         type="button"
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition whitespace-nowrap focus:outline-none focus-visible:ring-0 ${
+                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-medium transition whitespace-nowrap focus:outline-none focus-visible:ring-0 ${
                           isActive
-                            ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold shadow-sm'
+                            ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold shadow-sm'
                             : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] border border-transparent'
                         }`}
                       >
@@ -462,11 +482,11 @@ export const AppContent: React.FC<AppProps> = () => {
                           className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-zinc-500'}`}
                         />
                         <span>{tab.label}</span>
-                        {tab.count !== undefined && (
+                        {tab.count !== undefined && tab.count > 0 && (
                           <span
                             className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
                               isActive
-                                ? 'bg-emerald-500/20 text-emerald-300'
+                                ? 'bg-emerald-500/25 text-emerald-200'
                                 : 'bg-white/[0.06] text-zinc-400'
                             }`}
                           >
@@ -492,16 +512,15 @@ export const AppContent: React.FC<AppProps> = () => {
                     onDeleteSubmission={handleDeleteSubmission}
                     onExportCsv={handleExportCsv}
                     isLoading={isLoadingSubmissions}
+                    selectedSubmissionId={selectedSubmission?.id}
                   />
                 )}
 
-                {activeTab === 'fields' && (
-                  <SchemaFieldsView
+                {activeTab === 'builder' && (
+                  <TemplateStudioView
                     site={currentSite}
                     fields={siteFields}
                     onFieldsUpdated={setSiteFields}
-                    onSiteUpdated={handleSiteUpdated}
-                    onNavigateToEmbed={() => setActiveTab('embed')}
                   />
                 )}
 
@@ -516,14 +535,6 @@ export const AppContent: React.FC<AppProps> = () => {
 
                 {activeTab === 'template' && (
                   <EmailTemplateView site={currentSite} onSiteUpdated={handleSiteUpdated} />
-                )}
-
-                {activeTab === 'template-studio' && (
-                  <TemplateStudioView
-                    site={currentSite}
-                    fields={siteFields}
-                    onFieldsUpdated={setSiteFields}
-                  />
                 )}
 
                 {activeTab === 'embed' && (
@@ -547,12 +558,16 @@ export const AppContent: React.FC<AppProps> = () => {
         )}
       </main>
 
-      {/* Modals */}
-      <SubmissionDetailModal
+      {/* Slide-over Submission Inspection Drawer */}
+      <SubmissionDetailDrawer
         submission={selectedSubmission}
         onClose={() => setSelectedSubmission(null)}
         onUpdateStatus={handleUpdateStatus}
         onDeleteSubmission={handleDeleteSubmission}
+        onNavigatePrev={handleNavigatePrevSubmission}
+        onNavigateNext={handleNavigateNextSubmission}
+        hasPrev={hasPrevSubmission}
+        hasNext={hasNextSubmission}
       />
 
       {showAiPrompt && <AiPromptModal site={currentSite} onClose={() => setShowAiPrompt(false)} />}

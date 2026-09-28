@@ -1,6 +1,7 @@
 import {
   AlertCircle,
   Check,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Code2,
@@ -11,8 +12,10 @@ import {
   MessageSquare,
   Radio,
   Save,
+  Send,
   Settings,
   Share2,
+  Sparkles,
   Webhook,
 } from 'lucide-react';
 import React, { useState } from 'react';
@@ -43,6 +46,14 @@ export const ConnectorsView: React.FC<ConnectorsViewProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Test event dispatch state
+  const [testingTarget, setTestingTarget] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<{
+    target: string;
+    success: boolean;
+    message: string;
+  } | null>(null);
 
   React.useEffect(() => {
     setGoogleSheetsUrl(site.google_sheets_url || '');
@@ -105,10 +116,69 @@ function doPost(e) {
     }
   };
 
+  const handleSendTestWebhook = async (
+    target: 'slack' | 'discord' | 'webhook' | 'sheets',
+    url: string
+  ) => {
+    if (!url) return;
+    setTestingTarget(target);
+    setTestResult(null);
+
+    const testPayload = {
+      event: 'submission.test',
+      timestamp: new Date().toISOString(),
+      site_id: site.id,
+      domain: site.domain,
+      submission_id: `test_${Math.random().toString(36).substring(2, 8)}`,
+      data: {
+        name: 'Alex Taylor (Test)',
+        email: 'alex.taylor@example.com',
+        message: 'This is an instant connectivity test from EntryWise!',
+      },
+    };
+
+    try {
+      let body: string;
+      if (target === 'discord') {
+        body = JSON.stringify({
+          content: `🧪 **EntryWise Connectivity Test** for \`${site.domain}\`\nReceived test signal successfully at ${new Date().toLocaleTimeString()}!`,
+        });
+      } else if (target === 'slack') {
+        body = JSON.stringify({
+          text: `🧪 *EntryWise Connectivity Test* for \`${site.domain}\`\nReceived test signal successfully at ${new Date().toLocaleTimeString()}!`,
+        });
+      } else {
+        body = JSON.stringify(testPayload);
+      }
+
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        mode: 'no-cors',
+      });
+
+      setTestResult({
+        target,
+        success: true,
+        message: 'Test event dispatched successfully!',
+      });
+    } catch (err: unknown) {
+      setTestResult({
+        target,
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to dispatch test event',
+      });
+    } finally {
+      setTestingTarget(null);
+      setTimeout(() => setTestResult(null), 3500);
+    }
+  };
+
   const provider = workspace?.email_provider || 'cloudflare';
 
   const activeCount = [
-    true, // Email Delivery Engine is always active
+    true, // Email Delivery Engine
     Boolean(googleSheetsUrl),
     Boolean(slackWebhookUrl),
     Boolean(discordWebhookUrl),
@@ -116,20 +186,20 @@ function doPost(e) {
   ].filter(Boolean).length;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto pb-12">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
         <div>
           <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
             <Share2 className="w-5 h-5 text-emerald-400" />
-            <span>Connectors &amp; Webhooks</span>
+            <span>Connectors &amp; Integrations</span>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               {activeCount} Active
             </span>
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
-            Automatically route incoming submissions to your external databases, team chat apps, and
-            custom APIs via Cloudflare Queues.
+            Automatically fan out incoming form submissions to your external databases, team chat
+            channels, and custom webhooks.
           </p>
         </div>
 
@@ -141,8 +211,8 @@ function doPost(e) {
         >
           {isSaving ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin text-black" />
-              <span>Saving Changes...</span>
+              <Loader2 className="w-4 h-4 text-black animate-spin" />
+              <span>Saving...</span>
             </>
           ) : saveSuccess ? (
             <>
@@ -167,11 +237,11 @@ function doPost(e) {
 
       {/* Grid of Connectors */}
       <div className="grid grid-cols-1 gap-5">
-        {/* Email Delivery Engine (Cloudflare / Resend / MailerSend / Mailtrap / SMTP2GO) */}
-        <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-4 shadow-lg">
+        {/* 1. Email Delivery Engine */}
+        <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#0e1017] space-y-4 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
                 <Mail className="w-5 h-5" />
               </div>
               <div>
@@ -181,7 +251,7 @@ function doPost(e) {
                     {provider}
                   </span>
                 </h3>
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs text-zinc-400 mt-0.5">
                   {provider === 'cloudflare'
                     ? 'Cloudflare Managed Email (Zero Config). Alerts and receipts are delivered from no-reply@entrywise.webbound.in.'
                     : `Custom ${provider.toUpperCase()} provider connected. Sending from ${workspace?.from_name || 'EntryWise'} <${workspace?.from_email || 'configured email'}>.`}
@@ -190,22 +260,26 @@ function doPost(e) {
             </div>
 
             <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Active
+              </span>
               <button
                 type="button"
                 onClick={onConfigureEmailEngine}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] text-xs font-medium text-white transition"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] text-xs font-medium text-white transition ml-2"
               >
                 <Settings className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Configure Engine / BYOK</span>
+                <span>Configure Engine</span>
               </button>
             </div>
           </div>
 
-          <div className="p-3.5 rounded-xl border border-white/[0.06] bg-[#0a0a0d] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-zinc-400">
+          <div className="p-3.5 rounded-xl border border-white/[0.06] bg-[#090a0f] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-zinc-400">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+              <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>
-                Want to send from your own domain via <strong>Resend</strong>,{' '}
+                Want to deliver from your custom company domain via <strong>Resend</strong>,{' '}
                 <strong>MailerSend</strong>, or <strong>SMTP2GO</strong>?
               </span>
             </div>
@@ -219,49 +293,82 @@ function doPost(e) {
           </div>
         </div>
 
-        {/* Google Sheets */}
-        <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-4 shadow-lg">
+        {/* 2. Google Sheets */}
+        <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#0e1017] space-y-4 shadow-xl">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
                 <FileSpreadsheet className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white">Google Sheets Auto-Append</h3>
-                <p className="text-xs text-zinc-400">
-                  Syncs form rows to your spreadsheet in real time.
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Appends incoming form submissions as new spreadsheet rows in real time.
                 </p>
               </div>
             </div>
-            {googleSheetsUrl ? (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 font-semibold">
-                Connected
-              </span>
-            ) : (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-md border border-white/[0.08] bg-white/[0.03] text-zinc-500">
-                Not Configured
-              </span>
-            )}
+
+            <div className="flex items-center gap-2">
+              {googleSheetsUrl ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  Connected
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/[0.04] text-zinc-500 border border-white/[0.08]">
+                  Not Configured
+                </span>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label
-              htmlFor="sheets-url-input"
-              className="block text-xs font-semibold text-zinc-300 mb-1.5"
-            >
-              Google Apps Script Web App URL or Zapier / Make Webhook
-            </label>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="sheets-url-input"
+                className="block text-xs font-semibold text-zinc-300"
+              >
+                Google Apps Script Web App URL or Zapier / Make Webhook
+              </label>
+              {googleSheetsUrl && (
+                <button
+                  type="button"
+                  onClick={() => handleSendTestWebhook('sheets', googleSheetsUrl)}
+                  disabled={testingTarget === 'sheets'}
+                  className="text-[11px] text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 font-medium disabled:opacity-50"
+                >
+                  {testingTarget === 'sheets' ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Send className="w-3 h-3" />
+                  )}
+                  <span>Send Test Event</span>
+                </button>
+              )}
+            </div>
+
             <input
               id="sheets-url-input"
               type="url"
               placeholder="https://script.google.com/macros/s/.../exec"
               value={googleSheetsUrl}
               onChange={(e) => setGoogleSheetsUrl(e.target.value)}
-              className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 transition font-mono"
+              className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-4 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-emerald-500/50 transition font-mono"
             />
-            <p className="text-[11px] text-zinc-500 mt-1.5">
-              Incoming submissions are automatically delivered with queue retry.
-            </p>
+            {testResult?.target === 'sheets' && (
+              <div
+                className={`text-xs flex items-center gap-1.5 pt-1 ${
+                  testResult.success ? 'text-emerald-400' : 'text-rose-400'
+                }`}
+              >
+                {testResult.success ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                )}
+                <span>{testResult.message}</span>
+              </div>
+            )}
           </div>
 
           <button
@@ -283,7 +390,7 @@ function doPost(e) {
           </button>
 
           {showAppsScriptGuide && (
-            <div className="p-4 rounded-xl border border-white/[0.06] bg-[#0a0a0d] space-y-3">
+            <div className="p-4 rounded-xl border border-white/[0.06] bg-[#090a0f] space-y-3">
               <p className="text-xs text-zinc-400 leading-relaxed">
                 1. Open your Google Sheet &rarr; Extensions &rarr; Apps Script.
                 <br />
@@ -317,148 +424,242 @@ function doPost(e) {
           )}
         </div>
 
-        {/* Slack */}
-        <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-4 shadow-lg">
+        {/* 3. Slack Channel Webhook */}
+        <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#0e1017] space-y-4 shadow-xl">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
                 <MessageSquare className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white">Slack Channel Alerts</h3>
-                <p className="text-xs text-zinc-400">
-                  Sends formatted block cards to your team's Slack channel.
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Sends formatted block cards to your team's Slack channel upon submission.
                 </p>
               </div>
             </div>
-            {slackWebhookUrl ? (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-md border border-amber-500/20 bg-amber-500/10 text-amber-400 font-semibold">
-                Connected
-              </span>
-            ) : (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-md border border-white/[0.08] bg-white/[0.03] text-zinc-500">
-                Not Configured
-              </span>
-            )}
+
+            <div className="flex items-center gap-2">
+              {slackWebhookUrl ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  Connected
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/[0.04] text-zinc-500 border border-white/[0.08]">
+                  Not Configured
+                </span>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label
-              htmlFor="slack-url-input"
-              className="block text-xs font-semibold text-zinc-300 mb-1.5"
-            >
-              Slack Incoming Webhook URL
-            </label>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="slack-url-input"
+                className="block text-xs font-semibold text-zinc-300"
+              >
+                Slack Incoming Webhook URL
+              </label>
+              {slackWebhookUrl && (
+                <button
+                  type="button"
+                  onClick={() => handleSendTestWebhook('slack', slackWebhookUrl)}
+                  disabled={testingTarget === 'slack'}
+                  className="text-[11px] text-amber-400 hover:text-amber-300 transition flex items-center gap-1 font-medium disabled:opacity-50"
+                >
+                  {testingTarget === 'slack' ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Send className="w-3 h-3" />
+                  )}
+                  <span>Send Test Message</span>
+                </button>
+              )}
+            </div>
+
             <input
               id="slack-url-input"
               type="url"
               placeholder="https://hooks.slack.com/services/..."
               value={slackWebhookUrl}
               onChange={(e) => setSlackWebhookUrl(e.target.value)}
-              className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-amber-500/50 transition font-mono"
+              className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-4 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-amber-500/50 transition font-mono"
             />
-            <p className="text-[11px] text-zinc-500 mt-1.5">
+            {testResult?.target === 'slack' && (
+              <div
+                className={`text-xs flex items-center gap-1.5 pt-1 ${
+                  testResult.success ? 'text-emerald-400' : 'text-rose-400'
+                }`}
+              >
+                {testResult.success ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                )}
+                <span>{testResult.message}</span>
+              </div>
+            )}
+            <p className="text-[11px] text-zinc-500">
               Create an incoming webhook in your Slack App Directory and paste the full webhook URL
               here.
             </p>
           </div>
         </div>
 
-        {/* Discord */}
-        <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-4 shadow-lg">
+        {/* 4. Discord Channel Webhook */}
+        <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#0e1017] space-y-4 shadow-xl">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                 <Radio className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white">Discord Channel Webhook</h3>
-                <p className="text-xs text-zinc-400">
-                  Dispatches emerald embed cards to your Discord server.
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Dispatches emerald embed cards to your Discord channel.
                 </p>
               </div>
             </div>
-            {discordWebhookUrl ? (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-md border border-indigo-500/20 bg-indigo-500/10 text-indigo-400 font-semibold">
-                Connected
-              </span>
-            ) : (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-md border border-white/[0.08] bg-white/[0.03] text-zinc-500">
-                Not Configured
-              </span>
-            )}
+
+            <div className="flex items-center gap-2">
+              {discordWebhookUrl ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  Connected
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/[0.04] text-zinc-500 border border-white/[0.08]">
+                  Not Configured
+                </span>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label
-              htmlFor="discord-url-input"
-              className="block text-xs font-semibold text-zinc-300 mb-1.5"
-            >
-              Discord Webhook URL
-            </label>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="discord-url-input"
+                className="block text-xs font-semibold text-zinc-300"
+              >
+                Discord Webhook URL
+              </label>
+              {discordWebhookUrl && (
+                <button
+                  type="button"
+                  onClick={() => handleSendTestWebhook('discord', discordWebhookUrl)}
+                  disabled={testingTarget === 'discord'}
+                  className="text-[11px] text-indigo-400 hover:text-indigo-300 transition flex items-center gap-1 font-medium disabled:opacity-50"
+                >
+                  {testingTarget === 'discord' ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Send className="w-3 h-3" />
+                  )}
+                  <span>Send Test Alert</span>
+                </button>
+              )}
+            </div>
+
             <input
               id="discord-url-input"
               type="url"
               placeholder="https://discord.com/api/webhooks/..."
               value={discordWebhookUrl}
               onChange={(e) => setDiscordWebhookUrl(e.target.value)}
-              className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500/50 transition font-mono"
+              className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-4 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-indigo-500/50 transition font-mono"
             />
-            <p className="text-[11px] text-zinc-500 mt-1.5">
+            {testResult?.target === 'discord' && (
+              <div
+                className={`text-xs flex items-center gap-1.5 pt-1 ${
+                  testResult.success ? 'text-emerald-400' : 'text-rose-400'
+                }`}
+              >
+                {testResult.success ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                )}
+                <span>{testResult.message}</span>
+              </div>
+            )}
+            <p className="text-[11px] text-zinc-500">
               In Discord: Server Settings &rarr; Integrations &rarr; Webhooks &rarr; Copy Webhook
               URL.
             </p>
           </div>
         </div>
 
-        {/* Custom Webhook with HMAC-SHA256 */}
-        <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-4 shadow-lg">
+        {/* 5. Custom Webhook with HMAC-SHA256 */}
+        <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#0e1017] space-y-4 shadow-xl">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
                 <Webhook className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-white">
                   Custom Webhook (HMAC-SHA256 Signed)
                 </h3>
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs text-zinc-400 mt-0.5">
                   Dispatches signed JSON payloads directly to your custom backend or microservice.
                 </p>
               </div>
             </div>
-            {webhookUrl ? (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 font-semibold">
-                Connected
-              </span>
-            ) : (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-md border border-white/[0.08] bg-white/[0.03] text-zinc-500">
-                Not Configured
-              </span>
-            )}
+
+            <div className="flex items-center gap-2">
+              {webhookUrl ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  Connected
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/[0.04] text-zinc-500 border border-white/[0.08]">
+                  Not Configured
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="custom-webhook-url-input"
-                className="block text-zinc-300 text-xs font-semibold mb-1.5"
-              >
-                Webhook Endpoint URL
-              </label>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="custom-webhook-url-input"
+                  className="block text-zinc-300 text-xs font-semibold"
+                >
+                  Webhook Endpoint URL
+                </label>
+                {webhookUrl && (
+                  <button
+                    type="button"
+                    onClick={() => handleSendTestWebhook('webhook', webhookUrl)}
+                    disabled={testingTarget === 'webhook'}
+                    className="text-[11px] text-teal-400 hover:text-teal-300 transition flex items-center gap-1 font-medium disabled:opacity-50"
+                  >
+                    {testingTarget === 'webhook' ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Send className="w-3 h-3" />
+                    )}
+                    <span>Send Ping</span>
+                  </button>
+                )}
+              </div>
               <input
                 id="custom-webhook-url-input"
                 type="url"
                 placeholder="https://api.yourdomain.com/webhooks/entrywise"
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
-                className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 transition font-mono"
+                className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-4 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-teal-500/50 transition font-mono"
               />
             </div>
-            <div>
+
+            <div className="space-y-1.5">
               <label
                 htmlFor="custom-webhook-secret-input"
-                className="block text-zinc-300 text-xs font-semibold mb-1.5"
+                className="block text-zinc-300 text-xs font-semibold"
               >
                 HMAC Signing Secret Key (Optional)
               </label>
@@ -468,16 +669,30 @@ function doPost(e) {
                 placeholder="whsec_..."
                 value={webhookSecret}
                 onChange={(e) => setWebhookSecret(e.target.value)}
-                className="w-full bg-[#0a0a0d] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50 transition font-mono"
+                className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-4 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-teal-500/50 transition font-mono"
               />
             </div>
           </div>
 
+          {testResult?.target === 'webhook' && (
+            <div
+              className={`text-xs flex items-center gap-1.5 pt-1 ${
+                testResult.success ? 'text-emerald-400' : 'text-rose-400'
+              }`}
+            >
+              {testResult.success ? (
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              ) : (
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              )}
+              <span>{testResult.message}</span>
+            </div>
+          )}
+
           <p className="text-[11px] text-zinc-500">
             Delivered with header{' '}
             <code className="text-zinc-400 font-mono">X-EntryWise-Signature: sha256=...</code>,
-            complete SSRF protection (blocking internal IP ranges), and 5-second timeout with
-            automated Cloudflare Queue retry.
+            automated SSRF isolation, and 5-second timeout with automated Cloudflare Queue retries.
           </p>
         </div>
       </div>

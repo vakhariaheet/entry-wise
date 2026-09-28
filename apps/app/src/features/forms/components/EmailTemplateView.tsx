@@ -2481,6 +2481,52 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
                         color: theme === 'clean_light' ? '#0f172a' : '#f8fafc',
                       }}
                     >
+                      {/* Email Client Top Mockup Chrome (Apple Mail / Gmail Header) */}
+                      <div
+                        className="px-4 py-3 border-b flex items-center justify-between text-[11px] shrink-0 select-none"
+                        style={{
+                          backgroundColor:
+                            theme === 'clean_light' ? '#f8fafc' : 'rgba(0, 0, 0, 0.3)',
+                          borderColor:
+                            theme === 'clean_light' ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)',
+                        }}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex items-center gap-1.5 shrink-0 pr-1">
+                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+                          </div>
+                          <div
+                            className="font-medium truncate text-xs"
+                            style={{
+                              color: theme === 'clean_light' ? '#334155' : '#e2e8f0',
+                            }}
+                          >
+                            <span
+                              className="font-semibold"
+                              style={{
+                                color: theme === 'clean_light' ? '#64748b' : '#94a3b8',
+                              }}
+                            >
+                              Subject:
+                            </span>{' '}
+                            <span>{simulateInlineText(subject) || '(No Subject Line)'}</span>
+                          </div>
+                        </div>
+
+                        <span
+                          className="font-mono text-[10px] shrink-0 ml-2 px-2 py-0.5 rounded-full font-medium"
+                          style={{
+                            backgroundColor:
+                              theme === 'clean_light' ? '#e2e8f0' : 'rgba(255, 255, 255, 0.08)',
+                            color: theme === 'clean_light' ? '#475569' : '#94a3b8',
+                          }}
+                        >
+                          {isAuto ? 'Auto-Responder' : 'Submission Alert'}
+                        </span>
+                      </div>
+
                       {blocks.map((block) => {
                         const align = block.alignment || 'left';
                         const isSelected = block.id === selectedBlockId;
