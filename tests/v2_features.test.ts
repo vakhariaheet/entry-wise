@@ -97,3 +97,23 @@ describe('Security: Open Redirect Guard', () => {
         expect(validateRedirectUrl('https://phishing.com/steal-creds', 'acme.com')).toBe(null);
     });
 });
+
+describe('Webhooks: Schema & Security Validation', () => {
+    it('validates webhook schema and rejects malformed URLs', async () => {
+        const { createWebhookSchema } = await import('../src/schemas/webhook.schema');
+        const valid = createWebhookSchema.safeParse({
+            name: 'Production Webhook',
+            url: 'https://api.mycompany.com/webhook',
+            secret: 'whsec_123',
+            enabled: true,
+        });
+        expect(valid.success).toBe(true);
+
+        const invalidUrl = createWebhookSchema.safeParse({
+            name: 'Broken',
+            url: 'not-a-url',
+        });
+        expect(invalidUrl.success).toBe(false);
+    });
+});
+

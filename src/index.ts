@@ -87,6 +87,10 @@ app.get(
           description: 'Site registration, domain authorization, and notification settings',
         },
         { name: 'Fields', description: 'Dynamic form field schema definitions' },
+        {
+          name: 'Webhooks',
+          description: 'Outgoing webhook management, event subscriptions, and signature verification',
+        },
         { name: 'Authentication', description: 'TOTP authentication and JWT token generation' },
         { name: 'companies', description: 'Company operations (legacy)' },
         { name: 'sites', description: 'Site operations (legacy)' },

@@ -1,4 +1,4 @@
-import type { Company, FieldType, FormField, Site, Submission } from '../types';
+import type { Company, FieldType, FormField, Site, Submission, Webhook } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://entrywise.webbound.in/v1';
 
@@ -305,6 +305,84 @@ class ApiService {
 
   getExportUrl(siteId: string): string {
     return `${API_BASE}/sites/${siteId}/submissions/export`;
+  }
+
+  // Webhooks
+  async listWebhooks(siteId: string): Promise<Webhook[]> {
+    const res = await fetch(`${API_BASE}/sites/${siteId}/webhooks`, {
+      headers: this.getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || `Failed to fetch webhooks (HTTP ${res.status})`);
+    }
+    const json = await res.json();
+    return json.items || json.data || [];
+  }
+
+  async createWebhook(
+    siteId: string,
+    data: { name: string; url: string; secret?: string | null; enabled?: boolean }
+  ): Promise<Webhook> {
+    const res = await fetch(`${API_BASE}/sites/${siteId}/webhooks`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || `Failed to create webhook (HTTP ${res.status})`);
+    }
+    const json = await res.json();
+    return json.data || json;
+  }
+
+  async updateWebhook(
+    siteId: string,
+    webhookId: string,
+    data: Partial<{ name: string; url: string; secret?: string | null; enabled?: boolean }>
+  ): Promise<Webhook> {
+    const res = await fetch(`${API_BASE}/sites/${siteId}/webhooks/${webhookId}`, {
+      method: 'PATCH',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || `Failed to update webhook (HTTP ${res.status})`);
+    }
+    const json = await res.json();
+    return json.data || json;
+  }
+
+  async deleteWebhook(siteId: string, webhookId: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/sites/${siteId}/webhooks/${webhookId}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || `Failed to delete webhook (HTTP ${res.status})`);
+    }
+  }
+
+  async testWebhook(
+    siteId: string,
+    webhookId: string
+  ): Promise<{ success: boolean; status?: number; error?: string }> {
+    const res = await fetch(`${API_BASE}/sites/${siteId}/webhooks/${webhookId}/test`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return {
+        success: false,
+        error: err.detail || err.message || `Test failed with HTTP ${res.status}`,
+      };
+    }
+    const json = await res.json();
+    return json.data || json;
   }
 }
 

@@ -60,3 +60,14 @@ export interface Company {
   user_id?: string | null;
   created_at: string;
 }
+
+export interface Webhook {
+  id: string;
+  site_id: string;
+  name: string;
+  url: string;
+  secret: string | null;
+  enabled: boolean | number;
+  events?: string | null;
+  created_at?: string;
+}

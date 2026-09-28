@@ -33,6 +33,15 @@ import {
 } from '../../schemas/field.schema';
 import { testSiteEmailSchema, updateSiteSchema } from '../../schemas/site.schema';
 import { patchSubmissionSchema } from '../../schemas/submission.schema';
+import { createWebhook } from '../../controllers/v1/webhooks/createWebhook';
+import { deleteWebhook } from '../../controllers/v1/webhooks/deleteWebhook';
+import { listWebhooks } from '../../controllers/v1/webhooks/listWebhooks';
+import { patchWebhook } from '../../controllers/v1/webhooks/patchWebhook';
+import { testWebhook } from '../../controllers/v1/webhooks/testWebhook';
+import {
+  createWebhookSchema,
+  updateWebhookSchema,
+} from '../../schemas/webhook.schema';
 import type { Env } from '../../types/env';
 
 const sitesRouter = new Hono<{ Bindings: Env }>();
@@ -229,6 +238,93 @@ sitesRouter.delete(
   }),
   validator('param', z.object({ site_id: z.string(), field_id: z.string() })),
   deleteField
+);
+
+// ----------------------------------------------------
+// Webhooks Sub-Resource: /v1/sites/{site_id}/webhooks
+// ----------------------------------------------------
+sitesRouter.get(
+  '/:site_id/webhooks',
+  describeRoute({
+    summary: 'List webhooks',
+    description: 'Retrieve all configured outgoing webhooks for a site',
+    tags: ['Webhooks'],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Webhooks retrieved successfully' },
+      401: { description: 'Authentication required' },
+    },
+  }),
+  validator('param', z.object({ site_id: z.string() })),
+  listWebhooks
+);
+
+sitesRouter.post(
+  '/:site_id/webhooks',
+  describeRoute({
+    summary: 'Create webhook',
+    description: 'Register a new outgoing webhook endpoint for form submission events',
+    tags: ['Webhooks'],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      201: { description: 'Webhook created successfully' },
+      400: { description: 'Invalid webhook payload' },
+      404: { description: 'Site not found' },
+    },
+  }),
+  validator('param', z.object({ site_id: z.string() })),
+  validator('json', createWebhookSchema),
+  createWebhook
+);
+
+sitesRouter.patch(
+  '/:site_id/webhooks/:webhook_id',
+  describeRoute({
+    summary: 'Update webhook',
+    description: 'Update webhook destination URL, secret, name, or active status',
+    tags: ['Webhooks'],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Webhook updated successfully' },
+      400: { description: 'Invalid payload' },
+      404: { description: 'Webhook or site not found' },
+    },
+  }),
+  validator('param', z.object({ site_id: z.string(), webhook_id: z.string() })),
+  validator('json', updateWebhookSchema),
+  patchWebhook
+);
+
+sitesRouter.delete(
+  '/:site_id/webhooks/:webhook_id',
+  describeRoute({
+    summary: 'Delete webhook',
+    description: 'Remove an outgoing webhook configuration',
+    tags: ['Webhooks'],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      204: { description: 'Webhook deleted successfully' },
+      404: { description: 'Webhook not found' },
+    },
+  }),
+  validator('param', z.object({ site_id: z.string(), webhook_id: z.string() })),
+  deleteWebhook
+);
+
+sitesRouter.post(
+  '/:site_id/webhooks/:webhook_id/test',
+  describeRoute({
+    summary: 'Test webhook dispatch',
+    description: 'Sends an immediate test submission event to verify destination connectivity',
+    tags: ['Webhooks'],
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: { description: 'Test event dispatched' },
+      404: { description: 'Webhook not found' },
+    },
+  }),
+  validator('param', z.object({ site_id: z.string(), webhook_id: z.string() })),
+  testWebhook
 );
 
 // ----------------------------------------------------

@@ -42,6 +42,10 @@
       "description": "Dynamic form field schema definitions"
     },
     {
+      "name": "Webhooks",
+      "description": "Outgoing webhook management, event subscriptions, and signature verification"
+    },
+    {
       "name": "Authentication",
       "description": "TOTP authentication and JWT token generation"
     },
@@ -10212,6 +10216,2629 @@
         ],
         "summary": "Delete field",
         "description": "Delete a field definition from the site",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/sites/{site_id}/webhooks": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Webhooks retrieved successfully",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Validation or parameter error (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              },
+              "Retry-After": {
+                "description": "The number of seconds to wait before retrying the request",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getV1SitesBySite_idWebhooks",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "site_id",
+            "schema": {
+              "type": "string",
+              "format": "text"
+            },
+            "required": true,
+            "description": "The site_id parameter",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          }
+        ],
+        "summary": "List webhooks",
+        "description": "Retrieve all configured outgoing webhooks for a site",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "responses": {
+          "201": {
+            "description": "Webhook created successfully",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid webhook payload",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required or invalid bearer token (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Site not found",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              },
+              "Retry-After": {
+                "description": "The number of seconds to wait before retrying the request",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1SitesBySite_idWebhooks",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "site_id",
+            "schema": {
+              "type": "string",
+              "format": "text"
+            },
+            "required": true,
+            "description": "The site_id parameter",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          }
+        ],
+        "summary": "Create webhook",
+        "description": "Register a new outgoing webhook endpoint for form submission events",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "default": "Webhook",
+                    "description": "Friendly name for the webhook",
+                    "example": "Production Backend API",
+                    "format": "text"
+                  },
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Destination URL for event delivery",
+                    "example": "https://api.mycompany.com/webhooks/forms"
+                  },
+                  "secret": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "HMAC secret for signature verification",
+                    "example": "whsec_abc123",
+                    "format": "text"
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Initial active state of the webhook",
+                    "example": true
+                  }
+                },
+                "required": [
+                  "url"
+                ]
+              }
+            }
+          },
+          "description": "Request body payload"
+        }
+      }
+    },
+    "/v1/sites/{site_id}/webhooks/{webhook_id}": {
+      "patch": {
+        "responses": {
+          "200": {
+            "description": "Webhook updated successfully",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required or invalid bearer token (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Webhook or site not found",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              },
+              "Retry-After": {
+                "description": "The number of seconds to wait before retrying the request",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          }
+        },
+        "operationId": "patchV1SitesBySite_idWebhooksByWebhook_id",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "site_id",
+            "schema": {
+              "type": "string",
+              "format": "text"
+            },
+            "required": true,
+            "description": "The site_id parameter",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          {
+            "in": "path",
+            "name": "webhook_id",
+            "schema": {
+              "type": "string",
+              "format": "text"
+            },
+            "required": true,
+            "description": "The webhook_id parameter",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          }
+        ],
+        "summary": "Update webhook",
+        "description": "Update webhook destination URL, secret, name, or active status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "default": "Webhook",
+                    "description": "Friendly name for the webhook",
+                    "example": "Production Backend API",
+                    "format": "text"
+                  },
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Destination URL for event delivery",
+                    "example": "https://api.mycompany.com/webhooks/forms"
+                  },
+                  "secret": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "HMAC secret for signature verification",
+                    "example": "whsec_abc123",
+                    "format": "text"
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Initial active state of the webhook",
+                    "example": true
+                  }
+                }
+              }
+            }
+          },
+          "description": "Request body payload"
+        }
+      },
+      "delete": {
+        "responses": {
+          "204": {
+            "description": "Webhook deleted successfully",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Validation or parameter error (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required or invalid bearer token (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Webhook not found",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              },
+              "Retry-After": {
+                "description": "The number of seconds to wait before retrying the request",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          }
+        },
+        "operationId": "deleteV1SitesBySite_idWebhooksByWebhook_id",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "site_id",
+            "schema": {
+              "type": "string",
+              "format": "text"
+            },
+            "required": true,
+            "description": "The site_id parameter",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          {
+            "in": "path",
+            "name": "webhook_id",
+            "schema": {
+              "type": "string",
+              "format": "text"
+            },
+            "required": true,
+            "description": "The webhook_id parameter",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          }
+        ],
+        "summary": "Delete webhook",
+        "description": "Remove an outgoing webhook configuration",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/sites/{site_id}/webhooks/{webhook_id}/test": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Test event dispatched",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Validation or parameter error (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required or invalid bearer token (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Webhook not found",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              },
+              "Retry-After": {
+                "description": "The number of seconds to wait before retrying the request",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error (RFC 7807 Problem Details)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "title",
+                    "status",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "format": "uri",
+                      "example": "https://entrywise.webbound.in/problems/bad-request"
+                    },
+                    "title": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Bad Request"
+                    },
+                    "status": {
+                      "type": "integer",
+                      "format": "int32",
+                      "minimum": 100,
+                      "maximum": 599,
+                      "example": 400
+                    },
+                    "detail": {
+                      "type": "string",
+                      "format": "text",
+                      "example": "Request validation failed"
+                    },
+                    "instance": {
+                      "type": "string",
+                      "format": "uri-reference",
+                      "example": "/v1/sites/req_123"
+                    },
+                    "invalid_params": {
+                      "type": "array",
+                      "example": [
+                        {
+                          "name": "email",
+                          "reason": "Invalid email address format"
+                        }
+                      ],
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "reason"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "email"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "format": "text",
+                            "example": "Invalid email address format"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "https://entrywise.webbound.in/problems/bad-request",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail": "Request validation failed",
+                  "instance": "/v1/sites/req_123"
+                }
+              }
+            },
+            "headers": {
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of remaining requests in the current time period",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 100000
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "The number of seconds until the current rate limit window resets",
+                "schema": {
+                  "type": "integer",
+                  "format": "int32",
+                  "minimum": 0,
+                  "maximum": 86400
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postV1SitesBySite_idWebhooksByWebhook_idTest",
+        "tags": [
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "site_id",
+            "schema": {
+              "type": "string",
+              "format": "text"
+            },
+            "required": true,
+            "description": "The site_id parameter",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          },
+          {
+            "in": "path",
+            "name": "webhook_id",
+            "schema": {
+              "type": "string",
+              "format": "text"
+            },
+            "required": true,
+            "description": "The webhook_id parameter",
+            "example": "123e4567-e89b-12d3-a456-426614174000"
+          }
+        ],
+        "summary": "Test webhook dispatch",
+        "description": "Sends an immediate test submission event to verify destination connectivity",
         "security": [
           {
             "bearerAuth": []

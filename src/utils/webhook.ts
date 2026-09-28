@@ -64,8 +64,11 @@ export async function dispatchWebhook(
     });
 
     return { success: res.ok, status: res.status };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Webhook dispatch error:', err);
-    return { success: false, error: err.message || 'Webhook dispatch failed' };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Webhook dispatch failed',
+    };
   }
 }

@@ -8,6 +8,7 @@ import type { Company } from '../types/company';
 import type { Env } from '../types/env';
 import type { SubmissionQueueMessage } from '../types/queue';
 import type { Site } from '../types/site';
+import type { Webhook } from '../types/webhook';
 import { decrypt } from '../utils/encryption';
 import { escapeHtml } from '../utils/escapeHtml';
 import { dispatchWebhook } from '../utils/webhook';
@@ -264,27 +265,41 @@ export async function processSubmissionDelivery(
       );
     }
 
-    // 6. Outgoing Webhook
-    if (site.webhook_url) {
+    // 6. Outgoing Webhooks (Multiple Webhooks Fanout with Legacy Fallback)
+    const { results: activeWebhooks } = await env.DB.prepare(
+      'SELECT * FROM webhooks WHERE site_id = ? AND enabled = 1'
+    )
+      .bind(site.id)
+      .all<Webhook>();
+
+    const webhookEventPayload = {
+      event: 'submission.created' as const,
+      timestamp: message.submittedAt || new Date().toISOString(),
+      site_id: site.id,
+      domain: site.domain,
+      submission_id: submissionId,
+      data: fields,
+      attachments: savedAttachmentMeta?.map((f) => ({
+        filename: f.filename || f.name || 'attachment',
+        size: f.size,
+        type: f.mime_type || f.type,
+      })),
+    };
+
+    if (activeWebhooks && activeWebhooks.length > 0) {
+      for (const wh of activeWebhooks) {
+        deliveryTasks.push(
+          dispatchWebhook(wh.url, webhookEventPayload, wh.secret).catch((err) => {
+            console.error(`[Queue] Webhook '${wh.name || wh.id}' dispatch error:`, err);
+            errors.push(`Webhook error (${wh.name || wh.id}): ${err.message}`);
+          })
+        );
+      }
+    } else if (site.webhook_url) {
+      // Legacy fallback
       deliveryTasks.push(
-        dispatchWebhook(
-          site.webhook_url,
-          {
-            event: 'submission.created',
-            timestamp: message.submittedAt || new Date().toISOString(),
-            site_id: site.id,
-            domain: site.domain,
-            submission_id: submissionId,
-            data: fields,
-            attachments: savedAttachmentMeta?.map((f) => ({
-              filename: f.filename || f.name || 'attachment',
-              size: f.size,
-              type: f.mime_type || f.type,
-            })),
-          },
-          site.webhook_secret
-        ).catch((err) => {
-          console.error('[Queue] Webhook dispatch error:', err);
+        dispatchWebhook(site.webhook_url, webhookEventPayload, site.webhook_secret).catch((err) => {
+          console.error('[Queue] Legacy webhook dispatch error:', err);
           errors.push(`Webhook error: ${err.message}`);
         })
       );
