@@ -12,6 +12,8 @@ export interface Submission {
   }>;
   status: 'new' | 'read' | 'archived' | 'spam';
   ip_address?: string;
+  is_test?: number | boolean;
+  notes?: string | null;
   created_at: string;
 }
 

@@ -8,47 +8,53 @@ import '../styles/global.css';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EntryWise — Headless Form Backend for Developers & AI Agents</title>
-    <meta name="description" content="Sub-20ms edge form backend powered by Cloudflare Workers. D1 SQLite storage, Turnstile bot protection, battle-tested Google Sheets sync, HMAC webhooks, and 1-click AI prompts.">
+    <meta name="description" content="Sub-20ms edge form backend powered by Cloudflare Workers & D1 SQLite. Zero-friction Turnstile bot defense, Google Sheets sync, HMAC webhooks, and 1-click AI prompts.">
     <link rel="icon" type="image/png" href="/assets/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         .hero-glow {
-            background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.18) 0%, rgba(16, 185, 129, 0.03) 50%, transparent 80%);
+            background: radial-gradient(ellipse 70% 50% at 50% -10%, rgba(16, 185, 129, 0.16) 0%, rgba(16, 185, 129, 0.02) 60%, transparent 80%);
         }
         .mesh-grid {
-            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-            background-size: 32px 32px;
-            mask-image: radial-gradient(ellipse 70% 60% at 50% 10%, #000 70%, transparent 100%);
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+            background-size: 36px 36px;
+            mask-image: radial-gradient(ellipse 80% 65% at 50% 15%, #000 65%, transparent 100%);
         }
         .card-surface {
             background: #0d0f17;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.07);
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .card-surface:hover {
-            border-color: rgba(255, 255, 255, 0.16);
+            border-color: rgba(255, 255, 255, 0.15);
             transform: translateY(-2px);
-            box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.6);
+            box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.65);
         }
-        .step-pulse {
-            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        .tab-btn-active {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.15);
         }
-        @keyframes pulse-ring {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
+        .tab-btn-inactive {
+            color: #a1a1aa;
+            border-color: transparent;
+        }
+        .tab-btn-inactive:hover {
+            color: #f4f4f5;
+            background: rgba(255, 255, 255, 0.03);
         }
     </style>
 </head>
 <body class="bg-[#07080b] text-[#f4f4f5] min-h-screen relative overflow-x-hidden selection:bg-emerald-500/20 selection:text-emerald-300">
-    <!-- Ambient Hero Glow -->
-    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[700px] hero-glow pointer-events-none -z-10"></div>
+    <!-- Ambient Hero Glow & Grid -->
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[680px] hero-glow pointer-events-none -z-10"></div>
     <div class="absolute inset-0 mesh-grid pointer-events-none -z-10"></div>
 
     <!-- Navigation Bar -->
-    <header class="border-b border-white/[0.08] bg-[#07080b]/80 backdrop-blur-xl sticky top-0 z-50 transition-all">
+    <header class="border-b border-white/[0.08] bg-[#07080b]/85 backdrop-blur-xl sticky top-0 z-50 transition-all">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-8">
                 <!-- Brand -->
@@ -59,26 +65,26 @@ import '../styles/global.css';
                 </a>
 
                 <!-- Desktop Nav Links -->
-                <nav class="hidden md:flex items-center gap-6 text-[13px] text-zinc-400 font-medium">
+                <nav class="hidden lg:flex items-center gap-6 text-[13px] text-zinc-400 font-medium">
                     <a href="#pipeline" class="hover:text-white transition">Pipeline Flow</a>
-                    <a href="#sdk" class="hover:text-white transition">SDKs &amp; Prompts</a>
-                    <a href="#integrations" class="hover:text-white transition">Integrations</a>
-                    <a href="#benchmarks" class="hover:text-white transition">Benchmarks</a>
-                    <a href="#sandbox" class="hover:text-white transition">Live Sandbox</a>
-                    <a href="/docs" class="hover:text-white transition flex items-center gap-1">
-                        <span>OpenAPI</span>
-                        <span class="text-[10px] font-mono text-zinc-500 bg-white/5 px-1 py-0.5 rounded">100/100 A+</span>
+                    <a href="#features" class="hover:text-white transition">Features</a>
+                    <a href="#sdk" class="hover:text-white transition">Code &amp; AI Prompts</a>
+                    <a href="#benchmarks" class="hover:text-white transition">Edge Latency</a>
+                    <a href="#faq" class="hover:text-white transition">FAQ</a>
+                    <a href="/docs" class="hover:text-white transition flex items-center gap-1.5">
+                        <span>OpenAPI Docs</span>
+                        <span class="text-[10px] font-mono text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 rounded">100/100 A+</span>
                     </a>
                 </nav>
             </div>
 
             <!-- Header CTAs -->
             <div class="flex items-center gap-3">
-                <button onclick="copyUniversalPrompt()" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] px-3.5 py-1.5 rounded-lg transition shadow-sm">
+                <button type="button" onclick="copyUniversalPrompt()" class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] px-3.5 py-1.5 rounded-xl transition shadow-sm cursor-pointer">
                     <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                     <span id="navPromptText">Copy AI Prompt</span>
                 </button>
-                <a href="https://entrywise-app.pages.dev" class="inline-flex items-center gap-1.5 text-xs font-semibold text-black bg-white hover:bg-zinc-200 px-4 py-2 rounded-lg transition shadow-md shadow-white/5">
+                <a href="https://entrywise-app.pages.dev" class="inline-flex items-center gap-1.5 text-xs font-semibold text-black bg-white hover:bg-zinc-200 px-4 py-2 rounded-xl transition shadow-md shadow-white/5">
                     <span>Open Console</span>
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
@@ -86,61 +92,81 @@ import '../styles/global.css';
         </div>
     </header>
 
-    <!-- Hero Section -->
+    <!-- HERO SECTION -->
     <section class="pt-20 pb-16 px-6 max-w-5xl mx-auto text-center space-y-8">
         <!-- Top Pill Badge -->
         <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full text-xs font-medium border border-emerald-500/30 bg-emerald-950/30 text-emerald-300 shadow-inner">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Sub-20ms Headless Form Ingestion</span>
+            <span>Sub-20ms Edge Ingestion Worldwide</span>
             <span class="text-zinc-600">•</span>
             <span class="text-zinc-300 font-mono">Cloudflare Workers + D1 SQLite</span>
         </div>
 
         <!-- Headline -->
         <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-[1.08]">
-            The form backend built for <br class="hidden sm:inline" />
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-100 to-zinc-300">modern developers &amp; AI.</span>
+            The form backend that <br class="hidden sm:inline" />
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-100 to-zinc-200">doesn’t get in your way.</span>
         </h1>
 
         <!-- Subtitle -->
         <p class="text-base sm:text-lg text-zinc-400 max-w-2xl mx-auto font-normal leading-relaxed">
-            Drop an endpoint into React, Next.js Server Actions, or native HTML forms. With instant D1 SQLite persistence, Turnstile bot trapping, dynamic Google Sheets sync, and signed webhooks.
+            Drop one endpoint into React, Next.js, Astro, or static HTML. With instant D1 SQLite persistence, Turnstile bot trapping, dynamic Google Sheets sync, and multi-webhooks.
         </p>
 
-        <!-- CTA Buttons -->
+        <!-- CTA Action Buttons -->
         <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
             <a href="https://entrywise-app.pages.dev" class="inline-flex items-center gap-2 text-sm font-semibold text-black bg-white hover:bg-zinc-200 px-6 py-3.5 rounded-xl transition shadow-xl shadow-white/10 group">
                 <span>Start Free in Console</span>
                 <svg class="w-4 h-4 text-black group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
             </a>
-            <button onclick="copyUniversalPrompt()" class="inline-flex items-center gap-2 text-sm font-medium text-zinc-200 hover:text-white bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.12] px-6 py-3.5 rounded-xl transition shadow-sm">
+            <button type="button" onclick="copyUniversalPrompt()" class="inline-flex items-center gap-2 text-sm font-medium text-zinc-200 hover:text-white bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.12] px-6 py-3.5 rounded-xl transition shadow-sm cursor-pointer">
                 <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 <span id="heroCopyText">Copy Universal Prompt for Cursor</span>
             </button>
             <a href="#pipeline" class="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-400 hover:text-zinc-200 px-4 py-3.5 transition">
-                <span>Watch Pipeline Demo</span>
+                <span>Watch Live Pipeline</span>
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </a>
         </div>
+
+        <!-- Trust Chips / Proof Bar -->
+        <div class="pt-8 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs text-zinc-400 font-mono">
+            <div class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>330+ Cloudflare Edge PoPs</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>OpenAPI 3.1 100/100 A+</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>Zero Database Maintenance</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>GDPR Zero-IP Masking</span>
+            </div>
+        </div>
     </section>
 
-    <!-- SECTION 1: LIVE INTERACTIVE PIPELINE FLOW (Hero Feature) -->
+    <!-- SECTION 1: LIVE INTERACTIVE PIPELINE FLOW (Hero Ingestion) -->
     <section id="pipeline" class="py-16 px-6 max-w-7xl mx-auto border-t border-white/[0.08]">
         <div class="text-center space-y-3 mb-12">
             <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 font-mono">Real-Time Ingestion</span>
-            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-white">Watch a submission route to all destinations</h2>
+            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-white">Watch a submission route in parallel</h2>
             <p class="text-sm text-zinc-400 max-w-xl mx-auto">
-                Type a test message and hit dispatch. See how EntryWise processes edge ingestion, database commits, spreadsheet sync, and team alerts in parallel.
+                Type a test lead and hit dispatch. See how EntryWise processes edge ingestion, D1 SQLite commits, Google Sheets sync, and instant team alerts simultaneously.
             </p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <!-- Left: Client Form Simulator (4 cols) -->
+            <!-- Left: Client Form Simulator (5 cols) -->
             <div class="lg:col-span-5 card-surface rounded-2xl p-6 space-y-5">
                 <div class="flex items-center justify-between pb-3 border-b border-white/[0.08]">
                     <div class="flex items-center gap-2">
                         <div class="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
-                        <span class="text-xs font-semibold text-white tracking-wide">Client Form Ingestion</span>
+                        <span class="text-xs font-semibold text-white tracking-wide">Client Ingestion Simulator</span>
                     </div>
                     <span class="text-[11px] font-mono text-zinc-500">POST /f/ew_live_79a2</span>
                 </div>
@@ -148,36 +174,36 @@ import '../styles/global.css';
                 <div class="space-y-3.5">
                     <div>
                         <label class="block text-xs font-medium text-zinc-400 mb-1">Submitter Name</label>
-                        <input type="text" id="simName" value="Alex Rivera" class="w-full bg-[#07080b] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 transition">
+                        <input type="text" id="simName" value="Alex Rivera" class="w-full bg-[#07080b] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 transition">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-zinc-400 mb-1">Work Email</label>
-                        <input type="email" id="simEmail" value="alex@acme-corp.com" class="w-full bg-[#07080b] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 transition">
+                        <input type="email" id="simEmail" value="alex@acme-corp.com" class="w-full bg-[#07080b] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 transition">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-zinc-400 mb-1">Inquiry / Message</label>
-                        <input type="text" id="simMessage" value="Evaluating EntryWise edge form backend for our Next.js 15 migration." class="w-full bg-[#07080b] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 transition">
+                        <input type="text" id="simMessage" value="Evaluating EntryWise edge form backend for our team." class="w-full bg-[#07080b] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 transition">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-zinc-400 mb-1">Dynamic Field (Auto-expands Google Sheet!)</label>
-                        <input type="text" id="simBudget" value="$25,000 / year" class="w-full bg-[#07080b] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 transition">
+                        <label class="block text-xs font-medium text-zinc-400 mb-1">Custom Field (Auto-expands Google Sheet column)</label>
+                        <input type="text" id="simBudget" value="$25,000 / year" class="w-full bg-[#07080b] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500/50 transition">
                     </div>
                 </div>
 
-                <button type="button" onclick="triggerPipelineDemo()" id="simDispatchBtn" class="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.98]">
+                <button type="button" onclick="triggerPipelineDemo()" id="simDispatchBtn" class="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.98] cursor-pointer">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <span>Dispatch Submission Now</span>
+                    <span>Dispatch Simulation Now</span>
                 </button>
             </div>
 
-            <!-- Right: Live Pipeline Multi-Destination Execution (7 cols) -->
+            <!-- Right: Parallel Pipeline Stages (7 cols) -->
             <div class="lg:col-span-7 card-surface rounded-2xl p-6 space-y-6">
                 <div class="flex items-center justify-between pb-3 border-b border-white/[0.08]">
                     <div class="flex items-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
                         <span class="text-xs font-semibold text-white tracking-wide">Parallel Delivery Pipeline</span>
                     </div>
-                    <span id="pipelineStatus" class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Ready for dispatch</span>
+                    <span id="pipelineStatus" class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">Ready for dispatch</span>
                 </div>
 
                 <!-- Pipeline Stages -->
@@ -189,9 +215,9 @@ import '../styles/global.css';
                             <div>
                                 <div class="text-xs font-semibold text-white flex items-center gap-2">
                                     <span>Cloudflare Workers Edge Router</span>
-                                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/5 text-zinc-400">PoP: SFO</span>
+                                    <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/5 text-zinc-400">PoP: Nearest Edge</span>
                                 </div>
-                                <div class="text-[11px] text-zinc-400 mt-0.5">Turnstile bot verified • Rate limits cleared • RFC 7807 schema validated</div>
+                                <div class="text-[11px] text-zinc-400 mt-0.5">Turnstile verified • Rate limits checked • RFC 7807 schema validated</div>
                             </div>
                         </div>
                         <div class="text-right">
@@ -212,7 +238,7 @@ import '../styles/global.css';
                         <span class="text-[11px] font-mono text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">Stored</span>
                     </div>
 
-                    <!-- Stage 3: Integrations Fanout -->
+                    <!-- Stage 3: Connectors Fanout -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                         <!-- Google Sheets -->
                         <div class="p-3.5 rounded-xl border border-white/[0.08] bg-[#07080b] space-y-2 transition" id="stageSheets">
@@ -223,22 +249,22 @@ import '../styles/global.css';
                             <div class="text-[10px] text-zinc-400 leading-tight">30s LockService acquired. Auto-appended dynamic <code class="text-emerald-400">budget</code> column.</div>
                         </div>
 
-                        <!-- Slack Alert -->
+                        <!-- Slack / Discord Alert -->
                         <div class="p-3.5 rounded-xl border border-white/[0.08] bg-[#07080b] space-y-2 transition" id="stageSlack">
                             <div class="flex items-center justify-between">
-                                <span class="text-[11px] font-semibold text-white">Slack Alert</span>
+                                <span class="text-[11px] font-semibold text-white">Slack &amp; Discord</span>
                                 <span class="w-2 h-2 rounded-full bg-amber-400" id="dotSlack"></span>
                             </div>
-                            <div class="text-[10px] text-zinc-400 leading-tight">Block card dispatched to <span class="text-zinc-200">#sales-leads</span> with instant one-click view.</div>
+                            <div class="text-[10px] text-zinc-400 leading-tight">Formatted rich markdown card with 1-click lead inspect link.</div>
                         </div>
 
-                        <!-- Auto-Responder -->
+                        <!-- Auto-Responder Email -->
                         <div class="p-3.5 rounded-xl border border-white/[0.08] bg-[#07080b] space-y-2 transition" id="stageEmail">
                             <div class="flex items-center justify-between">
                                 <span class="text-[11px] font-semibold text-white">Branded Email</span>
                                 <span class="w-2 h-2 rounded-full bg-blue-400" id="dotEmail"></span>
                             </div>
-                            <div class="text-[10px] text-zinc-400 leading-tight">Confirmation sent to submitter with custom HTML template &amp; variables.</div>
+                            <div class="text-[10px] text-zinc-400 leading-tight">Confirmation sent to submitter via Cloudflare Send Email or Resend.</div>
                         </div>
                     </div>
                 </div>
@@ -246,7 +272,116 @@ import '../styles/global.css';
         </div>
     </section>
 
-    <!-- SECTION 2: INTERACTIVE CODE & SDK SANDBOX -->
+    <!-- SECTION 2: WHY ENTRYWISE BENTO GRID (Developer & Solo-Founder Friendly) -->
+    <section id="features" class="py-20 px-6 max-w-7xl mx-auto border-t border-white/[0.08]">
+        <div class="text-center space-y-3 mb-16">
+            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 font-mono">Batteries Included</span>
+            <h2 class="text-3xl sm:text-5xl font-bold tracking-tight text-white">Everything your form needs to succeed</h2>
+            <p class="text-sm sm:text-base text-zinc-400 max-w-2xl mx-auto">
+                No third-party middleware, no mystery downtime. Just clean, reliable edge primitives engineered for developers and solo builders.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- 1. Google Sheets LockService -->
+            <div class="card-surface rounded-2xl p-6 space-y-4 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-white">Concurrency-Safe Google Sheets</h3>
+                    <p class="text-xs text-zinc-400 leading-relaxed">
+                        Apps Script template equipped with a 30s LockService mutex so concurrent submissions never overwrite each other. Automatically appends new columns when your form changes.
+                    </p>
+                </div>
+                <div class="p-2.5 rounded-xl bg-[#07080b] border border-white/[0.06] font-mono text-[11px] text-emerald-300">
+                    Auto-discovers new headers
+                </div>
+            </div>
+
+            <!-- 2. Multi-Webhooks with HMAC -->
+            <div class="card-surface rounded-2xl p-6 space-y-4 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-white">Multiple Webhooks &amp; HMAC Signatures</h3>
+                    <p class="text-xs text-zinc-400 leading-relaxed">
+                        Dispatch submissions to multiple webhooks (e.g. Zapier, Make, and your private backend) with cryptographic Web Crypto SHA256 signatures for tamper-proof validation.
+                    </p>
+                </div>
+                <div class="p-2.5 rounded-xl bg-[#07080b] border border-white/[0.06] font-mono text-[11px] text-amber-300 truncate">
+                    X-EntryWise-Signature: sha256=...
+                </div>
+            </div>
+
+            <!-- 3. SpamGuard 360 & Bot Traps -->
+            <div class="card-surface rounded-2xl p-6 space-y-4 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center text-purple-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-white">Zero-Friction Bot &amp; Spam Shield</h3>
+                    <p class="text-xs text-zinc-400 leading-relaxed">
+                        Cloudflare Turnstile token validation, disposable email detection, keyword blacklist, honeypot fields, and GDPR zero-IP mode. No distorted captcha puzzles.
+                    </p>
+                </div>
+                <div class="p-2.5 rounded-xl bg-[#07080b] border border-white/[0.06] font-mono text-[11px] text-purple-300">
+                    Spam quarantine + 1-click restore
+                </div>
+            </div>
+
+            <!-- 4. Pipeline Smoke Test / Mock Sandbox -->
+            <div class="card-surface rounded-2xl p-6 space-y-4 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center text-blue-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-white">1-Click Pipeline Smoke Testing</h3>
+                    <p class="text-xs text-zinc-400 leading-relaxed">
+                        Verify your edge D1 commit, queues, email dispatch, and Google Sheet sync before shipping your frontend. Plus 1-click "Clear Test Submissions" to keep prod spotless.
+                    </p>
+                </div>
+                <div class="p-2.5 rounded-xl bg-[#07080b] border border-white/[0.06] font-mono text-[11px] text-blue-300">
+                    Isolated is_test flag in D1
+                </div>
+            </div>
+
+            <!-- 5. Solo-Founder Mini-CRM -->
+            <div class="card-surface rounded-2xl p-6 space-y-4 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <div class="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/25 flex items-center justify-center text-teal-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-white">Notes &amp; Copy for Slack</h3>
+                    <p class="text-xs text-zinc-400 leading-relaxed">
+                        Add internal follow-up notes on any lead, track status, and copy structured markdown cards for pasting directly into Slack, Discord, or Linear tickets.
+                    </p>
+                </div>
+                <div class="p-2.5 rounded-xl bg-[#07080b] border border-white/[0.06] font-mono text-[11px] text-teal-300">
+                    No bloated CRM subscriptions
+                </div>
+            </div>
+
+            <!-- 6. 1-Click AI Prompts -->
+            <div class="card-surface rounded-2xl p-6 space-y-4 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <div class="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/25 flex items-center justify-center text-pink-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-white">AI-First Code Generation</h3>
+                    <p class="text-xs text-zinc-400 leading-relaxed">
+                        Generate schemas, complete responsive forms, and validation rules in Cursor Composer, Claude Code, or v0 with context-aware prompts generated from your active site.
+                    </p>
+                </div>
+                <div class="p-2.5 rounded-xl bg-[#07080b] border border-white/[0.06] font-mono text-[11px] text-pink-300">
+                    Instant prompt builder in console
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 3: CODE & SDK PLAYGROUND -->
     <section id="sdk" class="py-20 px-6 max-w-5xl mx-auto border-t border-white/[0.08]">
         <div class="text-center space-y-3 mb-12">
             <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 font-mono">Developer Experience</span>
@@ -266,16 +401,16 @@ import '../styles/global.css';
                         <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
                     </div>
                     <!-- Framework Tabs -->
-                    <div class="flex items-center bg-[#141721] p-0.5 rounded-lg border border-white/[0.08] text-xs font-medium text-zinc-400">
-                        <button type="button" onclick="switchSdkTab('prompt')" id="tabPrompt" class="px-3 py-1.5 rounded-md text-white bg-zinc-800 transition font-medium">Universal AI Prompt</button>
-                        <button type="button" onclick="switchSdkTab('nextjs')" id="tabNextjs" class="px-3 py-1.5 rounded-md hover:text-white transition">Next.js 15 Action</button>
-                        <button type="button" onclick="switchSdkTab('react')" id="tabReact" class="px-3 py-1.5 rounded-md hover:text-white transition">React 19 Hook</button>
-                        <button type="button" onclick="switchSdkTab('html')" id="tabHtml" class="px-3 py-1.5 rounded-md hover:text-white transition">Zero-JS HTML</button>
-                        <button type="button" onclick="switchSdkTab('curl')" id="tabCurl" class="px-3 py-1.5 rounded-md hover:text-white transition">cURL</button>
+                    <div class="flex items-center bg-[#141721] p-1 rounded-xl border border-white/[0.08] text-xs font-medium text-zinc-400">
+                        <button type="button" onclick="switchSdkTab('prompt')" id="tabPrompt" class="px-3 py-1.5 rounded-lg text-white bg-zinc-800 transition font-medium cursor-pointer">AI Prompt</button>
+                        <button type="button" onclick="switchSdkTab('nextjs')" id="tabNextjs" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer">Next.js 15</button>
+                        <button type="button" onclick="switchSdkTab('react')" id="tabReact" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer">React 19</button>
+                        <button type="button" onclick="switchSdkTab('html')" id="tabHtml" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer">Static HTML</button>
+                        <button type="button" onclick="switchSdkTab('curl')" id="tabCurl" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer">cURL</button>
                     </div>
                 </div>
 
-                <button type="button" onclick="copySdkSnippet()" class="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] px-3.5 py-1.5 rounded-lg transition shadow-sm">
+                <button type="button" onclick="copySdkSnippet()" class="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] px-3.5 py-1.5 rounded-xl transition shadow-sm cursor-pointer">
                     <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                     <span id="sdkCopyLabel">Copy Snippet</span>
                 </button>
@@ -285,7 +420,7 @@ import '../styles/global.css';
             <div class="p-6 bg-[#07080b] font-mono text-xs leading-relaxed overflow-x-auto min-h-[300px]">
                 <!-- Tab: Universal AI Prompt -->
                 <div id="contentPrompt" class="space-y-2 text-zinc-300">
-                    <div class="text-zinc-500 mb-2"># Paste directly into Cursor Composer, Claude Code, v0, or ChatGPT:</div>
+                    <div class="text-zinc-500 mb-2"># Paste directly into Cursor Composer, Claude Code, v0, Bolt, or ChatGPT:</div>
                     <p class="text-emerald-400 font-semibold">Integrate EntryWise (v0.2.0) into this project as the headless form backend.</p>
                     <p class="text-zinc-400 pt-2 font-bold">### Target Endpoint:</p>
                     <p class="text-zinc-300">- URL: <span class="text-amber-300">POST https://entrywise.webbound.in/f/YOUR_SITE_API_KEY</span></p>
@@ -354,7 +489,7 @@ import '../styles/global.css';
 
                 <!-- Tab: Zero-JS HTML Form -->
                 <div id="contentHtml" class="hidden text-zinc-300">
-<pre><code><span class="text-zinc-500">&lt;!-- Zero-JS Native Form: Works seamlessly in Astro, Hugo, Jekyll, or static HTML --&gt;</span>
+<pre><code><span class="text-zinc-500">&lt;!-- Zero-JS Native Form: Works seamlessly in Astro, Hugo, 11ty, or plain HTML --&gt;</span>
 &lt;<span class="text-pink-400">form</span> <span class="text-purple-400">action</span>=<span class="text-amber-300">"https://entrywise.webbound.in/f/YOUR_SITE_API_KEY"</span> <span class="text-purple-400">method</span>=<span class="text-amber-300">"POST"</span>&gt;
   <span class="text-zinc-500">&lt;!-- Invisible honeypot traps spam bots silently --&gt;</span>
   &lt;<span class="text-pink-400">input</span> <span class="text-purple-400">type</span>=<span class="text-amber-300">"text"</span> <span class="text-purple-400">name</span>=<span class="text-amber-300">"_gotcha"</span> <span class="text-purple-400">style</span>=<span class="text-amber-300">"display:none"</span> <span class="text-purple-400">tabindex</span>=<span class="text-amber-300">"-1"</span> /&gt;
@@ -384,98 +519,21 @@ import '../styles/global.css';
   &#125;'</span>
 
 <span class="text-zinc-500"># Response: HTTP 201 Created</span>
-<span class="text-zinc-500"># &#123; "success": true, "submission_id": "sub_6f9a2b...", "received_at": "2026-09-28T18:14:00Z" &#125;</span></code></pre>
+<span class="text-zinc-500"># &#123; "success": true, "submission_id": "sub_6f9a2b...", "received_at": "2026-09-29T10:00:00Z" &#125;</span></code></pre>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- SECTION 3: PRODUCTION INTEGRATIONS SHOWCASE (Bento Grid) -->
-    <section id="integrations" class="py-20 px-6 max-w-7xl mx-auto border-t border-white/[0.08]">
-        <div class="text-center space-y-3 mb-16">
-            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 font-mono">Automated Fanout</span>
-            <h2 class="text-3xl sm:text-5xl font-bold tracking-tight text-white">Batteries-included connectors</h2>
-            <p class="text-sm sm:text-base text-zinc-400 max-w-xl mx-auto">
-                No fragile third-party automations. Sync submissions to spreadsheets, team channels, and email providers natively.
-            </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- 1. Google Sheets (Battle-Tested) -->
-            <div class="card-surface rounded-2xl p-6 space-y-4 flex flex-col justify-between">
-                <div class="space-y-3">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    </div>
-                    <h3 class="text-base font-semibold text-white">Google Sheets Webhook</h3>
-                    <p class="text-xs text-zinc-400 leading-relaxed">
-                        Production Apps Script template equipped with 30s LockService concurrency protection, auto-expanding dynamic columns, and CSV injection defense.
-                    </p>
-                </div>
-                <div class="p-2.5 rounded-lg bg-[#07080b] border border-white/[0.06] font-mono text-[11px] text-emerald-300">
-                    Auto-expands Row 1 headers
-                </div>
-            </div>
-
-            <!-- 2. Web Crypto HMAC Signatures -->
-            <div class="card-surface rounded-2xl p-6 space-y-4 flex flex-col justify-between">
-                <div class="space-y-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                    </div>
-                    <h3 class="text-base font-semibold text-white">HMAC-SHA256 Webhooks</h3>
-                    <p class="text-xs text-zinc-400 leading-relaxed">
-                        Dispatches signed JSON payloads directly to your API, Zapier, or Make with cryptographic SHA256 verification in headers.
-                    </p>
-                </div>
-                <div class="p-2.5 rounded-lg bg-[#07080b] border border-white/[0.06] font-mono text-[11px] text-amber-300 truncate">
-                    X-EntryWise-Signature: sha256=...
-                </div>
-            </div>
-
-            <!-- 3. Multi-Provider Email Routing -->
-            <div class="card-surface rounded-2xl p-6 space-y-4 flex flex-col justify-between">
-                <div class="space-y-3">
-                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center text-blue-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                    </div>
-                    <h3 class="text-base font-semibold text-white">Multi-Channel Email</h3>
-                    <p class="text-xs text-zinc-400 leading-relaxed">
-                        Send notifications &amp; branded auto-responders through native Cloudflare Send Email binding, Resend, MailerSend, or custom SMTP2GO.
-                    </p>
-                </div>
-                <div class="p-2.5 rounded-lg bg-[#07080b] border border-white/[0.06] font-mono text-[11px] text-blue-300">
-                    Encrypted API keys at rest
-                </div>
-            </div>
-
-            <!-- 4. Turnstile & Bot Defense -->
-            <div class="card-surface rounded-2xl p-6 space-y-4 flex flex-col justify-between">
-                <div class="space-y-3">
-                    <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center text-purple-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                    </div>
-                    <h3 class="text-base font-semibold text-white">Bot Shield &amp; Honeypot</h3>
-                    <p class="text-xs text-zinc-400 leading-relaxed">
-                        Zero user friction. Validates Cloudflare Turnstile cryptographic tokens on the edge and silently drops spammers hitting hidden traps.
-                    </p>
-                </div>
-                <div class="p-2.5 rounded-lg bg-[#07080b] border border-white/[0.06] font-mono text-[11px] text-purple-300">
-                    No puzzle captchas required
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- SECTION 4: EDGE ARCHITECTURE & GLOBAL BENCHMARKS -->
+    <!-- SECTION 4: GLOBAL EDGE LATENCY BENCHMARKS -->
     <section id="benchmarks" class="py-20 px-6 max-w-7xl mx-auto border-t border-white/[0.08]">
         <div class="card-surface rounded-3xl p-8 sm:p-12 relative overflow-hidden">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                 <div class="lg:col-span-6 space-y-4">
                     <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 font-mono">Distributed Infrastructure</span>
-                    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-white">Sub-20ms latency worldwide</h2>
+                    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-white">Sub-20ms edge latency worldwide</h2>
                     <p class="text-sm text-zinc-400 leading-relaxed">
-                        Your forms run on Cloudflare’s 330+ edge data centers. Submissions terminate at the nearest edge PoP, verifying Turnstile tokens and persisting to D1 SQLite without round-tripping across continents.
+                        Your forms run on Cloudflare’s 330+ global edge data centers. Submissions terminate at the nearest edge PoP, validating Turnstile tokens and persisting to D1 SQLite without round-tripping across continents.
                     </p>
 
                     <div class="grid grid-cols-2 gap-4 pt-2">
@@ -539,7 +597,7 @@ import '../styles/global.css';
             <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 font-mono">Live Ingestion Tester</span>
             <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-white">Test real HTTP submission to edge</h2>
             <p class="text-sm text-zinc-400 max-w-lg mx-auto">
-                Submit live data right now to our production Cloudflare Workers cluster and inspect the response headers and latency.
+                Submit live data right now to our production Cloudflare Workers cluster and inspect the response headers and roundtrip latency.
             </p>
         </div>
 
@@ -550,21 +608,21 @@ import '../styles/global.css';
                 
                 <div>
                     <label class="block text-xs font-medium text-zinc-400 mb-1">Your Name</label>
-                    <input type="text" name="name" required placeholder="Alex Rivera" class="w-full bg-[#07080b] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 transition">
+                    <input type="text" name="name" required placeholder="Alex Rivera" class="w-full bg-[#07080b] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 transition">
                 </div>
 
                 <div>
                     <label class="block text-xs font-medium text-zinc-400 mb-1">Email Address</label>
-                    <input type="email" name="email" required placeholder="alex@company.com" class="w-full bg-[#07080b] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 transition">
+                    <input type="email" name="email" required placeholder="alex@company.com" class="w-full bg-[#07080b] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 transition">
                 </div>
 
                 <div>
                     <label class="block text-xs font-medium text-zinc-400 mb-1">Inquiry / Message</label>
-                    <textarea name="message" required rows="3" placeholder="Testing live edge ingestion on Cloudflare Workers..." class="w-full bg-[#07080b] border border-white/[0.1] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 transition"></textarea>
+                    <textarea name="message" required rows="3" placeholder="Testing live edge ingestion on Cloudflare Workers..." class="w-full bg-[#07080b] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 transition"></textarea>
                 </div>
 
-                <button type="submit" id="submitBtn" class="w-full py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-white/5 active:scale-[0.98]">
-                    <span>Send Test Submission</span>
+                <button type="submit" id="submitBtn" class="w-full py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-white/5 active:scale-[0.98] cursor-pointer">
+                    <span>Send Real Test Submission</span>
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                 </button>
             </form>
@@ -583,8 +641,61 @@ import '../styles/global.css';
         </div>
     </section>
 
-    <!-- SECTION 6: READY TO BUILD CTA -->
-    <section class="py-20 px-6 max-w-4xl mx-auto text-center space-y-6">
+    <!-- SECTION 6: FAQ ACCORDION -->
+    <section id="faq" class="py-20 px-6 max-w-4xl mx-auto border-t border-white/[0.08]">
+        <div class="text-center space-y-3 mb-16">
+            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 font-mono">Questions &amp; Answers</span>
+            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-white">Frequently Asked Questions</h2>
+            <p class="text-sm text-zinc-400 max-w-lg mx-auto">
+                Everything you need to know about setting up EntryWise for personal projects or client sites.
+            </p>
+        </div>
+
+        <div class="space-y-4">
+            <!-- FAQ 1 -->
+            <div class="card-surface rounded-2xl p-6 space-y-2">
+                <h3 class="text-sm font-semibold text-white">Do I need a backend server or database?</h3>
+                <p class="text-xs text-zinc-400 leading-relaxed">
+                    No! EntryWise is completely headless and serverless. You only need to point your form's <code class="text-emerald-400">&lt;form action="..."&gt;</code> or frontend <code class="text-emerald-400">fetch()</code> to your unique endpoint URL. All submissions are stored in Cloudflare D1 SQLite automatically.
+                </p>
+            </div>
+
+            <!-- FAQ 2 -->
+            <div class="card-surface rounded-2xl p-6 space-y-2">
+                <h3 class="text-sm font-semibold text-white">How does spam protection work without annoying CAPTCHAs?</h3>
+                <p class="text-xs text-zinc-400 leading-relaxed">
+                    EntryWise uses Cloudflare Turnstile for invisible cryptographic verification, an invisible honeypot field (<code class="text-emerald-400">_gotcha</code>), automatic disposable email blocking, and customizable keyword blacklists. Legitimate users never see a puzzle.
+                </p>
+            </div>
+
+            <!-- FAQ 3 -->
+            <div class="card-surface rounded-2xl p-6 space-y-2">
+                <h3 class="text-sm font-semibold text-white">What happens when I add new fields to my form?</h3>
+                <p class="text-xs text-zinc-400 leading-relaxed">
+                    EntryWise handles arbitrary dynamic fields seamlessly! If you connect Google Sheets, our Apps Script integration automatically detects new fields and appends them as new header columns in Row 1 without breaking existing rows.
+                </p>
+            </div>
+
+            <!-- FAQ 4 -->
+            <div class="card-surface rounded-2xl p-6 space-y-2">
+                <h3 class="text-sm font-semibold text-white">Can I test my form before going live?</h3>
+                <p class="text-xs text-zinc-400 leading-relaxed">
+                    Yes! In the dashboard, you can trigger a 1-click Pipeline Smoke Test that tests edge commit, queue fanout, email alerts, and Google Sheets sync with realistic mock data. When you're ready, click "Clear Test Rows" to purge test records with zero impact on production data.
+                </p>
+            </div>
+
+            <!-- FAQ 5 -->
+            <div class="card-surface rounded-2xl p-6 space-y-2">
+                <h3 class="text-sm font-semibold text-white">Is there a free tier for hobbyists and students?</h3>
+                <p class="text-xs text-zinc-400 leading-relaxed">
+                    Yes! You can start completely free. No credit card is required. You get unlimited forms, full access to connectors (Google Sheets, Discord, Slack, multi-webhooks), Turnstile bot protection, and CSV export.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION 7: READY TO BUILD CTA -->
+    <section class="py-20 px-6 max-w-4xl mx-auto text-center space-y-6 border-t border-white/[0.08]">
         <h2 class="text-3xl sm:text-5xl font-bold tracking-tight text-white">Start capturing submissions in seconds.</h2>
         <p class="text-sm sm:text-base text-zinc-400 max-w-lg mx-auto">
             Zero servers, zero vendor lock-in. Powered by open source standards on Cloudflare Workers.
@@ -601,13 +712,13 @@ import '../styles/global.css';
         </div>
     </section>
 
-    <!-- Footer -->
+    <!-- FOOTER -->
     <footer class="border-t border-white/[0.08] py-12 px-6 bg-[#07080b]">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-zinc-500">
             <div class="flex items-center gap-3">
                 <img src="/assets/logo.png" alt="EntryWise" class="w-6 h-6 rounded" />
                 <span class="text-zinc-300 font-semibold">EntryWise</span>
-                <span>— Open source form backend on Cloudflare Workers.</span>
+                <span>— Open source headless form backend on Cloudflare Workers.</span>
             </div>
             <div class="flex items-center gap-6">
                 <a href="/docs" class="hover:text-white transition">API Docs (OpenAPI 3.1)</a>
@@ -617,7 +728,7 @@ import '../styles/global.css';
         </div>
     </footer>
 
-    <!-- Client Scripts (Interactive Demo & Code Tabs) -->
+    <!-- CLIENT SCRIPTS (Interactive Sandbox, Pipeline Demo, Code Tabs) -->
     <script is:inline>
         let currentSdkTab = 'prompt';
 
@@ -683,7 +794,7 @@ export function ContactForm() {
   );
 }`,
 
-            html: `<!-- Zero-JS Native Form: Works seamlessly in Astro, Hugo, Jekyll, or static HTML -->
+            html: `<!-- Zero-JS Native Form: Works seamlessly in Astro, Hugo, 11ty, or plain HTML -->
 <form action="https://entrywise.webbound.in/f/YOUR_SITE_API_KEY" method="POST">
   <!-- Invisible honeypot traps spam bots silently -->
   <input type="text" name="_gotcha" style="display:none" tabindex="-1" />
@@ -717,10 +828,10 @@ export function ContactForm() {
                 const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
                 const content = document.getElementById('content' + t.charAt(0).toUpperCase() + t.slice(1));
                 if (t === tab) {
-                    btn.className = 'px-3 py-1.5 rounded-md text-white bg-zinc-800 transition font-medium';
+                    btn.className = 'px-3 py-1.5 rounded-lg text-white bg-zinc-800 transition font-medium cursor-pointer';
                     content.classList.remove('hidden');
                 } else {
-                    btn.className = 'px-3 py-1.5 rounded-md hover:text-white transition';
+                    btn.className = 'px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer';
                     content.classList.add('hidden');
                 }
             });
@@ -759,7 +870,7 @@ export function ContactForm() {
 
             btn.disabled = true;
             btn.innerHTML = '<span>Processing Edge Routing...</span>';
-            status.className = 'text-[11px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20';
+            status.className = 'text-[11px] font-mono text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20';
             status.innerText = 'Routing via Cloudflare Worker...';
 
             const randomId = 'sub_' + Math.random().toString(36).substring(2, 9);
@@ -772,8 +883,8 @@ export function ContactForm() {
             }, 250);
 
             setTimeout(() => {
-                status.className = 'text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20';
-                status.innerText = '✓ All 4 destinations delivered in ' + (randomLatency + 18) + 'ms';
+                status.className = 'text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20';
+                status.innerText = '✓ All destinations delivered in ' + (randomLatency + 18) + 'ms';
                 btn.disabled = false;
                 btn.innerHTML = '<svg class="w-4 h-4 text-emerald-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Dispatched! Send Another</span>';
             }, 650);
@@ -788,7 +899,7 @@ export function ContactForm() {
 
             btn.disabled = true;
             btn.innerHTML = 'Sending to edge...';
-            statusEl.innerHTML = '<span class="text-amber-400">Processing...</span>';
+            statusEl.innerHTML = '<span class="text-amber-400 font-mono text-[11px]">Processing...</span>';
 
             const formData = new FormData(e.target);
             const payload = {
@@ -811,20 +922,20 @@ export function ContactForm() {
                 const roundtrip = Math.round(performance.now() - startTime);
                 const data = await res.json();
 
-                statusEl.innerHTML = `<span class="text-emerald-400">HTTP \${res.status} (\${roundtrip}ms)</span>`;
-                jsonEl.className = 'text-emerald-400';
+                statusEl.innerHTML = `<span class="text-emerald-400 font-mono text-[11px]">HTTP \${res.status} (\${roundtrip}ms)</span>`;
+                jsonEl.className = 'text-emerald-400 font-mono text-xs';
                 jsonEl.innerText = JSON.stringify(data, null, 2);
                 btn.innerHTML = '✓ Submitted Successfully';
                 setTimeout(() => {
                     btn.disabled = false;
-                    btn.innerHTML = 'Send Test Submission';
+                    btn.innerHTML = 'Send Real Test Submission';
                 }, 3000);
             } catch (err) {
-                statusEl.innerHTML = `<span class="text-red-400">Failed</span>`;
-                jsonEl.className = 'text-red-400';
+                statusEl.innerHTML = `<span class="text-red-400 font-mono text-[11px]">Failed</span>`;
+                jsonEl.className = 'text-red-400 font-mono text-xs';
                 jsonEl.innerText = err.message || 'Request failed';
                 btn.disabled = false;
-                btn.innerHTML = 'Send Test Submission';
+                btn.innerHTML = 'Send Real Test Submission';
             }
         }
     </script>

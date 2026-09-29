@@ -5,12 +5,14 @@ import {
   Command,
   Download,
   Inbox,
+  MessageSquare,
   Search,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
   Trash2,
   X,
+  Zap,
 } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -28,6 +30,8 @@ interface SubmissionsTableProps {
   onExportCsv: () => void;
   isLoading: boolean;
   selectedSubmissionId?: string | null;
+  onRunPipelineTest?: () => void;
+  onClearTestSubmissions?: () => void;
 }
 
 export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
@@ -41,6 +45,8 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   onExportCsv,
   isLoading,
   selectedSubmissionId,
+  onRunPipelineTest,
+  onClearTestSubmissions,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -82,6 +88,10 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
       return dataStr.includes(term) || ipStr.includes(term);
     });
   }, [submissions, searchTerm]);
+
+  const hasTestSubmissions = useMemo(() => {
+    return submissions.some((s) => Boolean(s.is_test));
+  }, [submissions]);
 
   // Keep focused row scrolled into view
   useEffect(() => {
@@ -416,10 +426,34 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
             </kbd>
           </button>
 
+          {onRunPipelineTest && (
+            <button
+              type="button"
+              onClick={onRunPipelineTest}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-semibold text-emerald-400 transition shrink-0 cursor-pointer shadow-sm shadow-emerald-500/5"
+              title="Run end-to-end pipeline test with mock data"
+            >
+              <Zap className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Test Pipeline</span>
+            </button>
+          )}
+
+          {hasTestSubmissions && onClearTestSubmissions && (
+            <button
+              type="button"
+              onClick={onClearTestSubmissions}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-500/25 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-medium text-amber-300 transition shrink-0 cursor-pointer"
+              title="Clear all simulated mock test submissions"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden md:inline">Clear Test Rows</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onExportCsv}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-[#0d0f15] hover:bg-white/[0.06] text-xs font-medium text-zinc-300 hover:text-white transition shrink-0"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-[#0d0f15] hover:bg-white/[0.06] text-xs font-medium text-zinc-300 hover:text-white transition shrink-0 cursor-pointer"
             title="Export CSV (RFC 4180 format)"
           >
             <Download className="w-3.5 h-3.5 text-zinc-400" />
@@ -565,6 +599,19 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="font-semibold text-white flex items-center gap-1.5">
                           <span>{senderName}</span>
+                          {Boolean(sub.is_test) && (
+                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                              Test
+                            </span>
+                          )}
+                          {sub.notes && (
+                            <span
+                              title={`Internal note: ${sub.notes}`}
+                              className="text-emerald-400 p-0.5 rounded hover:bg-emerald-500/10 cursor-help"
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                            </span>
+                          )}
                           {isFocused && (
                             <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-normal">
                               ↵ enter

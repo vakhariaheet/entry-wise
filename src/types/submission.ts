@@ -14,6 +14,8 @@ export interface SubmissionRecord {
   attachments?: Array<{ filename: string; size?: number; type?: string }>;
   status: SubmissionStatus;
   ip_address?: string;
+  is_test?: number | boolean;
+  notes?: string | null;
   created_at: string;
 }
 

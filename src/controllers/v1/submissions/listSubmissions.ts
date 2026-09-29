@@ -23,6 +23,7 @@ export const listSubmissions = async (c: Context<{ Bindings: Env }>) => {
     const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '20', 10), 1), 100);
     const offset = Math.max(parseInt(c.req.query('offset') || '0', 10), 0);
     const status = c.req.query('status');
+    const isTestParam = c.req.query('is_test');
     const query = c.req.query('query');
 
     let countSql = `SELECT COUNT(*) as total FROM submissions WHERE site_id = ?`;
@@ -33,6 +34,13 @@ export const listSubmissions = async (c: Context<{ Bindings: Env }>) => {
       countSql += ` AND status = ?`;
       listSql += ` AND status = ?`;
       params.push(status);
+    }
+
+    if (isTestParam !== undefined && isTestParam !== null && isTestParam !== '') {
+      const isTestVal = isTestParam === '1' || isTestParam === 'true' ? 1 : 0;
+      countSql += ` AND is_test = ?`;
+      listSql += ` AND is_test = ?`;
+      params.push(isTestVal);
     }
 
     if (query) {
@@ -62,6 +70,8 @@ export const listSubmissions = async (c: Context<{ Bindings: Env }>) => {
           : undefined,
       status: row.status,
       ip_address: row.ip_address,
+      is_test: row.is_test ?? 0,
+      notes: row.notes || null,
       created_at: row.created_at,
     }));
 

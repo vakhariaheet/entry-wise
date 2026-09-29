@@ -12,15 +12,21 @@ import {
   ExternalLink,
   FileText,
   Globe,
+  Loader2,
   Mail,
+  MessageSquare,
   Paperclip,
+  Save,
+  Share2,
   ShieldCheck,
   Trash2,
   User,
   X,
+  Zap,
 } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '@/lib';
 import type { Submission } from '@/types';
 
 interface SubmissionDetailDrawerProps {
@@ -28,6 +34,7 @@ interface SubmissionDetailDrawerProps {
   onClose: () => void;
   onUpdateStatus: (id: string, status: 'new' | 'read' | 'archived' | 'spam') => void;
   onDeleteSubmission: (id: string) => void;
+  onUpdateSubmission?: (updated: Submission) => void;
   onNavigatePrev?: () => void;
   onNavigateNext?: () => void;
   hasPrev?: boolean;
@@ -39,6 +46,7 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
   onClose,
   onUpdateStatus,
   onDeleteSubmission,
+  onUpdateSubmission,
   onNavigatePrev,
   onNavigateNext,
   hasPrev = false,
@@ -48,13 +56,18 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [copiedJson, setCopiedJson] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+  const [noteText, setNoteText] = useState(submission?.notes || '');
+  const [isSavingNote, setIsSavingNote] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const drawerRef = useRef<HTMLElement>(null);
 
-  // Animate in when submission changes
+  // Animate in and sync state when submission changes
   useEffect(() => {
     if (submission) {
-      // Trigger enter animation on next frame
+      setNoteText(submission.notes || '');
+      setNoteSaved(false);
       requestAnimationFrame(() => setIsVisible(true));
     } else {
       setIsVisible(false);
@@ -87,6 +100,44 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
     setCopiedJson(true);
     setTimeout(() => setCopiedJson(false), 2000);
   }, [submission]);
+
+  const handleCopyMarkdown = useCallback(() => {
+    if (!submission) return;
+    const lines = [
+      `📬 *New Form Submission* (\`${submission.id}\`)`,
+      `• *Received*: ${new Date(submission.created_at).toLocaleString()}`,
+      `• *Status*: ${submission.status}`,
+      `• *Data*:`,
+    ];
+    for (const [k, v] of Object.entries(submission.data || {})) {
+      lines.push(`  - *${k}*: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`);
+    }
+    if (noteText.trim()) {
+      lines.push(`• *Internal Note*: ${noteText.trim()}`);
+    }
+    navigator.clipboard.writeText(lines.join('\n'));
+    setCopiedMarkdown(true);
+    setTimeout(() => setCopiedMarkdown(false), 2000);
+  }, [submission, noteText]);
+
+  const handleSaveNote = async () => {
+    if (!submission) return;
+    setIsSavingNote(true);
+    try {
+      const updated = await api.patchSubmission(submission.site_id, submission.id, {
+        notes: noteText.trim() || null,
+      });
+      setNoteSaved(true);
+      if (onUpdateSubmission) {
+        onUpdateSubmission(updated);
+      }
+      setTimeout(() => setNoteSaved(false), 2500);
+    } catch (err) {
+      console.error('Failed to save internal note:', err);
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
 
   const handleCopyFieldValue = (key: string, value: string) => {
     navigator.clipboard.writeText(value);
@@ -266,6 +317,12 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
                   )}
                 </button>
                 {getStatusBadge(submission.status)}
+                {Boolean(submission.is_test) && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    <Zap className="w-3 h-3 text-amber-400" />
+                    Mock Test
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 mt-0.5 font-mono">
                 <Clock className="w-3 h-3" />
@@ -309,38 +366,77 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
           </div>
         </header>
 
+        {/* Spam Warning Banner if flagged */}
+        {submission.status === 'spam' && (
+          <div className="px-6 py-2.5 bg-rose-500/10 border-b border-rose-500/20 flex items-center justify-between gap-3 text-xs text-rose-300 shrink-0">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>Flagged as spam by keyword or bot rules.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onUpdateStatus(submission.id, 'new')}
+              className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-[11px] font-semibold transition cursor-pointer"
+            >
+              Mark as Not Spam
+            </button>
+          </div>
+        )}
+
         {/* Submitter Lead Header Card */}
         <section
           aria-label="Submitter information"
           className="px-6 py-4 bg-gradient-to-r from-emerald-500/[0.04] to-transparent border-b border-white/[0.06] shrink-0"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold text-sm">
-              {submitter.name ? (
-                submitter.name.charAt(0).toUpperCase()
-              ) : submitter.email ? (
-                submitter.email.charAt(0).toUpperCase()
-              ) : (
-                <User className="w-4 h-4" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold text-white truncate">
-                {submitter.name || 'Anonymous Submitter'}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center font-bold text-sm shrink-0">
+                {submitter.name ? (
+                  submitter.name.charAt(0).toUpperCase()
+                ) : submitter.email ? (
+                  submitter.email.charAt(0).toUpperCase()
+                ) : (
+                  <User className="w-4 h-4" />
+                )}
               </div>
-              {submitter.email ? (
-                <a
-                  href={`mailto:${submitter.email}`}
-                  className="text-xs text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 truncate mt-0.5"
-                >
-                  <Mail className="w-3 h-3 shrink-0" />
-                  <span className="truncate">{submitter.email}</span>
-                  <ExternalLink className="w-2.5 h-2.5 shrink-0 opacity-70" />
-                </a>
-              ) : (
-                <span className="text-xs text-zinc-500">No email provided</span>
-              )}
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-white truncate">
+                  {submitter.name || 'Anonymous Submitter'}
+                </div>
+                {submitter.email ? (
+                  <a
+                    href={`mailto:${submitter.email}`}
+                    className="text-xs text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 truncate mt-0.5"
+                  >
+                    <Mail className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{submitter.email}</span>
+                    <ExternalLink className="w-2.5 h-2.5 shrink-0 opacity-70" />
+                  </a>
+                ) : (
+                  <span className="text-xs text-zinc-500">No email provided</span>
+                )}
+              </div>
             </div>
+
+            {/* Quick Share / Copy for Slack Button */}
+            <button
+              type="button"
+              onClick={handleCopyMarkdown}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 hover:text-white transition text-xs font-medium shrink-0 cursor-pointer"
+              title="Copy lead formatted as Slack/Markdown snippet"
+            >
+              {copiedMarkdown ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-400 font-semibold">Copied Block</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Copy for Slack</span>
+                </>
+              )}
+            </button>
           </div>
         </section>
 
@@ -468,6 +564,50 @@ export const SubmissionDetailDrawer: React.FC<SubmissionDetailDrawerProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Internal Notes & Follow-up Section (Founder CRM) */}
+              <div className="pt-2">
+                <div className="p-4 rounded-xl border border-white/[0.08] bg-[#12141c] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                      <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Internal Notes &amp; Follow-Up</span>
+                    </span>
+                    {noteSaved && (
+                      <span className="text-[11px] font-medium text-emerald-400 flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Note Saved!
+                      </span>
+                    )}
+                  </div>
+                  <textarea
+                    rows={3}
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="Add personal notes, follow-up dates, call logs, or reminders..."
+                    className="w-full bg-[#0a0c10] border border-white/[0.08] rounded-xl p-3 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500/50 transition font-sans"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleSaveNote}
+                      disabled={isSavingNote}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black font-semibold text-xs hover:bg-zinc-200 transition shadow disabled:opacity-50 cursor-pointer"
+                    >
+                      {isSavingNote ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin text-black" />
+                          <span>Saving...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-3 h-3 text-black" />
+                          <span>Save Note</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

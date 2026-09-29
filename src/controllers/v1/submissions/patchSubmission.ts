@@ -15,7 +15,7 @@ export const patchSubmission = async (c: Context<{ Bindings: Env }>) => {
     }
 
     const validStatuses = ['new', 'read', 'archived', 'spam'];
-    if (!body.status || !validStatuses.includes(body.status)) {
+    if (body.status !== undefined && !validStatuses.includes(body.status)) {
       return sendProblemDetails(
         c,
         422,
@@ -26,6 +26,10 @@ export const patchSubmission = async (c: Context<{ Bindings: Env }>) => {
           ],
         }
       );
+    }
+
+    if (body.status === undefined && body.notes === undefined) {
+      return sendProblemDetails(c, 422, 'At least one of status or notes must be provided');
     }
 
     let sql = `SELECT * FROM submissions WHERE id = ?`;
@@ -52,14 +56,28 @@ export const patchSubmission = async (c: Context<{ Bindings: Env }>) => {
       );
     }
 
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+
+    if (body.status !== undefined) {
+      updateFields.push('status = ?');
+      updateValues.push(body.status);
+    }
+    if (body.notes !== undefined) {
+      updateFields.push('notes = ?');
+      updateValues.push(body.notes);
+    }
+
+    updateValues.push(id);
+
     const { success } = await c.env.DB.prepare(`
-            UPDATE submissions SET status = ? WHERE id = ?
+            UPDATE submissions SET ${updateFields.join(', ')} WHERE id = ?
         `)
-      .bind(body.status, id)
+      .bind(...updateValues)
       .run();
 
     if (!success) {
-      return sendProblemDetails(c, 500, 'Failed to update submission status');
+      return sendProblemDetails(c, 500, 'Failed to update submission');
     }
 
     const { results: updated } = await c.env.DB.prepare(`
@@ -79,6 +97,8 @@ export const patchSubmission = async (c: Context<{ Bindings: Env }>) => {
           : undefined,
       status: updatedRow.status,
       ip_address: updatedRow.ip_address,
+      is_test: updatedRow.is_test ?? 0,
+      notes: updatedRow.notes || null,
       created_at: updatedRow.created_at,
     });
   } catch (error) {

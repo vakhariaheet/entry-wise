@@ -277,17 +277,68 @@ class ApiService {
     submissionId: string,
     status: 'new' | 'read' | 'archived' | 'spam'
   ): Promise<void> {
+    await this.patchSubmission(siteId, submissionId, { status });
+  }
+
+  async patchSubmission(
+    siteId: string,
+    submissionId: string,
+    updates: { status?: 'new' | 'read' | 'archived' | 'spam'; notes?: string | null }
+  ): Promise<Submission> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/submissions/${submissionId}`, {
       method: 'PATCH',
       headers: this.getAuthHeaders(),
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(updates),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(
-        err.detail || err.message || `Failed to update submission status (HTTP ${res.status})`
+        err.detail || err.message || `Failed to update submission (HTTP ${res.status})`
       );
     }
+    const json = await res.json();
+    return json.data || json;
+  }
+
+  async testSubmission(
+    siteId: string,
+    payload?: { fields?: Record<string, string>; dispatch_connectors?: boolean }
+  ): Promise<{
+    success: boolean;
+    submission_id: string;
+    dispatched: boolean;
+    latency_ms: number;
+    test_data: Record<string, string>;
+    pipeline: Record<string, any>;
+  }> {
+    const res = await fetch(`${API_BASE}/sites/${siteId}/test-submission`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(payload || {}),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(
+        err.detail || err.message || `Failed to run test submission (HTTP ${res.status})`
+      );
+    }
+    const json = await res.json();
+    return json.data || json;
+  }
+
+  async clearTestSubmissions(siteId: string): Promise<{ success: boolean; deleted_count: number }> {
+    const res = await fetch(`${API_BASE}/sites/${siteId}/test-submissions`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(
+        err.detail || err.message || `Failed to clear test submissions (HTTP ${res.status})`
+      );
+    }
+    const json = await res.json();
+    return json.data || json;
   }
 
   async deleteSubmission(siteId: string, submissionId: string): Promise<void> {

@@ -1,6 +1,11 @@
 import type { DescribeRouteOptions } from 'hono-openapi';
 import { resolver } from 'hono-openapi/zod';
-import { badRequestError, notFoundError, serverError } from '../schemas/index.schema';
+import {
+  badRequestError,
+  notFoundError,
+  serverError,
+  unauthorizedError,
+} from '../schemas/index.schema';
 import {
   createApiSuccessResponseSchema,
   deleteApiSuccessResponseSchema,
@@ -178,6 +183,85 @@ export const deleteSiteDocs: DescribeRouteOptions = {
     },
     500: {
       description: 'Failed to delete site',
+      content: {
+        'application/json': {
+          schema: resolver(serverError),
+        },
+      },
+    },
+  },
+};
+
+export const testSubmissionDocs: DescribeRouteOptions = {
+  summary: 'Simulate mock form submission and test pipeline',
+  description:
+    'Fires an end-to-end test submission through edge storage, queue worker, email notification, and connected webhooks',
+  tags: ['Sites'],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: 'Test submission executed and diagnostic pipeline report returned',
+    },
+    400: {
+      description: 'Bad Request',
+      content: {
+        'application/json': {
+          schema: resolver(badRequestError),
+        },
+      },
+    },
+    401: {
+      description: 'Authentication required',
+      content: {
+        'application/json': {
+          schema: resolver(unauthorizedError),
+        },
+      },
+    },
+    404: {
+      description: 'Site not found',
+      content: {
+        'application/json': {
+          schema: resolver(notFoundError),
+        },
+      },
+    },
+    500: {
+      description: 'Internal server error',
+      content: {
+        'application/json': {
+          schema: resolver(serverError),
+        },
+      },
+    },
+  },
+};
+
+export const clearTestSubmissionsDocs: DescribeRouteOptions = {
+  summary: 'Purge mock test submissions',
+  description: 'Deletes all submissions flagged as is_test=1 for this site',
+  tags: ['Sites'],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: { description: 'Test submissions deleted successfully' },
+    401: {
+      description: 'Authentication required',
+      content: {
+        'application/json': {
+          schema: resolver(unauthorizedError),
+        },
+      },
+    },
+    404: {
+      description: 'Site not found',
+      content: {
+        'application/json': {
+          schema: resolver(notFoundError),
+        },
+      },
+    },
+    500: {
+      description: 'Internal server error',
       content: {
         'application/json': {
           schema: resolver(serverError),

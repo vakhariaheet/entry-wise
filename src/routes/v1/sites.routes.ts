@@ -7,12 +7,14 @@ import { deleteField } from '../../controllers/v1/fields/deleteField';
 import { listFields } from '../../controllers/v1/fields/listFields';
 import { patchField } from '../../controllers/v1/fields/patchField';
 import { replaceFields } from '../../controllers/v1/fields/replaceFields';
+import { clearTestSubmissions } from '../../controllers/v1/sites/clearTestSubmissions';
 import { createSite } from '../../controllers/v1/sites/createSite';
 import { deleteSite } from '../../controllers/v1/sites/deleteSite';
 import { getSite } from '../../controllers/v1/sites/getSite';
 import { listSites } from '../../controllers/v1/sites/listSites';
 import { patchSite } from '../../controllers/v1/sites/patchSite';
 import { testSiteEmail } from '../../controllers/v1/sites/testSiteEmail';
+import { testSubmission } from '../../controllers/v1/sites/testSubmission';
 import { deleteSubmission } from '../../controllers/v1/submissions/deleteSubmission';
 import { exportSubmissions } from '../../controllers/v1/submissions/exportSubmissions';
 import { getSubmission } from '../../controllers/v1/submissions/getSubmission';
@@ -23,6 +25,7 @@ import { deleteWebhook } from '../../controllers/v1/webhooks/deleteWebhook';
 import { listWebhooks } from '../../controllers/v1/webhooks/listWebhooks';
 import { patchWebhook } from '../../controllers/v1/webhooks/patchWebhook';
 import { testWebhook } from '../../controllers/v1/webhooks/testWebhook';
+import { clearTestSubmissionsDocs, testSubmissionDocs } from '../../docs/site.docs';
 import {
   deleteSubmissionDocs,
   exportSubmissionsDocs,
@@ -361,6 +364,23 @@ sitesRouter.delete(
   describeRoute(deleteSubmissionDocs),
   validator('param', z.object({ site_id: z.string(), id: z.string() })),
   deleteSubmission
+);
+
+// ----------------------------------------------------
+// Quality of Life: Pipeline Smoke Test & Sandbox Runner
+// ----------------------------------------------------
+sitesRouter.post(
+  '/:site_id/test-submission',
+  describeRoute(testSubmissionDocs),
+  validator('param', z.object({ site_id: z.string() })),
+  testSubmission
+);
+
+sitesRouter.delete(
+  '/:site_id/test-submissions',
+  describeRoute(clearTestSubmissionsDocs),
+  validator('param', z.object({ site_id: z.string() })),
+  clearTestSubmissions
 );
 
 export default sitesRouter;

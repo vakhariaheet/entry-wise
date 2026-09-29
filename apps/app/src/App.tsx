@@ -28,7 +28,11 @@ import {
   GeneralSettingsView,
   SchemaFieldsView,
 } from '@/features/forms';
-import { SubmissionDetailDrawer, SubmissionsTable } from '@/features/submissions';
+import {
+  PipelineTestModal,
+  SubmissionDetailDrawer,
+  SubmissionsTable,
+} from '@/features/submissions';
 import { WorkspaceModal } from '@/features/workspaces';
 import { api } from '@/lib';
 import type { Company, FormField, Site, Submission } from '@/types';
@@ -72,6 +76,7 @@ export const AppContent: React.FC<AppProps> = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [showAiPrompt, setShowAiPrompt] = useState<boolean>(false);
   const [showCreateSite, setShowCreateSite] = useState<boolean>(false);
+  const [showPipelineTestModal, setShowPipelineTestModal] = useState<boolean>(false);
 
   // Form Fields Schema State
   const [siteFields, setSiteFields] = useState<FormField[]>([]);
@@ -236,6 +241,41 @@ export const AppContent: React.FC<AppProps> = () => {
     } catch (err: unknown) {
       console.error('Failed to delete submission:', err);
       alert(`Error deleting submission: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  // Clear mock / pipeline test submissions
+  const handleClearTestSubmissions = async () => {
+    if (!currentSite) return;
+    if (
+      !window.confirm(
+        'Are you sure you want to clear all mock/test submissions for this site? Real submissions will not be affected.'
+      )
+    ) {
+      return;
+    }
+    try {
+      const result = await api.clearTestSubmissions(currentSite.id);
+      setSubmissions((prev) => prev.filter((s) => !s.is_test));
+      setTotalSubmissions((prev) => Math.max(0, prev - (result.deleted_count || 0)));
+      if (selectedSubmission?.is_test) {
+        setSelectedSubmission(null);
+      }
+    } catch (err: unknown) {
+      console.error('Failed to clear test submissions:', err);
+      alert(`Error clearing test submissions: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  const handleTestCompleted = (newTestSubmission: Submission) => {
+    setSubmissions((prev) => [newTestSubmission, ...prev]);
+    setTotalSubmissions((prev) => prev + 1);
+  };
+
+  const handleUpdateSubmission = (updated: Submission) => {
+    setSubmissions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+    if (selectedSubmission?.id === updated.id) {
+      setSelectedSubmission(updated);
     }
   };
 
@@ -581,6 +621,8 @@ export const AppContent: React.FC<AppProps> = () => {
                     onExportCsv={handleExportCsv}
                     isLoading={isLoadingSubmissions}
                     selectedSubmissionId={selectedSubmission?.id}
+                    onRunPipelineTest={() => setShowPipelineTestModal(true)}
+                    onClearTestSubmissions={handleClearTestSubmissions}
                   />
                 )}
 
@@ -634,11 +676,21 @@ export const AppContent: React.FC<AppProps> = () => {
         onClose={() => setSelectedSubmission(null)}
         onUpdateStatus={handleUpdateStatus}
         onDeleteSubmission={handleDeleteSubmission}
+        onUpdateSubmission={handleUpdateSubmission}
         onNavigatePrev={handleNavigatePrevSubmission}
         onNavigateNext={handleNavigateNextSubmission}
         hasPrev={hasPrevSubmission}
         hasNext={hasNextSubmission}
       />
+
+      {showPipelineTestModal && currentSite && (
+        <PipelineTestModal
+          site={currentSite}
+          isOpen={showPipelineTestModal}
+          onClose={() => setShowPipelineTestModal(false)}
+          onTestCompleted={handleTestCompleted}
+        />
+      )}
 
       {showAiPrompt && (
         <AiPromptModal

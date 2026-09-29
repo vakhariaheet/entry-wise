@@ -48,6 +48,8 @@ export const getSubmission = async (c: Context<{ Bindings: Env }>) => {
           : undefined,
       status: row.status,
       ip_address: row.ip_address,
+      is_test: row.is_test ?? 0,
+      notes: row.notes || null,
       created_at: row.created_at,
     };
 
