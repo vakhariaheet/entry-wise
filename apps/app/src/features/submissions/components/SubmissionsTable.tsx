@@ -32,6 +32,12 @@ interface SubmissionsTableProps {
   selectedSubmissionId?: string | null;
   onRunPipelineTest?: () => void;
   onClearTestSubmissions?: () => void;
+  pageSize?: number;
+  offset?: number;
+  canPrevPage?: boolean;
+  canNextPage?: boolean;
+  onPrevPage?: () => void;
+  onNextPage?: () => void;
 }
 
 export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
@@ -47,6 +53,12 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
   selectedSubmissionId,
   onRunPipelineTest,
   onClearTestSubmissions,
+  pageSize = 25,
+  offset = 0,
+  canPrevPage = false,
+  canNextPage = false,
+  onPrevPage,
+  onNextPage,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -331,10 +343,8 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
 
         <div className="p-3.5 rounded-2xl border border-white/[0.08] bg-[#0e1017] flex items-center justify-between">
           <div>
-            <div className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">
-              Turnstile Verified
-            </div>
-            <div className="text-xl font-bold text-white mt-0.5">{counts.all - counts.spam}</div>
+            <div className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">Read</div>
+            <div className="text-xl font-bold text-white mt-0.5">{counts.read}</div>
           </div>
           <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-emerald-400">
             <ShieldCheck className="w-4 h-4" />
@@ -703,7 +713,9 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
         <div className="px-5 py-3 border-t border-white/[0.06] bg-[#090a0f] flex items-center justify-between text-xs text-zinc-500 font-mono">
           <div className="flex items-center gap-3">
             <span>
-              Showing {filteredSubmissions.length} of {submissions.length} submissions
+              {total > 0
+                ? `Showing ${offset + 1}–${offset + submissions.length} of ${total}`
+                : 'No submissions'}
             </span>
             <span className="hidden sm:inline-block text-zinc-600">|</span>
             <span className="hidden sm:flex items-center gap-1.5 text-zinc-400">
@@ -716,10 +728,34 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
               <span className="text-[11px]">to navigate</span>
             </span>
           </div>
-          <span className="flex items-center gap-1.5 text-emerald-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            Edge Encrypted &amp; Replicated
-          </span>
+          {total > pageSize ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onPrevPage}
+                disabled={!canPrevPage}
+                className="px-2.5 py-1 rounded-lg border border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08] transition disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Prev
+              </button>
+              <span className="text-zinc-500">
+                Page {Math.floor(offset / pageSize) + 1} of {Math.max(1, Math.ceil(total / pageSize))}
+              </span>
+              <button
+                type="button"
+                onClick={onNextPage}
+                disabled={!canNextPage}
+                className="px-2.5 py-1 rounded-lg border border-white/[0.08] bg-white/[0.03] text-zinc-300 hover:bg-white/[0.08] transition disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          ) : (
+            <span className="flex items-center gap-1.5 text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              Edge Encrypted &amp; Replicated
+            </span>
+          )}
         </div>
       </div>
 

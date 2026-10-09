@@ -44,6 +44,9 @@ export interface Site {
   webhook_url?: string | null;
   webhook_secret?: string | null;
   turnstile_secret_key?: string | null;
+  // Server redacts the secrets above from read responses and exposes these booleans instead.
+  turnstile_configured?: boolean;
+  webhook_secret_configured?: boolean;
   google_sheets_url?: string | null;
   slack_webhook_url?: string | null;
   discord_webhook_url?: string | null;

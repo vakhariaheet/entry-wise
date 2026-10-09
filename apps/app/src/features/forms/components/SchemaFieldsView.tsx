@@ -58,6 +58,13 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
 
     if (!cleanName) return;
 
+    // Reserved internal params that the ingestion endpoint strips from submission data.
+    const RESERVED = new Set(['api_key', 'metadata']);
+    if (RESERVED.has(cleanName)) {
+      setErrorMessage(`'${cleanName}' is a reserved field name and can't be used.`);
+      return;
+    }
+
     if (localFields.some((f) => f.name.toLowerCase() === cleanName.toLowerCase())) {
       setErrorMessage(`Field with name '${cleanName}' already exists.`);
       return;

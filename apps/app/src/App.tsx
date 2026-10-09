@@ -64,6 +64,8 @@ export const AppContent: React.FC<AppProps> = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [totalSubmissions, setTotalSubmissions] = useState<number>(0);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [submissionsOffset, setSubmissionsOffset] = useState<number>(0);
+  const SUBMISSIONS_PAGE_SIZE = 25;
   const [isLoadingSites, setIsLoadingSites] = useState<boolean>(true);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState<boolean>(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -85,6 +87,9 @@ export const AppContent: React.FC<AppProps> = () => {
   useEffect(() => {
     const syncToken = async () => {
       if (isSignedIn) {
+        // Register a provider so every request fetches a FRESH token (Clerk JWTs expire ~60s);
+        // without this, actions taken after the page sat idle failed with 401.
+        api.setTokenProvider(getToken);
         try {
           const token = await getToken();
           api.setAuthToken(token);
@@ -92,6 +97,7 @@ export const AppContent: React.FC<AppProps> = () => {
           console.error('Failed to get Clerk session token:', err);
         }
       } else {
+        api.setTokenProvider(null);
         api.setAuthToken(null);
       }
     };
@@ -174,6 +180,8 @@ export const AppContent: React.FC<AppProps> = () => {
       api.setAuthToken(token);
       const res = await api.listSubmissions(currentSite.id, {
         status: statusFilter,
+        limit: SUBMISSIONS_PAGE_SIZE,
+        offset: submissionsOffset,
       });
       setSubmissions(res.data);
       setTotalSubmissions(res.total);
@@ -183,13 +191,18 @@ export const AppContent: React.FC<AppProps> = () => {
     } finally {
       setIsLoadingSubmissions(false);
     }
-  }, [currentSite, statusFilter, getToken]);
+  }, [currentSite, statusFilter, submissionsOffset, getToken]);
 
   useEffect(() => {
     if (currentSite) {
       loadSubmissions();
     }
   }, [currentSite, loadSubmissions]);
+
+  // Reset to the first page whenever the active form or status filter changes
+  useEffect(() => {
+    setSubmissionsOffset(0);
+  }, [currentSite?.id, statusFilter]);
 
   // 5. Fetch Defined Form Fields for the active site
   const loadFields = useCallback(async () => {
@@ -325,9 +338,24 @@ export const AppContent: React.FC<AppProps> = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedSubmission, showAiPrompt, showCreateSite, showCreateWorkspace, showEditWorkspace]);
 
-  const handleExportCsv = () => {
+  const handleExportCsv = async () => {
     if (!currentSite) return;
-    window.open(api.getExportUrl(currentSite.id), '_blank');
+    try {
+      await api.downloadSubmissionsExport(currentSite.id, { status: statusFilter });
+    } catch (err: unknown) {
+      console.error('Failed to export submissions:', err);
+      alert(`Error exporting submissions: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  // Pagination controls
+  const canPrevPage = submissionsOffset > 0;
+  const canNextPage = submissionsOffset + SUBMISSIONS_PAGE_SIZE < totalSubmissions;
+  const handleNextPage = () => {
+    if (canNextPage) setSubmissionsOffset((o) => o + SUBMISSIONS_PAGE_SIZE);
+  };
+  const handlePrevPage = () => {
+    setSubmissionsOffset((o) => Math.max(0, o - SUBMISSIONS_PAGE_SIZE));
   };
 
   const handleSiteUpdated = (updated: Site) => {
@@ -623,6 +651,12 @@ export const AppContent: React.FC<AppProps> = () => {
                     selectedSubmissionId={selectedSubmission?.id}
                     onRunPipelineTest={() => setShowPipelineTestModal(true)}
                     onClearTestSubmissions={handleClearTestSubmissions}
+                    pageSize={SUBMISSIONS_PAGE_SIZE}
+                    offset={submissionsOffset}
+                    canPrevPage={canPrevPage}
+                    canNextPage={canNextPage}
+                    onPrevPage={handlePrevPage}
+                    onNextPage={handleNextPage}
                   />
                 )}
 
@@ -646,7 +680,11 @@ export const AppContent: React.FC<AppProps> = () => {
                 )}
 
                 {activeTab === 'template' && (
-                  <EmailTemplateView site={currentSite} onSiteUpdated={handleSiteUpdated} />
+                  <EmailTemplateView
+                    key={currentSite.id}
+                    site={currentSite}
+                    onSiteUpdated={handleSiteUpdated}
+                  />
                 )}
 
                 {activeTab === 'embed' && (

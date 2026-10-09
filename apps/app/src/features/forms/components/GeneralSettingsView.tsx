@@ -56,9 +56,11 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
   const [spamKeywords, setSpamKeywords] = useState(site.spam_keywords || '');
 
   const [turnstileEnabled, setTurnstileEnabled] = useState(
-    Boolean(site.turnstile_secret_key && site.turnstile_secret_key.trim().length > 0)
+    Boolean(site.turnstile_configured ?? site.turnstile_secret_key)
   );
-  const [turnstileSecretKey, setTurnstileSecretKey] = useState(site.turnstile_secret_key || '');
+  // The secret itself is never sent back by the API (redacted). The field stays empty; the user
+  // only types a value to set or replace the key.
+  const [turnstileSecretKey, setTurnstileSecretKey] = useState('');
 
   // Privacy & GDPR
   const [dataRetentionDays, setDataRetentionDays] = useState<number>(site.data_retention_days ?? 0);
@@ -84,10 +86,8 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
     setBlockDisposableEmails(Boolean(site.block_disposable_emails));
     setSpamFilterEnabled(Boolean(site.spam_keywords && site.spam_keywords.trim().length > 0));
     setSpamKeywords(site.spam_keywords || '');
-    setTurnstileEnabled(
-      Boolean(site.turnstile_secret_key && site.turnstile_secret_key.trim().length > 0)
-    );
-    setTurnstileSecretKey(site.turnstile_secret_key || '');
+    setTurnstileEnabled(Boolean(site.turnstile_configured ?? site.turnstile_secret_key));
+    setTurnstileSecretKey('');
     setDataRetentionDays(site.data_retention_days ?? 0);
     setAnonymizeIp(Boolean(site.anonymize_ip));
   }, [site]);
@@ -123,14 +123,21 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
     setErrorMessage(null);
 
     try {
-      const finalTurnstileKey = turnstileEnabled ? turnstileSecretKey.trim() || null : null;
+      // Turnstile secret: clear when disabled, set when a new value is typed, otherwise leave the
+      // saved key untouched (undefined is dropped from the JSON payload) so an empty field doesn't
+      // wipe an existing secret.
+      let turnstileUpdate: string | null | undefined;
+      if (!turnstileEnabled) turnstileUpdate = null;
+      else if (turnstileSecretKey.trim()) turnstileUpdate = turnstileSecretKey.trim();
+      else turnstileUpdate = undefined;
+
       const finalSpamKeywords = spamFilterEnabled ? spamKeywords.trim() || null : null;
 
       const updated = await api.updateSite(site.id, {
         name: name.trim() || domain,
         domain: domain.trim(),
         allowed_origins: allowedOrigins.trim() || null,
-        turnstile_secret_key: finalTurnstileKey,
+        turnstile_secret_key: turnstileUpdate,
         block_disposable_emails: blockDisposableEmails ? 1 : 0,
         spam_keywords: finalSpamKeywords,
         data_retention_days: dataRetentionDays > 0 ? dataRetentionDays : null,
@@ -512,7 +519,11 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
                   type="password"
                   value={turnstileSecretKey}
                   onChange={(e) => setTurnstileSecretKey(e.target.value)}
-                  placeholder="0x4AAAAAA..."
+                  placeholder={
+                    site.turnstile_configured
+                      ? '•••••••• saved — enter a new key to replace'
+                      : '0x4AAAAAA...'
+                  }
                   className="w-full bg-[#121318] border border-white/[0.08] rounded-xl px-4 py-2.5 text-xs text-zinc-100 font-mono focus:outline-none focus:border-emerald-500/50 transition"
                 />
                 <p className="text-[11px] text-zinc-500">

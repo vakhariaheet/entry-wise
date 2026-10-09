@@ -4,12 +4,28 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://entrywise.webbound.in/
 
 class ApiService {
   private token: string | null = null;
+  // A provider (e.g. Clerk's getToken) that returns a FRESH token on demand. Clerk session JWTs
+  // expire ~60s, so caching a single token on a long-lived page made later requests 401. When a
+  // provider is set we refresh the token on every request.
+  private tokenProvider: (() => Promise<string | null>) | null = null;
 
   setAuthToken(token: string | null) {
     this.token = token;
   }
 
-  getAuthHeaders(): Record<string, string> {
+  setTokenProvider(provider: (() => Promise<string | null>) | null) {
+    this.tokenProvider = provider;
+  }
+
+  async getAuthHeaders(): Promise<Record<string, string>> {
+    if (this.tokenProvider) {
+      try {
+        const fresh = await this.tokenProvider();
+        if (fresh) this.token = fresh;
+      } catch {
+        // fall back to the cached token if the provider fails
+      }
+    }
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -22,7 +38,7 @@ class ApiService {
   // Workspaces (Companies)
   async listCompanies(): Promise<Company[]> {
     const res = await fetch(`${API_BASE}/companies`, {
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -42,7 +58,7 @@ class ApiService {
   }): Promise<Company> {
     const res = await fetch(`${API_BASE}/companies`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) {
@@ -58,7 +74,7 @@ class ApiService {
   async updateCompany(id: string, data: Partial<Company>): Promise<Company> {
     const res = await fetch(`${API_BASE}/companies/${id}`, {
       method: 'PATCH',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) {
@@ -74,7 +90,7 @@ class ApiService {
   async deleteCompany(id: string): Promise<void> {
     const res = await fetch(`${API_BASE}/companies/${id}`, {
       method: 'DELETE',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -90,7 +106,7 @@ class ApiService {
   ): Promise<{ success: boolean; message: string; provider?: string }> {
     const res = await fetch(`${API_BASE}/companies/${id}/test-email`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify({ recipient_email: recipientEmail }),
     });
     if (!res.ok) {
@@ -109,7 +125,7 @@ class ApiService {
       ? `${API_BASE}/sites?company_id=${encodeURIComponent(companyId)}`
       : `${API_BASE}/sites`;
     const res = await fetch(url, {
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -130,7 +146,7 @@ class ApiService {
   }): Promise<Site> {
     const res = await fetch(`${API_BASE}/sites`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(site),
     });
     if (!res.ok) {
@@ -144,7 +160,7 @@ class ApiService {
   async updateSite(siteId: string, updates: Partial<Site>): Promise<Site> {
     const res = await fetch(`${API_BASE}/sites/${siteId}`, {
       method: 'PATCH',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(updates),
     });
     if (!res.ok) {
@@ -158,7 +174,7 @@ class ApiService {
   async deleteSite(siteId: string): Promise<void> {
     const res = await fetch(`${API_BASE}/sites/${siteId}`, {
       method: 'DELETE',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -177,7 +193,7 @@ class ApiService {
   ): Promise<{ success: boolean; message: string; recipient: string; template_type: string }> {
     const res = await fetch(`${API_BASE}/sites/${id}/test-email`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
@@ -193,7 +209,7 @@ class ApiService {
   // Form Fields
   async listFields(siteId: string): Promise<FormField[]> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/fields`, {
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -209,7 +225,7 @@ class ApiService {
   ): Promise<FormField[]> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/fields`, {
       method: 'PUT',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify({ fields }),
     });
     if (!res.ok) {
@@ -223,7 +239,7 @@ class ApiService {
   async createField(siteId: string, field: { name: string; type: FieldType }): Promise<FormField> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/fields`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(field),
     });
     if (!res.ok) {
@@ -237,7 +253,7 @@ class ApiService {
   async deleteField(siteId: string, fieldId: string): Promise<void> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/fields/${fieldId}`, {
       method: 'DELETE',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -257,7 +273,7 @@ class ApiService {
     if (options.offset) params.set('offset', options.offset.toString());
 
     const res = await fetch(`${API_BASE}/sites/${siteId}/submissions?${params.toString()}`, {
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -287,7 +303,7 @@ class ApiService {
   ): Promise<Submission> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/submissions/${submissionId}`, {
       method: 'PATCH',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(updates),
     });
     if (!res.ok) {
@@ -313,7 +329,7 @@ class ApiService {
   }> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/test-submission`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(payload || {}),
     });
     if (!res.ok) {
@@ -329,7 +345,7 @@ class ApiService {
   async clearTestSubmissions(siteId: string): Promise<{ success: boolean; deleted_count: number }> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/test-submissions`, {
       method: 'DELETE',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -344,7 +360,7 @@ class ApiService {
   async deleteSubmission(siteId: string, submissionId: string): Promise<void> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/submissions/${submissionId}`, {
       method: 'DELETE',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -358,10 +374,45 @@ class ApiService {
     return `${API_BASE}/sites/${siteId}/submissions/export`;
   }
 
+  /**
+   * Downloads the submissions export with the auth header attached and saves it client-side.
+   * (Previously the UI did `window.open(exportUrl)`, which can't send Authorization and returned 401.)
+   */
+  async downloadSubmissionsExport(
+    siteId: string,
+    options: { format?: 'csv' | 'json'; status?: string; includeTest?: boolean } = {}
+  ): Promise<void> {
+    const format = options.format || 'csv';
+    const params = new URLSearchParams({ format });
+    if (options.status && options.status !== 'all') params.set('status', options.status);
+    if (options.includeTest) params.set('include_test', '1');
+
+    const res = await fetch(
+      `${API_BASE}/sites/${siteId}/submissions/export?${params.toString()}`,
+      { headers: await this.getAuthHeaders() }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(
+        err.detail || err.message || `Failed to export submissions (HTTP ${res.status})`
+      );
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `submissions-${siteId}-${new Date().toISOString().slice(0, 10)}.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   // Webhooks
   async listWebhooks(siteId: string): Promise<Webhook[]> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/webhooks`, {
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -377,7 +428,7 @@ class ApiService {
   ): Promise<Webhook> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/webhooks`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) {
@@ -395,7 +446,7 @@ class ApiService {
   ): Promise<Webhook> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/webhooks/${webhookId}`, {
       method: 'PATCH',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
     if (!res.ok) {
@@ -409,7 +460,7 @@ class ApiService {
   async deleteWebhook(siteId: string, webhookId: string): Promise<void> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/webhooks/${webhookId}`, {
       method: 'DELETE',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -423,7 +474,7 @@ class ApiService {
   ): Promise<{ success: boolean; status?: number; error?: string }> {
     const res = await fetch(`${API_BASE}/sites/${siteId}/webhooks/${webhookId}/test`, {
       method: 'POST',
-      headers: this.getAuthHeaders(),
+      headers: await this.getAuthHeaders(),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
