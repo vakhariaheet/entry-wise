@@ -36,6 +36,9 @@ export interface Env {
   EMAIL: CloudflareEmailBinding;
   ADMIN_API_KEY?: string;
   SUBMISSIONS_QUEUE?: Queue<any>;
+  // Comma-separated allow-list of trusted Clerk issuer URLs/hostnames for JWKS verification.
+  // Official *.clerk.accounts.dev / *.clerk.accounts.com are always trusted.
+  CLERK_ISSUER?: string;
 }
 
 export interface APIResponse<T> {

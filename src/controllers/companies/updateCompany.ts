@@ -4,6 +4,15 @@ import type { Env } from '../../types/env';
 import { encrypt } from '../../utils/encryption';
 import { sendResponse } from '../../utils/sendResponse';
 
+// Columns a client may set via this legacy endpoint (excludes id/user_id/created_at).
+const ALLOWED_COMPANY_COLUMNS = new Set([
+  'name',
+  'email_provider',
+  'email_provider_token',
+  'from_email',
+  'from_name',
+]);
+
 export const updateCompany = async (c: Context<{ Bindings: Env }>) => {
   try {
     const id = c.req.param('id');
@@ -51,14 +60,11 @@ export const updateCompany = async (c: Context<{ Bindings: Env }>) => {
       );
     }
 
-    const updateFields = Object.entries(updateBody)
-      .filter(([_, value]) => value !== undefined)
-      .map(([key]) => `${key} = ?`)
-      .join(', ');
-
-    const updateValues = Object.entries(updateBody)
-      .filter(([_, value]) => value !== undefined)
-      .map(([_, value]) => value);
+    const updateEntries = Object.entries(updateBody).filter(
+      ([key, value]) => ALLOWED_COMPANY_COLUMNS.has(key) && value !== undefined
+    );
+    const updateFields = updateEntries.map(([key]) => `${key} = ?`).join(', ');
+    const updateValues = updateEntries.map(([_, value]) => value);
 
     if (!updateFields) {
       return sendResponse(c, 400, null, 'No fields to update');

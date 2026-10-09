@@ -21,11 +21,12 @@ export const deleteWebhook = async (c: Context<{ Bindings: Env }>) => {
       );
     }
 
-    const { success } = await c.env.DB.prepare('DELETE FROM webhooks WHERE id = ? AND site_id = ?')
+    const result = await c.env.DB.prepare('DELETE FROM webhooks WHERE id = ? AND site_id = ?')
       .bind(webhookId, siteId)
       .run();
 
-    if (!success) {
+    // D1 .run() reports success even when 0 rows matched — check meta.changes for a real 404.
+    if (!result.success || (result.meta?.changes ?? 0) === 0) {
       return sendProblemDetails(c, 404, `Webhook '${webhookId}' not found`);
     }
 

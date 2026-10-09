@@ -1,5 +1,5 @@
 import type { Context } from 'hono';
-import type { JwtAuthPayload } from '../../../types/auth';
+import { assertCompanyOwnership } from '../../../middleware/authorize';
 import type { UpdateCompanyBody } from '../../../types/company';
 import type { Env } from '../../../types/env';
 import { encrypt } from '../../../utils/encryption';
@@ -12,19 +12,18 @@ export const patchCompany = async (c: Context<{ Bindings: Env }>) => {
       return sendProblemDetails(c, 400, 'Company ID path parameter is required');
     }
 
-    const jwtPayload = c.get('jwtPayload') as JwtAuthPayload | undefined;
     const body = (await c.req.json()) as UpdateCompanyBody;
 
-    let checkSql = 'SELECT id, email_provider, user_id FROM companies WHERE id = ?';
-    const checkParams: (string | number)[] = [id];
-
-    if (jwtPayload?.role === 'clerk_user' && jwtPayload?.user_id) {
-      checkSql += ' AND user_id = ?';
-      checkParams.push(jwtPayload.user_id);
+    // Default-deny tenant isolation
+    const authorized = await assertCompanyOwnership(c, id);
+    if (!authorized) {
+      return sendProblemDetails(c, 404, `Workspace with ID '${id}' not found or access denied`);
     }
 
-    const { results } = await c.env.DB.prepare(checkSql)
-      .bind(...checkParams)
+    const { results } = await c.env.DB.prepare(
+      'SELECT id, email_provider, user_id FROM companies WHERE id = ?'
+    )
+      .bind(id)
       .all<{ id: string; email_provider: string; user_id: string }>();
 
     if (!results?.length) {

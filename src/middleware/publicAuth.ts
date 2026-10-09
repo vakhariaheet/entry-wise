@@ -96,8 +96,12 @@ export const verifyDomain = async (c: Context<{ Bindings: Env }>, next: Next) =>
   }
 };
 
+// Max public submissions per hour per site:IP. Single source of truth for the limit and its
+// message (previously the code enforced 100 while the docs said 50).
+const RATE_LIMIT_MAX_PER_HOUR = 100;
+
 /**
- * Rate limiting middleware using Cloudflare KV (100 requests/hour per site:IP)
+ * Rate limiting middleware using Cloudflare KV (RATE_LIMIT_MAX_PER_HOUR requests/hour per site:IP)
  */
 export const rateLimiter = async (c: Context<{ Bindings: Env }>, next: Next) => {
   try {
@@ -109,11 +113,11 @@ export const rateLimiter = async (c: Context<{ Bindings: Env }>, next: Next) => 
       const count = await c.env.RATE_LIMIT_KV.get(key);
       const currentCount = count ? parseInt(count, 10) : 0;
 
-      if (currentCount >= 100) {
+      if (currentCount >= RATE_LIMIT_MAX_PER_HOUR) {
         return sendProblemDetails(
           c,
           429,
-          'Rate limit exceeded. You may only make 100 submissions per hour from this IP address.',
+          `Rate limit exceeded. You may only make ${RATE_LIMIT_MAX_PER_HOUR} submissions per hour from this IP address.`,
           { retryAfter: 3600 }
         );
       }

@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertCompanyOwnership } from '../../../middleware/authorize';
 import type { Company } from '../../../types/company';
 import type { Env } from '../../../types/env';
 import { sendOk, sendProblemDetails } from '../../../utils/sendResponse';
@@ -10,17 +11,16 @@ export const getCompany = async (c: Context<{ Bindings: Env }>) => {
       return sendProblemDetails(c, 400, 'Company ID path parameter is required');
     }
 
-    const jwtPayload = c.get('jwtPayload') as any;
-    let sql = `SELECT id, name, email_provider, from_email, from_name, user_id, created_at FROM companies WHERE id = ?`;
-    const params: any[] = [id];
-
-    if (jwtPayload?.role === 'clerk_user' && jwtPayload?.user_id) {
-      sql += ` AND (user_id = ? OR id = 'comp_default')`;
-      params.push(jwtPayload.user_id);
+    // Default-deny tenant isolation (returns 404 for missing OR unauthorized to avoid leaking existence)
+    const authorized = await assertCompanyOwnership(c, id);
+    if (!authorized) {
+      return sendProblemDetails(c, 404, `Workspace with ID '${id}' not found`);
     }
 
-    const { results } = await c.env.DB.prepare(sql)
-      .bind(...params)
+    const { results } = await c.env.DB.prepare(
+      `SELECT id, name, email_provider, from_email, from_name, user_id, created_at FROM companies WHERE id = ?`
+    )
+      .bind(id)
       .all<Company>();
 
     if (!results?.length) {

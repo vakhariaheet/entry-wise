@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 import type { Env } from '../../../types/env';
 import type { Site } from '../../../types/site';
+import { redactSiteSecrets } from '../../../utils/redactSite';
 import { sendPaginated, sendProblemDetails } from '../../../utils/sendResponse';
 
 export const listSites = async (c: Context<{ Bindings: Env }>) => {
@@ -46,7 +47,10 @@ export const listSites = async (c: Context<{ Bindings: Env }>) => {
       .bind(...params, limit, offset)
       .all<Site>();
 
-    return sendPaginated(c, results || [], total, limit, offset);
+    const redacted = (results || []).map((s) =>
+      redactSiteSecrets(s as unknown as Record<string, unknown>)
+    );
+    return sendPaginated(c, redacted, total, limit, offset);
   } catch (error) {
     console.error('List sites error:', error);
     return sendProblemDetails(c, 500, 'Internal server error while fetching sites');

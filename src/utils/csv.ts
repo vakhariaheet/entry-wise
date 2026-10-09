@@ -23,7 +23,7 @@ export function escapeCsvCell(value: any): string {
  */
 export function generateSubmissionsCsv(submissions: SubmissionRecord[]): string {
   if (!submissions || submissions.length === 0) {
-    return 'id,created_at,status,ip_address\n';
+    return 'id,created_at,status,ip_address,notes\n';
   }
 
   // Discover all unique field keys across submissions
@@ -37,7 +37,7 @@ export function generateSubmissionsCsv(submissions: SubmissionRecord[]): string 
   }
   const dynamicHeaders = Array.from(dynamicFieldKeys).sort();
 
-  const allHeaders = ['id', 'created_at', 'status', 'ip_address', ...dynamicHeaders];
+  const allHeaders = ['id', 'created_at', 'status', 'ip_address', 'notes', ...dynamicHeaders];
   const rows: string[] = [allHeaders.map(escapeCsvCell).join(',')];
 
   for (const sub of submissions) {
@@ -46,6 +46,7 @@ export function generateSubmissionsCsv(submissions: SubmissionRecord[]): string 
       escapeCsvCell(sub.created_at),
       escapeCsvCell(sub.status),
       escapeCsvCell(sub.ip_address || ''),
+      escapeCsvCell(sub.notes || ''),
       ...dynamicHeaders.map((header) => escapeCsvCell(sub.data?.[header] || '')),
     ];
     rows.push(row.join(','));

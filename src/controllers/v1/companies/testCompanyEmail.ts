@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertCompanyOwnership } from '../../../middleware/authorize';
 import { EmailServiceFactory } from '../../../services/email';
 import type { JwtAuthPayload } from '../../../types/auth';
 import type { Company } from '../../../types/company';
@@ -14,16 +15,15 @@ export const testCompanyEmail = async (c: Context<{ Bindings: Env }>) => {
     }
 
     const jwtPayload = c.get('jwtPayload') as JwtAuthPayload | undefined;
-    let checkSql = 'SELECT * FROM companies WHERE id = ?';
-    const checkParams: (string | number)[] = [id];
 
-    if (jwtPayload?.role === 'clerk_user' && jwtPayload?.user_id) {
-      checkSql += ' AND user_id = ?';
-      checkParams.push(jwtPayload.user_id);
+    // Default-deny tenant isolation (prevents a site key from sending mail via another workspace's provider)
+    const authorized = await assertCompanyOwnership(c, id);
+    if (!authorized) {
+      return sendProblemDetails(c, 404, `Workspace with ID '${id}' not found or access denied`);
     }
 
-    const { results } = await c.env.DB.prepare(checkSql)
-      .bind(...checkParams)
+    const { results } = await c.env.DB.prepare('SELECT * FROM companies WHERE id = ?')
+      .bind(id)
       .all<Company>();
 
     if (!results?.length) {

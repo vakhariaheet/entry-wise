@@ -18,6 +18,40 @@ function getRemoteJWKS(issuer: string) {
 }
 
 /**
+ * SECURITY: the JWKS endpoint is derived from the token's `iss` claim. We MUST only fetch keys from
+ * an allow-listed issuer. Otherwise an attacker can set `iss` to a host they control, serve their
+ * own JWKS, sign a token with their key, and be accepted as any `clerk_user` (full auth bypass),
+ * while also turning the key fetch into an SSRF primitive. Trust is granted only to:
+ *   - exact issuers configured via the CLERK_ISSUER env (comma-separated URLs or hostnames), and
+ *   - official Clerk Frontend API domains (*.clerk.accounts.dev / *.clerk.accounts.com).
+ */
+function isTrustedClerkIssuer(issuer: string, env: Env): boolean {
+  try {
+    const url = new URL(issuer);
+    if (url.protocol !== 'https:') return false;
+    const host = url.hostname.toLowerCase();
+
+    const configured = (env.CLERK_ISSUER || '')
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    for (const entry of configured) {
+      try {
+        const entryHost = entry.startsWith('http') ? new URL(entry).hostname.toLowerCase() : entry;
+        if (host === entryHost) return true;
+      } catch {
+        // ignore malformed allow-list entry
+      }
+    }
+
+    if (host.endsWith('.clerk.accounts.dev') || host.endsWith('.clerk.accounts.com')) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Constant-time string comparison to prevent timing side-channel attacks on secret keys
  */
 function timingSafeEqual(a: string, b: string): boolean {
@@ -104,19 +138,22 @@ export const verifyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
         }
       }
 
-      // 3b. Cryptographically verify Clerk JWT via JWKS
+      // 3b. Cryptographically verify Clerk JWT via JWKS — but only for an allow-listed issuer.
       const parts = token.split('.');
       if (parts.length === 3) {
+        let issuer: string | undefined;
         try {
           const payloadJson = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
           const unverifiedClaims = JSON.parse(payloadJson);
-          const issuer = unverifiedClaims.iss;
+          issuer = typeof unverifiedClaims.iss === 'string' ? unverifiedClaims.iss : undefined;
+        } catch {
+          issuer = undefined;
+        }
 
-          if (issuer && (issuer.includes('clerk') || unverifiedClaims.sub?.startsWith('user_'))) {
+        if (issuer && isTrustedClerkIssuer(issuer, c.env)) {
+          try {
             const jwks = getRemoteJWKS(issuer);
-            const { payload } = await jwtVerify(token, jwks, {
-              issuer,
-            });
+            const { payload } = await jwtVerify(token, jwks, { issuer });
 
             c.set('jwtPayload', {
               sub: payload.sub,
@@ -125,10 +162,10 @@ export const verifyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
               claims: payload,
             });
             return await next();
+          } catch (clerkErr) {
+            console.error('Clerk JWKS cryptographic verification failed:', clerkErr);
+            return sendProblemDetails(c, 401, 'Invalid or untrusted Clerk authentication token');
           }
-        } catch (clerkErr) {
-          console.error('Clerk JWKS cryptographic verification failed:', clerkErr);
-          return sendProblemDetails(c, 401, 'Invalid or untrusted Clerk authentication token');
         }
       }
 

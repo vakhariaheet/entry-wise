@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { Env } from '../../../types/env';
 import type { CreateFieldBody, Field, FieldType } from '../../../types/field';
 import { sendCreated, sendProblemDetails } from '../../../utils/sendResponse';
@@ -27,15 +28,14 @@ export const createField = async (c: Context<{ Bindings: Env }>) => {
       );
     }
 
-    // Verify site exists
-    const { results: siteExists } = await c.env.DB.prepare(`
-            SELECT id FROM sites WHERE id = ?
-        `)
-      .bind(siteId)
-      .all();
-
-    if (!siteExists?.length) {
-      return sendProblemDetails(c, 404, `Site with ID '${siteId}' not found`);
+    // Verify caller owns this site (default-deny tenant isolation)
+    const site = await assertSiteOwnership(c, siteId);
+    if (!site) {
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: you do not have permission to modify fields for this site'
+      );
     }
 
     // Check if field already exists on this site

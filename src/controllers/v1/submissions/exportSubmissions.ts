@@ -10,6 +10,8 @@ export const exportSubmissions = async (c: Context<{ Bindings: Env }>) => {
     const siteId = c.req.param('site_id');
     const format = (c.req.query('format') || 'csv').toLowerCase();
     const status = c.req.query('status');
+    const includeTest =
+      c.req.query('include_test') === '1' || c.req.query('include_test') === 'true';
 
     if (!siteId) {
       return sendProblemDetails(c, 400, 'site_id path parameter is required');
@@ -32,6 +34,11 @@ export const exportSubmissions = async (c: Context<{ Bindings: Env }>) => {
       params.push(status);
     }
 
+    // Exclude mock/pipeline-test rows by default so exports contain real data only.
+    if (!includeTest) {
+      sql += ` AND (is_test IS NULL OR is_test = 0)`;
+    }
+
     sql += ` ORDER BY created_at DESC`;
 
     const { results } = await c.env.DB.prepare(sql)
@@ -48,6 +55,8 @@ export const exportSubmissions = async (c: Context<{ Bindings: Env }>) => {
           : undefined,
       status: row.status,
       ip_address: row.ip_address,
+      is_test: row.is_test ?? 0,
+      notes: row.notes ?? null,
       created_at: row.created_at,
     }));
 

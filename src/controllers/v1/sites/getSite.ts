@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { Env } from '../../../types/env';
 import type { Site } from '../../../types/site';
+import { redactSiteSecrets } from '../../../utils/redactSite';
 import { sendOk, sendProblemDetails } from '../../../utils/sendResponse';
 
 export const getSite = async (c: Context<{ Bindings: Env }>) => {
@@ -31,10 +32,10 @@ export const getSite = async (c: Context<{ Bindings: Env }>) => {
     }
 
     const site = results[0];
-    const formattedSite: Site = {
+    const formattedSite = redactSiteSecrets({
       ...site,
       auto_responder_enabled: site.auto_responder_enabled === 1,
-    };
+    }) as unknown as Site;
 
     return sendOk(c, formattedSite);
   } catch (error) {

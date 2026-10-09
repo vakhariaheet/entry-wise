@@ -65,14 +65,20 @@ export const createSite = async (c: Context<{ Bindings: Env }>) => {
       }
     }
 
+    // Domain uniqueness is scoped to the workspace, not global — otherwise one tenant could
+    // permanently squat any domain for every other tenant.
     const { results: domainExists } = await c.env.DB.prepare(`
-            SELECT id FROM sites WHERE domain = ?
+            SELECT id FROM sites WHERE domain = ? AND company_id = ?
         `)
-      .bind(cleanDomain)
+      .bind(cleanDomain, companyId)
       .all();
 
     if (domainExists?.length) {
-      return sendProblemDetails(c, 409, `A site with domain '${cleanDomain}' already exists`);
+      return sendProblemDetails(
+        c,
+        409,
+        `A site with domain '${cleanDomain}' already exists in this workspace`
+      );
     }
 
     const id = `site_${crypto.randomUUID()}`;

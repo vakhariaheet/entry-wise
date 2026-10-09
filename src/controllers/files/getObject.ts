@@ -6,7 +6,8 @@ export const getObject = async (c: Context<{ Bindings: Env }>) => {
   const key = c.req.param('key');
   const object = await r2.get(key);
   if (!object) return c.json({ error: 'Not found' }, 404);
-  return new Response(object.body, {
+  // object.body is a Workers ReadableStream; cast for the Response BodyInit type.
+  return new Response(object.body as unknown as BodyInit, {
     headers: { 'Content-Type': object.httpMetadata?.contentType ?? 'application/octet-stream' },
   });
 };

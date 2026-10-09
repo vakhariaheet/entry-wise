@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { BulkCreateFieldBody, Field, FieldType } from '../../../schemas/field.schema';
 import type { Env } from '../../../types/env';
 import { sendOk, sendProblemDetails } from '../../../utils/sendResponse';
@@ -21,15 +22,14 @@ export const replaceFields = async (c: Context<{ Bindings: Env }>) => {
       });
     }
 
-    // Verify site exists
-    const { results: siteExists } = await c.env.DB.prepare(`
-            SELECT id FROM sites WHERE id = ?
-        `)
-      .bind(siteId)
-      .all();
-
-    if (!siteExists?.length) {
-      return sendProblemDetails(c, 404, `Site with ID '${siteId}' not found`);
+    // Verify caller owns this site (default-deny tenant isolation)
+    const site = await assertSiteOwnership(c, siteId);
+    if (!site) {
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: you do not have permission to modify fields for this site'
+      );
     }
 
     // If array is empty, delete all fields and return empty array

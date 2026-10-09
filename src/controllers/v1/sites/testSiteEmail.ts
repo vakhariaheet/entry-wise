@@ -1,8 +1,8 @@
 import type { Context } from 'hono';
 import { renderAutoResponderEmail } from '../../../emails/AutoResponderEmail';
 import { renderFormSubmissionEmail } from '../../../emails/FormSubmissionEmail';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import { EmailServiceFactory } from '../../../services/email';
-import type { JwtAuthPayload } from '../../../types/auth';
 import type { Company } from '../../../types/company';
 import type { Env } from '../../../types/env';
 import type { Site } from '../../../types/site';
@@ -24,7 +24,11 @@ export const testSiteEmail = async (c: Context<{ Bindings: Env }>) => {
       return sendProblemDetails(c, 400, 'Site ID path parameter is required');
     }
 
-    const jwtPayload = c.get('jwtPayload') as JwtAuthPayload | undefined;
+    // Default-deny tenant isolation (a site key must own this site; prevents sending via another workspace's provider)
+    const owned = await assertSiteOwnership(c, id);
+    if (!owned) {
+      return sendProblemDetails(c, 403, 'You do not have permission to access this site');
+    }
 
     // 1. Fetch site
     const { results: existingSites } = await c.env.DB.prepare('SELECT * FROM sites WHERE id = ?')
@@ -36,13 +40,6 @@ export const testSiteEmail = async (c: Context<{ Bindings: Env }>) => {
     }
 
     const site = existingSites[0];
-
-    // Verify Clerk ownership
-    if (jwtPayload?.role === 'clerk_user' && jwtPayload?.user_id) {
-      if (site.user_id && site.user_id !== jwtPayload.user_id) {
-        return sendProblemDetails(c, 403, 'You do not have permission to access this site');
-      }
-    }
 
     // 2. Fetch parent company for email provider configuration
     const { results: companies } = await c.env.DB.prepare('SELECT * FROM companies WHERE id = ?')

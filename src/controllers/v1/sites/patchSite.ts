@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { Env } from '../../../types/env';
 import type { Site, UpdateSiteBody } from '../../../types/site';
+import { redactSiteSecrets } from '../../../utils/redactSite';
 import { sendOk, sendProblemDetails } from '../../../utils/sendResponse';
 
 const ALLOWED_SITE_COLUMNS = new Set([
@@ -64,14 +65,19 @@ export const patchSite = async (c: Context<{ Bindings: Env }>) => {
         .trim()
         .replace(/^(https?:\/\/)?(www\.)?/, '')
         .replace(/\/.*$/, '');
+      const companyId = existingSites[0].company_id;
       const { results: domainExists } = await c.env.DB.prepare(`
-                SELECT id FROM sites WHERE domain = ? AND id != ?
+                SELECT id FROM sites WHERE domain = ? AND company_id = ? AND id != ?
             `)
-        .bind(cleanDomain, id)
+        .bind(cleanDomain, companyId, id)
         .all();
 
       if (domainExists?.length) {
-        return sendProblemDetails(c, 409, `A site with domain '${cleanDomain}' already exists`);
+        return sendProblemDetails(
+          c,
+          409,
+          `A site with domain '${cleanDomain}' already exists in this workspace`
+        );
       }
       body.domain = cleanDomain;
     }
@@ -118,11 +124,11 @@ export const patchSite = async (c: Context<{ Bindings: Env }>) => {
       .all<any>();
 
     const updatedSite = updated[0];
-    const formattedSite: Site = {
+    const formattedSite = redactSiteSecrets({
       ...updatedSite,
       auto_responder_enabled: updatedSite.auto_responder_enabled === 1,
       notify_on_submission: updatedSite.notify_on_submission === 1,
-    };
+    }) as unknown as Site;
 
     return sendOk(c, formattedSite);
   } catch (error) {

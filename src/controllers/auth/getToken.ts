@@ -14,9 +14,13 @@ const getAuthToken = async (c: Context<{ Bindings: Env }>) => {
   if (!isCodeValid) {
     return sendResponse(c, 401, null, 'Invalid code');
   }
+  // JWT `exp`/`iat` are seconds since epoch (RFC 7519). Previously these were emitted in
+  // milliseconds, so a spec-compliant verifier read the token as expiring in the year ~58000.
+  const nowSec = Math.floor(Date.now() / 1000);
   const payload = {
-    signOn: Date.now(),
-    exp: Date.now() + 1000 * 60 * 60,
+    iat: nowSec,
+    signOn: nowSec,
+    exp: nowSec + 60 * 60, // 1 hour
   };
   const token = await sign(payload, c.env.JWT_SECRET);
   return sendResponse(c, 200, { token }, 'Token generated successfully');

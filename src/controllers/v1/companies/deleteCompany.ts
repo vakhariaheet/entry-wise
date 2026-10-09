@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertCompanyOwnership } from '../../../middleware/authorize';
 import type { Env } from '../../../types/env';
 import { sendNoContent, sendProblemDetails } from '../../../utils/sendResponse';
 
@@ -13,20 +14,9 @@ export const deleteCompany = async (c: Context<{ Bindings: Env }>) => {
       return sendProblemDetails(c, 403, 'The default workspace cannot be deleted');
     }
 
-    const jwtPayload = c.get('jwtPayload') as any;
-    let checkSql = `SELECT id FROM companies WHERE id = ?`;
-    const params: any[] = [id];
-
-    if (jwtPayload?.role === 'clerk_user' && jwtPayload?.user_id) {
-      checkSql += ` AND user_id = ?`;
-      params.push(jwtPayload.user_id);
-    }
-
-    const { results } = await c.env.DB.prepare(checkSql)
-      .bind(...params)
-      .all();
-
-    if (!results?.length) {
+    // Default-deny tenant isolation
+    const authorized = await assertCompanyOwnership(c, id);
+    if (!authorized) {
       return sendProblemDetails(c, 404, `Workspace with ID '${id}' not found or access denied`);
     }
 

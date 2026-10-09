@@ -26,7 +26,11 @@ export interface Submission {
   created_at: string;
 }
 
-// Honeypot field names to check
-export const HONEYPOT_FIELDS = ['_gotcha', 'website', 'url', 'email_confirm'];
+// Honeypot field names to check.
+// IMPORTANT: only underscore-prefixed internal names are used so we never collide with — and
+// silently discard — real, common form fields (previously 'website' and 'url' caused legit
+// submissions containing those fields to be dropped as spam). The embed code generator and the
+// dashboard document `_gotcha` / `_trap` as the hidden trap inputs.
+export const HONEYPOT_FIELDS = ['_gotcha', '_honey', '_trap'];
 export const VALID_FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf']; // Add more as needed
 export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit

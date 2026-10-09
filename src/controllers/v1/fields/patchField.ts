@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { assertSiteOwnership } from '../../../middleware/authorize';
 import type { Env } from '../../../types/env';
 import type { Field, FieldType, UpdateFieldBody } from '../../../types/field';
 import { sendOk, sendProblemDetails } from '../../../utils/sendResponse';
@@ -9,15 +10,28 @@ export const patchField = async (c: Context<{ Bindings: Env }>) => {
     const fieldId = c.req.param('field_id') || c.req.param('id');
     const body = (await c.req.json()) as UpdateFieldBody;
 
+    if (!siteId) {
+      return sendProblemDetails(c, 400, 'site_id path parameter is required');
+    }
     if (!fieldId) {
       return sendProblemDetails(c, 400, 'field_id path parameter is required');
     }
 
-    // Verify field exists
+    // Default-deny tenant isolation
+    const site = await assertSiteOwnership(c, siteId);
+    if (!site) {
+      return sendProblemDetails(
+        c,
+        403,
+        'Access denied: you do not have permission to modify fields for this site'
+      );
+    }
+
+    // Verify field exists AND belongs to this site
     const { results: existingFields } = await c.env.DB.prepare(`
-            SELECT * FROM fields WHERE id = ?
+            SELECT * FROM fields WHERE id = ? AND site_id = ?
         `)
-      .bind(fieldId)
+      .bind(fieldId, siteId)
       .all<Field>();
 
     if (!existingFields?.length) {
@@ -25,7 +39,7 @@ export const patchField = async (c: Context<{ Bindings: Env }>) => {
     }
 
     const currentField = existingFields[0];
-    const effectiveSiteId = siteId || currentField.site_id;
+    const effectiveSiteId = siteId;
 
     if (body.type) {
       const validTypes: FieldType[] = ['text', 'email', 'phone', 'url', 'file'];
@@ -67,9 +81,9 @@ export const patchField = async (c: Context<{ Bindings: Env }>) => {
     }
 
     const { success } = await c.env.DB.prepare(`
-            UPDATE fields SET ${updateFields} WHERE id = ?
+            UPDATE fields SET ${updateFields} WHERE id = ? AND site_id = ?
         `)
-      .bind(...updateValues, fieldId)
+      .bind(...updateValues, fieldId, siteId)
       .run();
 
     if (!success) {

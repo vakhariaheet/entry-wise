@@ -13,11 +13,16 @@ export const listCompanies = async (c: Context<{ Bindings: Env }>) => {
     let listSql = `SELECT id, name, email_provider, from_email, from_name, user_id, created_at FROM companies WHERE 1=1`;
     const params: any[] = [];
 
-    // If authenticated with Clerk, show companies owned by this user
+    // Tenant scoping. admin_api_key = global (no restriction).
     if (jwtPayload?.role === 'clerk_user' && jwtPayload?.user_id) {
       countSql += ` AND (user_id = ? OR id = 'comp_default')`;
       listSql += ` AND (user_id = ? OR id = 'comp_default')`;
       params.push(jwtPayload.user_id);
+    } else if (jwtPayload?.role === 'site_owner') {
+      // A site-scoped key may only ever see its own parent workspace (not every tenant's).
+      countSql += ` AND id = ?`;
+      listSql += ` AND id = ?`;
+      params.push(jwtPayload.company_id || '__none__');
     }
 
     const countResult = await c.env.DB.prepare(countSql)
