@@ -61,7 +61,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, isClerkConfigured 
         <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-2.5 mb-2">
             <img
-              src="https://entrywise.webbound.in/assets/logo.png"
+              src="https://entrywise.si/assets/logo.png"
               alt="Logo"
               className="w-10 h-10 rounded-xl border border-white/[0.1] shadow-lg"
             />

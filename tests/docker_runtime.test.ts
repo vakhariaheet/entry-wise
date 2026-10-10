@@ -38,7 +38,7 @@ describe('Docker Self-Hosting & Zero Cloudflare Lock-In Runtime', () => {
 
     const baseCompany = {
       email_provider: 'cloudflare' as const,
-      from_email: 'no-reply@entrywise.webbound.in',
+      from_email: 'no-reply@entrywise.si',
       from_name: 'EntryWise',
       name: 'Acme Self-Hosted',
     };

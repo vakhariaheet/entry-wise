@@ -31,7 +31,7 @@ const problemDetailsSchema = {
     type: {
       type: 'string',
       format: 'uri',
-      example: 'https://entrywise.webbound.in/problems/bad-request',
+      example: 'https://entrywise.si/problems/bad-request',
     },
     title: { type: 'string', format: 'text', example: 'Bad Request' },
     status: { type: 'integer', format: 'int32', minimum: 100, maximum: 599, example: 400 },
@@ -56,7 +56,7 @@ const problemDetailsContent = {
   'application/problem+json': {
     schema: problemDetailsSchema,
     example: {
-      type: 'https://entrywise.webbound.in/problems/bad-request',
+      type: 'https://entrywise.si/problems/bad-request',
       title: 'Bad Request',
       status: 400,
       detail: 'Request validation failed',

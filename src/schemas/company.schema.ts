@@ -32,7 +32,7 @@ export const companySchema = z.object({
   }),
   from_email: z.string().email('Invalid email format').optional().openapi({
     description:
-      'The email address to send from. Fixed to no-reply@entrywise.webbound.in when using Cloudflare Email Service.',
+      'The email address to send from. Fixed to no-reply@entrywise.si when using Cloudflare Email Service.',
     example: 'info@acme.com',
     format: 'email',
   }),

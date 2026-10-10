@@ -52,7 +52,7 @@ export const createSite = async (c: Context<{ Bindings: Env }>) => {
           companyId = `comp_${crypto.randomUUID()}`;
           await c.env.DB.prepare(`
                         INSERT INTO companies (id, name, email_provider, from_email, from_name, user_id)
-                        VALUES (?, ?, 'cloudflare', 'no-reply@entrywise.webbound.in', 'EntryWise Forms', ?)
+                        VALUES (?, ?, 'cloudflare', 'no-reply@entrywise.si', 'EntryWise Forms', ?)
                     `)
             .bind(companyId, 'My Workspace', userId)
             .run();

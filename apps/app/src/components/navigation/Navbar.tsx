@@ -77,9 +77,9 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Left: Brand & Switchers */}
         <div className="flex items-center gap-4 sm:gap-6">
-          <a href="https://entrywise.webbound.in" className="flex items-center gap-2.5 group">
+          <a href="https://entrywise.si" className="flex items-center gap-2.5 group">
             <img
-              src="https://entrywise.webbound.in/assets/logo.png"
+              src="https://entrywise.si/assets/logo.png"
               alt="Logo"
               className="w-7 h-7 rounded-lg border border-white/[0.1]"
             />
@@ -261,7 +261,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
 
           <a
-            href="https://entrywise.webbound.in/docs"
+            href="https://entrywise.si/reference"
             target="_blank"
             rel="noopener noreferrer"
             className="hidden md:flex items-center gap-1 text-xs text-zinc-400 hover:text-white px-2 py-1.5 transition"

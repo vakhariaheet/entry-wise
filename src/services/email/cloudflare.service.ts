@@ -1,6 +1,6 @@
 import type { EmailAttachment, EmailService, SendEmailParams } from './types';
 
-const CF_FROM_EMAIL = 'no-reply@entrywise.webbound.in';
+const CF_FROM_EMAIL = 'no-reply@entrywise.si';
 
 type EmailMessageClass = new (from: string, to: string, raw: string) => unknown;
 

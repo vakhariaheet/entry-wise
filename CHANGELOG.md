@@ -48,8 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Integrated Scalar API documentation at `/docs` with OpenAPI 3.1 specification.
 
 ### Changed
-- Migrated default sender domain from `entrywise.co.in` to `entrywise.webbound.in` (`no-reply@entrywise.webbound.in`).
-- Updated problem details type URLs to `https://entrywise.webbound.in/problems/...`.
+- Migrated default sender domain from `entrywise.co.in` to `entrywise.si` (`no-reply@entrywise.si`).
+- Updated problem details type URLs to `https://entrywise.si/problems/...`.
 - Preserved legacy routes (`/public/submit`, `/auth`, `/companies`, `/sites`, `/fields`) as backwards-compatible aliases.
 
 ---

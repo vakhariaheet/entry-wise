@@ -32,75 +32,54 @@ const groupedDocs = DOC_CATEGORIES.map((category) => ({
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{title} — EntryWise Docs</title>
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#08090a" />
+  <title>{title} — EntryWise Documentation</title>
   <meta name="description" content={description} />
   <link rel="icon" type="image/png" href="/assets/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet"
   />
-  <style>
-    .docs-glow {
-      background: radial-gradient(
-        ellipse 65% 40% at 50% -10%,
-        rgba(16, 185, 129, 0.13) 0%,
-        rgba(16, 185, 129, 0.01) 65%,
-        transparent 90%
-      );
-    }
-    .docs-surface {
-      background: #0d0f17;
-      border: 1px solid rgba(255, 255, 255, 0.07);
-    }
-    .docs-code-block {
-      background: #090b10;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-  </style>
 </head>
-<body class="bg-[#07080b] text-[#f4f4f5] min-h-screen relative selection:bg-emerald-500/20 selection:text-emerald-300">
-  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[480px] docs-glow pointer-events-none -z-10"></div>
-
-  <!-- Top Navigation Header -->
-  <header class="border-b border-white/[0.08] bg-[#07080b]/90 backdrop-blur-xl sticky top-0 z-50">
-    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+<body class="bg-[#08090a] text-[#f7f8f8] min-h-screen antialiased selection:bg-white/15 selection:text-white">
+  <!-- Top Navigation Header (56px, 1px architectural hairline) -->
+  <header class="h-14 border-b border-[#181a1f] bg-[#08090a]/90 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-[1380px] mx-auto px-4 sm:px-6 h-full flex items-center justify-between gap-4">
       <div class="flex items-center gap-6">
-        <a href="/" class="flex items-center gap-2.5 group">
-          <img
-            src="/assets/logo.png"
-            alt="EntryWise"
-            class="w-7 h-7 rounded-lg border border-white/[0.12] group-hover:scale-105 transition-transform"
-          />
-          <span class="font-bold text-sm tracking-tight text-white">EntryWise</span>
-        </a>
-
-        <div class="h-4 w-[1px] bg-white/[0.1] hidden sm:block"></div>
-
-        <a
-          href="/docs"
-          class="inline-flex items-center gap-2 text-xs font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-lg"
-        >
-          <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-          <span>Developer Docs</span>
-        </a>
-
-        <nav class="hidden md:flex items-center gap-5 text-xs font-medium text-zinc-400">
-          <a href="/docs/quickstart" class="hover:text-white transition">Quickstart</a>
-          <a href="/docs/self-hosting-docker" class="hover:text-white transition">Docker Self-Host</a>
-          <a href="/docs/connectors" class="hover:text-white transition">Connectors</a>
-          <a href="/docs/security-and-privacy" class="hover:text-white transition">Security</a>
+        <div class="flex items-center gap-2.5">
+          <a href="/" class="flex items-center gap-2 text-[#f7f8f8] hover:opacity-90 transition">
+            <img
+              src="/assets/logo.png"
+              alt="EntryWise"
+              class="w-5 h-5 rounded-[4px] border border-[#22252b]"
+            />
+            <span class="font-medium text-[13.5px] tracking-[-0.01em]">EntryWise</span>
+          </a>
+          <span class="text-[#32363f] font-mono text-xs select-none">/</span>
           <a
-            href="https://entrywise.webbound.in/docs"
+            href="/docs"
+            class="text-[13px] font-medium text-[#a1a6b0] hover:text-[#f7f8f8] transition"
+          >
+            Docs
+          </a>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-5 text-[13px] text-[#a1a6b0]">
+          <a href="/docs/quickstart" class="hover:text-[#f7f8f8] transition">Quickstart</a>
+          <a href="/docs/self-hosting-docker" class="hover:text-[#f7f8f8] transition">Self-Hosting</a>
+          <a href="/docs/connectors" class="hover:text-[#f7f8f8] transition">Connectors</a>
+          <a href="/docs/security-and-privacy" class="hover:text-[#f7f8f8] transition">Security</a>
+          <a
+            href="https://entrywise.si/reference"
             target="_blank"
             rel="noopener noreferrer"
-            class="hover:text-white transition inline-flex items-center gap-1"
+            class="hover:text-[#f7f8f8] transition inline-flex items-center gap-1"
           >
-            <span>OpenAPI Reference</span>
-            <span class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">A+</span>
+            <span>OpenAPI</span>
+            <span class="text-[#686d76] text-[11px] font-mono">↗</span>
           </a>
         </nav>
       </div>
@@ -108,89 +87,76 @@ const groupedDocs = DOC_CATEGORIES.map((category) => ({
       <div class="flex items-center gap-2.5">
         <a
           href="/_emdash/admin"
-          class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] px-3 py-1.5 rounded-xl transition"
-          title="Manage documentation & pages in EmDash CMS"
+          class="hidden sm:inline-flex items-center gap-1.5 text-[12px] text-[#a1a6b0] hover:text-[#f7f8f8] border border-[#22252b] hover:border-[#32363f] bg-[#0d0e11] px-2.5 py-1 rounded-[6px] transition"
+          title="Edit documentation in EmDash CMS"
         >
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-          <span>EmDash Admin</span>
+          <span>CMS</span>
+          <span class="text-[10px] font-mono text-[#686d76]">{isFromCms ? 'Live' : 'Seed'}</span>
         </a>
         <a
           href="https://entrywise-app.pages.dev"
-          class="inline-flex items-center gap-1.5 text-xs font-semibold text-black bg-white hover:bg-zinc-200 px-3.5 py-1.5 rounded-xl transition shadow-sm"
+          class="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#08090a] bg-[#f7f8f8] hover:bg-white px-3 py-1 rounded-[6px] transition"
         >
-          <span>Open Console</span>
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
+          <span>Console</span>
+          <span class="font-mono text-[11px]">→</span>
         </a>
       </div>
     </div>
   </header>
 
-  <!-- Mobile Docs Navigation Drawer Trigger -->
-  <div class="lg:hidden border-b border-white/[0.08] bg-[#0a0c12] px-4 py-2.5 flex items-center justify-between">
-    <span class="text-xs font-mono text-zinc-400 truncate">{title}</span>
+  <!-- Mobile Navigation Bar -->
+  <div class="lg:hidden border-b border-[#181a1f] bg-[#0d0e11] px-4 py-2.5 flex items-center justify-between">
+    <span class="text-[12px] font-mono text-[#a1a6b0] truncate">{title}</span>
     <button
       type="button"
       id="mobileDocsMenuBtn"
-      class="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-200 bg-white/[0.06] border border-white/[0.1] px-2.5 py-1 rounded-lg"
+      class="inline-flex items-center gap-1.5 text-[12px] text-[#f7f8f8] border border-[#22252b] bg-[#131519] px-2.5 py-1 rounded-[5px]"
     >
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-      <span>All Guides</span>
+      <span>Index</span>
     </button>
   </div>
 
-  <!-- Three-Column Documentation Layout -->
-  <div class="max-w-[1400px] mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 py-8">
-    <!-- Left Sidebar (3 cols) -->
+  <!-- Architectural Three-Column Documentation Frame -->
+  <div class="max-w-[1380px] mx-auto grid grid-cols-1 lg:grid-cols-12 min-h-[calc(100vh-3.5rem)]">
+    <!-- Left Navigation Rail -->
     <aside
       id="docsSidebar"
-      class="hidden lg:block lg:col-span-3 sticky top-24 self-start max-h-[calc(100vh-7rem)] overflow-y-auto pr-2 space-y-6"
+      class="hidden lg:block lg:col-span-3 xl:col-span-2 border-r border-[#181a1f] py-8 px-4 sm:px-6 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto space-y-6 bg-[#08090a]"
     >
-      <!-- Instant Filter Search -->
+      <!-- Filter Input -->
       <div class="relative">
-        <svg
-          class="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
         <input
           type="search"
           id="docsSearchInput"
-          placeholder="Filter guides... (Press /)"
-          class="w-full bg-[#0d0f17] border border-white/[0.09] focus:border-emerald-500/50 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none transition"
+          placeholder="Filter guides…"
+          class="w-full bg-[#0d0e11] border border-[#22252b] focus:border-[#f7f8f8]/40 rounded-[6px] pl-3 pr-7 py-1.5 text-[12px] text-[#f7f8f8] placeholder-[#686d76] focus:outline-none transition"
         />
+        <kbd class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#686d76] pointer-events-none">/</kbd>
       </div>
 
-      <!-- Docs Home Link -->
+      <!-- Overview Link -->
       <div>
         <a
           href="/docs"
-          class={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition ${
+          class={`block py-1.5 text-[13px] transition ${
             currentSlug === ''
-              ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold'
-              : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+              ? 'text-[#f7f8f8] font-medium'
+              : 'text-[#8a8f98] hover:text-[#d0d6e0]'
           }`}
         >
-          <span>Documentation Hub</span>
-          <span class="text-[10px] font-mono text-zinc-500">{allDocs.length} guides</span>
+          Overview
         </a>
       </div>
 
-      <!-- Category Groups -->
-      <div class="space-y-5" id="docsNavGroups">
+      <!-- Categorized Rail -->
+      <div class="space-y-6" id="docsNavGroups">
         {
           groupedDocs.map((group) => (
-            <div class="space-y-1.5 docs-nav-group">
-              <div class="px-3 text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
+            <div class="space-y-2 docs-nav-group">
+              <div class="text-[11px] font-mono uppercase tracking-[0.08em] text-[#686d76]">
                 {group.category}
               </div>
-              <ul class="space-y-0.5">
+              <ul class="border-l border-[#181a1f] ml-0.5 space-y-0.5">
                 {group.items.map((item) => {
                   const isActive = item.slug === currentSlug;
                   return (
@@ -202,16 +168,13 @@ const groupedDocs = DOC_CATEGORIES.map((category) => ({
                     >
                       <a
                         href={`/docs/${item.slug}`}
-                        class={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs transition ${
+                        class={`block -ml-[1px] pl-3.5 py-1.5 text-[13px] border-l transition-colors ${
                           isActive
-                            ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold'
-                            : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04]'
+                            ? 'border-[#f7f8f8] text-[#f7f8f8] font-medium'
+                            : 'border-transparent text-[#8a8f98] hover:text-[#d0d6e0] hover:border-[#32363f]'
                         }`}
                       >
-                        <span class="truncate">{item.title}</span>
-                        {isActive && (
-                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                        )}
+                        {item.title}
                       </a>
                     </li>
                   );
@@ -221,144 +184,128 @@ const groupedDocs = DOC_CATEGORIES.map((category) => ({
           ))
         }
       </div>
-
-      <!-- EmDash CMS Info Card -->
-      <div class="docs-surface rounded-xl p-3.5 space-y-2 border border-white/[0.07]">
-        <div class="flex items-center justify-between">
-          <span class="text-[11px] font-mono font-semibold text-emerald-400 flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            EmDash Live CMS
-          </span>
-          <span class="text-[10px] font-mono text-zinc-500">{isFromCms ? 'DB Synced' : 'Seeded'}</span>
-        </div>
-        <p class="text-[11px] text-zinc-400 leading-relaxed">
-          Articles are stored in the <code class="text-zinc-200">docs</code> collection and editable via EmDash Admin.
-        </p>
-        <a
-          href="/_emdash/admin"
-          class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-300 hover:text-emerald-200 transition"
-        >
-          <span>Open /_emdash/admin</span>
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-          </svg>
-        </a>
-      </div>
     </aside>
 
-    <!-- Main Content Column (6 or 9 cols depending on ToC) -->
-    <main class={sections.length > 0 ? 'lg:col-span-6 min-w-0' : 'lg:col-span-9 min-w-0'}>
-      <slot />
+    <!-- Main Prose Column -->
+    <main class="lg:col-span-6 xl:col-span-7 py-10 px-6 sm:px-12 lg:px-16 min-w-0">
+      <div class="max-w-[700px]">
+        <slot />
+      </div>
     </main>
 
-    <!-- Right Table of Contents Column (3 cols, shown on article pages) -->
-    {
-      sections.length > 0 && (
-        <aside class="hidden lg:block lg:col-span-3 sticky top-24 self-start space-y-6 pl-2">
-          <div class="space-y-2.5">
-            <div class="text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
-              On This Page
+    <!-- Right Table of Contents Rail -->
+    <aside class="hidden lg:block lg:col-span-3 py-10 px-6 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto border-l border-[#181a1f]">
+      <div class="space-y-6">
+        {
+          sections.length > 0 && (
+            <div class="space-y-2.5">
+              <div class="text-[11px] font-mono uppercase tracking-[0.08em] text-[#686d76]">
+                On this page
+              </div>
+              <ul class="space-y-1.5 border-l border-[#181a1f] ml-0.5">
+                {sections.map((sec) => (
+                  <li>
+                    <a
+                      href={`#${sec.id}`}
+                      class="block -ml-[1px] pl-3 py-0.5 text-[12.5px] text-[#8a8f98] hover:text-[#f7f8f8] border-l border-transparent hover:border-[#32363f] transition-colors leading-snug"
+                    >
+                      {sec.heading}
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul class="space-y-1.5 border-l border-white/[0.08] pl-3 text-xs">
-              {sections.map((sec) => (
-                <li>
-                  <a
-                    href={`#${sec.id}`}
-                    class="text-zinc-400 hover:text-emerald-300 transition block py-0.5 leading-snug"
-                  >
-                    {sec.heading}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+          )
+        }
 
-          <div class="docs-surface rounded-xl p-4 space-y-3">
-            <div class="text-xs font-semibold text-white">Interactive API Reference</div>
-            <p class="text-[11px] text-zinc-400 leading-relaxed">
-              Need full OpenAPI 3.1 schemas, request bodies, and live endpoint testing?
-            </p>
-            <a
-              href="https://entrywise.webbound.in/docs"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 px-3 py-2 rounded-lg transition"
-            >
-              <span>Open Scalar API Docs</span>
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
+        <div class="pt-6 border-t border-[#181a1f] space-y-2.5">
+          <div class="text-[11px] font-mono uppercase tracking-[0.08em] text-[#686d76]">
+            Resources
           </div>
-        </aside>
-      )
-    }
+          <ul class="space-y-2 text-[12.5px] text-[#8a8f98]">
+            <li>
+              <a
+                href="https://entrywise.si/reference"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="hover:text-[#f7f8f8] transition flex items-center justify-between"
+              >
+                <span>OpenAPI 3.1 Spec</span>
+                <span class="font-mono text-[11px] text-[#686d76]">↗</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="/_emdash/admin"
+                class="hover:text-[#f7f8f8] transition flex items-center justify-between"
+              >
+                <span>Edit in EmDash CMS</span>
+                <span class="font-mono text-[11px] text-[#686d76]">→</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://github.com/vakhariaheet/entry-wise"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="hover:text-[#f7f8f8] transition flex items-center justify-between"
+              >
+                <span>GitHub Repository</span>
+                <span class="font-mono text-[11px] text-[#686d76]">↗</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </aside>
   </div>
 
-  <!-- Footer -->
-  <footer class="border-t border-white/[0.08] py-8 px-6 mt-16">
-    <div class="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
-      <div class="flex items-center gap-2">
-        <img src="/assets/logo.png" alt="EntryWise" class="w-5 h-5 rounded" />
-        <span>EntryWise Documentation • Powered by Astro &amp; EmDash CMS</span>
-      </div>
-      <div class="flex items-center gap-5">
-        <a href="/" class="hover:text-zinc-300 transition">Landing Page</a>
-        <a href="/docs" class="hover:text-zinc-300 transition">Docs Hub</a>
-        <a href="/_emdash/admin" class="hover:text-zinc-300 transition">CMS Admin</a>
-        <a href="https://entrywise.webbound.in/docs" class="hover:text-zinc-300 transition">OpenAPI 3.1</a>
-      </div>
-    </div>
-  </footer>
-
   <script is:inline>
-    // Mobile sidebar toggle
+    const searchInput = document.getElementById('docsSearchInput');
+    const navItems = document.querySelectorAll('.docs-nav-item');
+    const navGroups = document.querySelectorAll('.docs-nav-group');
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== searchInput) {
+        e.preventDefault();
+        searchInput?.focus();
+      }
+    });
+
+    searchInput?.addEventListener('input', (e) => {
+      const q = (e.target.value || '').toLowerCase().trim();
+      navItems.forEach((li) => {
+        const title = li.getAttribute('data-title') || '';
+        const summary = li.getAttribute('data-summary') || '';
+        const category = li.getAttribute('data-category') || '';
+        const match = !q || title.includes(q) || summary.includes(q) || category.includes(q);
+        li.style.display = match ? '' : 'none';
+      });
+
+      navGroups.forEach((group) => {
+        const visibleItems = Array.from(group.querySelectorAll('.docs-nav-item')).filter(
+          (el) => el.style.display !== 'none'
+        );
+        group.style.display = visibleItems.length > 0 ? '' : 'none';
+      });
+    });
+
     const mobileBtn = document.getElementById('mobileDocsMenuBtn');
     const sidebar = document.getElementById('docsSidebar');
-    if (mobileBtn && sidebar) {
-      mobileBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('hidden');
-      });
-    }
+    mobileBtn?.addEventListener('click', () => {
+      sidebar?.classList.toggle('hidden');
+    });
 
-    // Instant client-side guide search filter
-    const searchInput = document.getElementById('docsSearchInput');
-    if (searchInput) {
-      window.addEventListener('keydown', (e) => {
-        if (e.key === '/' && document.activeElement !== searchInput) {
-          e.preventDefault();
-          searchInput.focus();
-        }
-      });
-
-      searchInput.addEventListener('input', (e) => {
-        const query = (e.target.value || '').toLowerCase().trim();
-        const items = document.querySelectorAll('.docs-nav-item');
-        items.forEach((el) => {
-          const title = el.getAttribute('data-title') || '';
-          const summary = el.getAttribute('data-summary') || '';
-          const category = el.getAttribute('data-category') || '';
-          const match =
-            !query ||
-            title.includes(query) ||
-            summary.includes(query) ||
-            category.includes(query);
-          el.style.display = match ? '' : 'none';
-        });
-      });
-    }
-
-    // Copy button handler for code snippets
     window.copyDocsCode = function (btn) {
       const wrapper = btn.closest('.docs-code-wrapper');
-      const codeEl = wrapper ? wrapper.querySelector('code') : null;
+      const codeEl = wrapper?.querySelector('code');
       if (!codeEl) return;
-      navigator.clipboard.writeText(codeEl.innerText || codeEl.textContent || '');
+      navigator.clipboard.writeText(codeEl.innerText);
       const original = btn.innerText;
-      btn.innerText = 'Copied!';
+      btn.innerText = 'Copied';
       setTimeout(() => {
         btn.innerText = original;
-      }, 1800);
+      }, 1600);
     };
   </script>
 </body>

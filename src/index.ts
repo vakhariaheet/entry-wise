@@ -35,8 +35,8 @@ app.use(
         const url = new URL(origin);
         const host = url.hostname.toLowerCase();
         if (
-          host === 'entrywise.webbound.in' ||
-          host.endsWith('.entrywise.webbound.in') ||
+          host === 'entrywise.si' ||
+          host.endsWith('.entrywise.si') ||
           host === 'entrywise-app.pages.dev' ||
           host.endsWith('.entrywise-app.pages.dev') ||
           host === 'localhost' ||
@@ -72,9 +72,8 @@ app.get(
           'Zalando Guidelines-compliant Form Backend-as-a-Service running globally on Cloudflare Workers.',
         version: '0.2.0-beta.1',
         contact: {
-          name: 'Webbound',
-          url: 'https://webbound.in',
-          email: 'info@webbound.in',
+          name: 'EntryWise',
+          url: 'https://entrywise.si',
         },
         license: {
           name: 'MIT',
@@ -83,7 +82,7 @@ app.get(
       },
       servers: [
         {
-          url: 'https://entrywise.webbound.in',
+          url: 'https://entrywise.si',
           description: 'Production server',
         },
         {
@@ -141,20 +140,20 @@ app.get(
   })
 );
 
-app.get(
-  '/docs',
-  Scalar({
-    theme: 'bluePlanet',
-    url: '/openapi',
-    favicon: '/assets/logo.png',
-    pageTitle: 'EntryWise API Reference',
-    hideClientButton: true,
-    defaultHttpClient: {
-      targetKey: 'node',
-      clientKey: 'fetch',
-    },
-  })
-);
+const scalarReference = Scalar({
+  theme: 'bluePlanet',
+  url: '/openapi',
+  favicon: '/assets/logo.png',
+  pageTitle: 'EntryWise API Reference',
+  hideClientButton: true,
+  defaultHttpClient: {
+    targetKey: 'node',
+    clientKey: 'fetch',
+  },
+});
+
+app.get('/docs', scalarReference);
+app.get('/reference', scalarReference);
 
 // Version 1 Routes (Zalando RESTful Guidelines Compliant)
 app.route('/v1', v1Router);
@@ -187,7 +186,7 @@ app.get('/', async (c) => {
   return c.json({
     service: 'EntryWise API',
     version: '0.2.0-beta.1',
-    documentation: '/docs',
+    documentation: '/reference',
     endpoints: {
       v1: '/v1',
       submissions: '/v1/submissions',

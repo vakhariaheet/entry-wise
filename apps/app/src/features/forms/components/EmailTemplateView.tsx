@@ -202,7 +202,7 @@ export function getDefaultSubmissionAlertStarterHtml(site: Site): string {
       </div>
 
       <div style="text-align: center; margin: 28px 0 12px 0;">
-        <a href="https://app.entrywise.webbound.in" class="btn" target="_blank" rel="noopener noreferrer">View Submissions in EntryWise →</a>
+        <a href="https://app.entrywise.si" class="btn" target="_blank" rel="noopener noreferrer">View Submissions in EntryWise →</a>
       </div>
     </div>
     <div class="footer">
@@ -478,7 +478,7 @@ const createAlertPresetBlocks = (presetId: string, site: Site): EmailBlock[] => 
           id: 'ab-6',
           type: 'button',
           buttonText: 'Open Submissions Inbox →',
-          buttonUrl: 'https://app.entrywise.webbound.in',
+          buttonUrl: 'https://app.entrywise.si',
           buttonBg: '#10b981',
           buttonTextColor: '#ffffff',
           buttonRadius: 8,
@@ -513,7 +513,7 @@ const createAlertPresetBlocks = (presetId: string, site: Site): EmailBlock[] => 
           id: 'ab-5',
           type: 'button',
           buttonText: 'View in EntryWise Dashboard →',
-          buttonUrl: 'https://app.entrywise.webbound.in',
+          buttonUrl: 'https://app.entrywise.si',
           buttonBg: '#10b981',
           buttonTextColor: '#ffffff',
           buttonRadius: 8,
@@ -1172,7 +1172,7 @@ export const EmailTemplateView: React.FC<EmailTemplateViewProps> = ({ site, onSi
           id: newId,
           type: 'button',
           buttonText: isAuto ? `Visit ${site.domain} →` : 'View in EntryWise →',
-          buttonUrl: isAuto ? `https://${site.domain}` : 'https://app.entrywise.webbound.in',
+          buttonUrl: isAuto ? `https://${site.domain}` : 'https://app.entrywise.si',
           buttonBg: '#10b981',
           buttonTextColor: '#ffffff',
           buttonRadius: 8,

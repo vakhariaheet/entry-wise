@@ -65,26 +65,21 @@ export const DEFAULT_DOCS: DocArticle[] = [
     badge: 'Sub-20ms Edge',
     readingTime: '3 min read',
     summary:
-      'Learn how EntryWise ingests form submissions in under 20ms and routes payloads to SQLite, CRMs, spreadsheets, webhooks, and email providers without vendor lock-in.',
+      'Learn how EntryWise ingests form submissions in under 20ms and routes payloads to SQLite, databases, spreadsheets, webhooks, and email providers without vendor lock-in.',
     sections: [
       {
         id: 'what-is-entrywise',
         heading: 'What is EntryWise?',
         paragraphs: [
-          'EntryWise is an open-source, developer-first headless form backend engineered for speed, privacy, and zero platform lock-in. Point any HTML <form>, React component, or JSON fetch() call to your EntryWise endpoint (/f/:formKey) and get instant persistence, spam defense, CRM routing, and transactional emails.',
+          'EntryWise is an open-source, developer-first headless form backend engineered for speed, privacy, and zero platform lock-in. Point any HTML <form>, React component, or JSON fetch() call to your EntryWise endpoint (/f/:formKey) and get instant persistence, spam defense, connector routing, and transactional emails.',
           'Unlike heavyweight form builders that force proprietary iframes or bloated client bundles onto your site, EntryWise lets you keep 100% control over your markup and styling while handling everything that happens after a user clicks Submit.',
         ],
         bullets: [
-          'Sub-20ms HTTP ingestion response time — heavy connector & email fanout runs asynchronously.',
+          'Sub-20ms HTTP ingestion response time. Heavy connector and email fanout runs asynchronously.',
           'Dual-runtime architecture: deploy globally on Cloudflare Workers + D1 or self-host anywhere via a single Docker container using Bun + native SQLite.',
-          'Zero-OAuth connectors for Salesforce Web-to-Lead, Airtable, Notion, Google Sheets, Slack, and Discord.',
+          'Zero-OAuth connectors for Airtable, Notion, Google Sheets, Slack, and Discord.',
           'Built-in Visual Email Studio with customizable confirmation & notification templates and multi-provider failover.',
         ],
-        callout: {
-          type: 'tip',
-          title: 'Managed via EmDash CMS',
-          body: 'This documentation hub is powered by EmDash CMS (emdash/astro). Site administrators can edit articles, add guides, or update landing copy live at /_emdash/admin.',
-        },
       },
       {
         id: 'ingestion-pipeline',
@@ -93,10 +88,10 @@ export const DEFAULT_DOCS: DocArticle[] = [
           'Every submission to POST /f/:formKey passes through a deterministic 4-stage pipeline designed so slow third-party APIs never block your end user:',
         ],
         bullets: [
-          'Stage 1 — Edge Gatekeeper (<2ms): Validates CORS origins, checks rate limits, evaluates honeypot fields (_gotcha), blocks disposable email domains, filters spam keywords, and verifies optional Cloudflare Turnstile tokens.',
-          'Stage 2 — Schema & Persistence (<5ms): Auto-discovers new field types on the fly, validates required/typed rules, masks IP addresses if GDPR Zero-IP mode is enabled, and commits the submission to SQLite / D1.',
-          'Stage 3 — Instant HTTP Response (<15ms total): Returns a clean 200 JSON response (or 302 redirect if _redirect is specified) back to the browser.',
-          'Stage 4 — Async Queue Fanout: Dispatches background jobs to your configured Queue Driver (Cloudflare Queues, In-Memory Queue, or external HTTP Worker) for Google Sheets auto-column expansion, Notion/Airtable/Salesforce sync, HMAC-SHA256 webhooks, and email notifications.',
+          'Stage 1, Edge Gatekeeper (<2ms): Validates CORS origins, checks rate limits, evaluates honeypot fields (_gotcha), blocks disposable email domains, filters spam keywords, and verifies optional Cloudflare Turnstile tokens.',
+          'Stage 2, Schema & Persistence (<5ms): Auto-discovers new field types on the fly, validates required/typed rules, masks IP addresses if GDPR Zero-IP mode is enabled, and commits the submission to SQLite / D1.',
+          'Stage 3, Instant HTTP Response (<15ms total): Returns a clean 200 JSON response (or 302 redirect if _redirect is specified) back to the browser.',
+          'Stage 4, Async Queue Fanout: Dispatches background jobs to your configured Queue Driver (Cloudflare Queues, In-Memory Queue, or external HTTP Worker) for Google Sheets auto-column expansion, Notion/Airtable sync, HMAC-SHA256 webhooks, and email notifications.',
         ],
       },
       {
@@ -159,7 +154,7 @@ export const DEFAULT_DOCS: DocArticle[] = [
             label: 'HTML + embed.js',
             language: 'html',
             filename: 'index.html',
-            code: `<script src="https://entrywise.webbound.in/embed.js" defer></script>
+            code: `<script src="https://entrywise.si/embed.js" defer></script>
 
 <form
   class="entrywise-form"
@@ -186,7 +181,7 @@ export const DEFAULT_DOCS: DocArticle[] = [
             label: 'Pure HTML5 Form',
             language: 'html',
             filename: 'contact.html',
-            code: `<form action="https://entrywise.webbound.in/f/ew_live_your_form_key" method="POST">
+            code: `<form action="https://entrywise.si/f/ew_live_your_form_key" method="POST">
   <!-- Honeypot spam trap (keep hidden) -->
   <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" />
 
@@ -218,7 +213,7 @@ export const DEFAULT_DOCS: DocArticle[] = [
   e.preventDefault();
   const formData = new FormData(e.currentTarget);
 
-  const res = await fetch('https://entrywise.webbound.in/f/ew_live_your_form_key', {
+  const res = await fetch('https://entrywise.si/f/ew_live_your_form_key', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -307,7 +302,7 @@ export const DEFAULT_DOCS: DocArticle[] = [
             label: 'cURL Mock Submission',
             language: 'bash',
             filename: 'terminal',
-            code: `curl -X POST "https://entrywise.webbound.in/f/ew_live_your_form_key?mock=true" \\
+            code: `curl -X POST "https://entrywise.si/f/ew_live_your_form_key?mock=true" \\
   -H "Content-Type: application/json" \\
   -d '{"name": "Test User", "email": "test@example.com"}'`,
           },
@@ -408,7 +403,7 @@ curl http://localhost:8787/health`,
         id: 'pluggable-queue-drivers',
         heading: 'Pluggable Queue Drivers (QUEUE_DRIVER)',
         paragraphs: [
-          'Instead of locking you into Cloudflare Queues, self-hosted EntryWise lets you choose how background jobs (webhooks, CRM sync, email notifications) are processed via the QUEUE_DRIVER environment variable:',
+          'Instead of locking you into Cloudflare Queues, self-hosted EntryWise lets you choose how background jobs (webhooks, connector sync, email notifications) are processed via the QUEUE_DRIVER environment variable:',
         ],
         table: {
           headers: ['QUEUE_DRIVER', 'Required Env Vars', 'How It Works'],
@@ -523,42 +518,14 @@ bun run deploy`,
   },
   {
     slug: 'connectors',
-    title: 'Zero-OAuth CRM & Database Connectors',
+    title: 'Zero-OAuth Database & Messaging Connectors',
     category: 'Connectors & Email',
     sortOrder: 7,
-    badge: '6 Native Integrations',
-    readingTime: '5 min read',
+    badge: '5 Native Integrations',
+    readingTime: '4 min read',
     summary:
-      'Sync submissions directly to Salesforce Web-to-Lead, Airtable, Notion, Google Sheets, Slack, and Discord without complex OAuth token refreshes.',
+      'Sync submissions directly to Airtable, Notion, Google Sheets, Slack, and Discord without complex OAuth token refreshes.',
     sections: [
-      {
-        id: 'salesforce-web-to-lead',
-        heading: 'Salesforce Web-to-Lead (Zero API Keys Required)',
-        paragraphs: [
-          'EntryWise includes first-class support for Salesforce Web-to-Lead. You only need your 15- or 18-character Salesforce Organization ID (OID) — no connected apps, OAuth secrets, or API quotas required.',
-          'EntryWise automatically maps common form fields (name, first_name, last_name, email, company, phone, city, state, country, website, description) to Salesforce standard Lead parameters and converts any extra fields into structured Lead notes.',
-        ],
-        codeExamples: [
-          {
-            label: 'Direct HTML Class Binding for Salesforce',
-            language: 'html',
-            filename: 'salesforce-lead.html',
-            code: `<script src="https://entrywise.webbound.in/embed.js" defer></script>
-
-<form
-  class="entrywise-form"
-  data-form-key="ew_live_your_form_key"
-  data-oid="00D5g000004ABCD"
-  data-lead-source="Pricing Page Enterprise Inquiry"
->
-  <input type="text" name="name" placeholder="Full Name" required />
-  <input type="email" name="email" placeholder="Work Email" required />
-  <input type="text" name="company" placeholder="Company Name" required />
-  <button type="submit">Request Enterprise Demo</button>
-</form>`,
-          },
-        ],
-      },
       {
         id: 'airtable-and-notion',
         heading: 'Airtable & Notion Direct Sync',
@@ -569,11 +536,6 @@ bun run deploy`,
         table: {
           headers: ['Connector', 'Required Credentials', 'Field Mapping Behavior'],
           rows: [
-            {
-              key: 'Salesforce Web-to-Lead',
-              type: 'Organization ID (00D...)',
-              description: 'Maps standard Lead fields + appends custom fields to Description.',
-            },
             {
               key: 'Airtable',
               type: 'PAT + Base ID + Table Name',
@@ -754,7 +716,7 @@ export const DEFAULT_LANDING_CONTENT: LandingPageContent = {
   headlineTop: 'The form backend that',
   headlineGradient: 'doesn’t get in your way.',
   subtitle:
-    'Drop one endpoint into React, Next.js, Astro, or static HTML. Deploy on Cloudflare Workers or self-host anywhere with Docker, native SQLite, zero-OAuth CRM connectors, and HMAC webhooks.',
+    'Drop one endpoint into React, Next.js, Astro, or static HTML. Deploy on Cloudflare Workers or self-host anywhere with Docker, native SQLite, zero-OAuth connectors, and HMAC webhooks.',
   primaryCtaLabel: 'Start Free in Console',
   primaryCtaUrl: 'https://entrywise-app.pages.dev',
 };

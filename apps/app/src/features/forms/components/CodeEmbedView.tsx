@@ -33,7 +33,7 @@ export const CodeEmbedView: React.FC<CodeEmbedViewProps> = ({ site, fields }) =>
   const [includeReplyTo, setIncludeReplyTo] = useState(false);
   const [includeCc, setIncludeCc] = useState(false);
 
-  const cleanBaseUrl = (isSelfHosted ? customBaseUrl : 'https://entrywise.webbound.in')
+  const cleanBaseUrl = (isSelfHosted ? customBaseUrl : 'https://entrywise.si')
     .trim()
     .replace(/\/+$/, '');
   const endpointUrl = `${cleanBaseUrl}/f/${site.api_key}`;

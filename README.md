@@ -6,12 +6,12 @@
 
 Accept HTML & JSON form submissions, auto-discover schemas, block spam at the edge, send customizable emails, and sync leads directly to **Airtable, Notion, Google Sheets, Slack, Discord, and Signed Webhooks**—deployed globally on **Cloudflare Workers** or self-hosted anywhere via **Docker**.
 
-[![OpenAPI 3.1](https://img.shields.io/badge/OpenAPI-3.1-10b981?style=flat-square)](https://entrywise.webbound.in/docs)
-[![Vacuum API Score](https://img.shields.io/badge/Vacuum_Quality-100%2F100_%5BA%2B%5D-10b981?style=flat-square)](https://entrywise.webbound.in/docs)
+[![OpenAPI 3.1](https://img.shields.io/badge/OpenAPI-3.1-10b981?style=flat-square)](https://entrywise.si/reference)
+[![Vacuum API Score](https://img.shields.io/badge/Vacuum_Quality-100%2F100_%5BA%2B%5D-10b981?style=flat-square)](https://entrywise.si/reference)
 [![Docker Ready](https://img.shields.io/badge/Self--Host-Docker_%7C_Cloudflare-3b82f6?style=flat-square)](./docs/SELF_HOSTING.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-zinc?style=flat-square)](./LICENSE)
 
-[**Live Console**](https://entrywise-app.pages.dev) · [**Interactive API Reference (`/docs`)**](https://entrywise.webbound.in/docs) · [**Quickstart Guide**](./docs/QUICKSTART.md) · [**Self-Hosting (Docker & Cloudflare)**](./docs/SELF_HOSTING.md) · [**Connectors Guide**](./docs/CONNECTORS_AND_EMAIL.md) · [**Security & Privacy**](./docs/SECURITY_AND_PRIVACY.md)
+[**Live Console**](https://entrywise-app.pages.dev) · [**Interactive API Reference (`/reference`)**](https://entrywise.si/reference) · [**Quickstart Guide**](./docs/QUICKSTART.md) · [**Self-Hosting (Docker & Cloudflare)**](./docs/SELF_HOSTING.md) · [**Connectors Guide**](./docs/CONNECTORS_AND_EMAIL.md) · [**Security & Privacy**](./docs/SECURITY_AND_PRIVACY.md)
 
 </div>
 
@@ -22,7 +22,7 @@ Accept HTML & JSON form submissions, auto-discover schemas, block spam at the ed
 Most form backends force an uncomfortable trade-off: either pay high monthly SaaS tiers for basic webhooks and spam filtering, or deploy a bloated, monolithic form builder that locks you into a single cloud provider.
 
 **EntryWise is built differently:**
-- **Zero Boilerplate (`<1.5KB` Drop-In Binder):** Add `class="entrywise-form"` to any HTML `<form>` or point `action="https://entrywise.webbound.in/f/YOUR_SITE_KEY"`. No client SDKs or state boilerplate required.
+- **Zero Boilerplate (`<1.5KB` Drop-In Binder):** Add `class="entrywise-form"` to any HTML `<form>` or point `action="https://entrywise.si/f/YOUR_SITE_KEY"`. No client SDKs or state boilerplate required.
 - **Auto-Schema Discovery:** Send your first submission and EntryWise automatically infers field types (`email`, `phone`, `url`, `file`, `text`) and builds your form schema on the fly.
 - **Zero Platform Lock-In:** Run on **Cloudflare Workers + D1 + Queues**, or self-host anywhere with **`docker compose up -d`** using portable SQLite, pluggable queues (`memory` or `http`), and your choice of email engine (`Resend`, `SMTP2GO`, `MailerSend`, `Mailtrap`, or `Webhook`).
 - **Direct Zero-OAuth Connectors:** Sync submissions straight into **Airtable**, **Notion**, **Google Sheets**, **Slack**, **Discord**, and **HMAC-SHA256 Signed Webhooks** without complex OAuth flows.
@@ -39,7 +39,7 @@ Include `/embed.js` once and add `class="entrywise-form"` (or your own custom cl
 ```html
 <!-- 1. Drop-in script (auto-detects cloud or self-hosted origin) -->
 <script
-  src="https://entrywise.webbound.in/embed.js"
+  src="https://entrywise.si/embed.js"
   data-site-key="ew_live_your_site_key"
   defer
 ></script>
@@ -67,7 +67,7 @@ Works natively with static sites, Astro, Webflow, Framer, or plain HTML (`applic
 
 ```html
 <form
-  action="https://entrywise.webbound.in/f/ew_live_your_site_key"
+  action="https://entrywise.si/f/ew_live_your_site_key"
   method="POST"
   enctype="multipart/form-data"
 >
@@ -88,7 +88,7 @@ Works natively with static sites, Astro, Webflow, Framer, or plain HTML (`applic
 ### Option 3: Direct JSON API (`fetch` / React / Next.js Server Actions)
 
 ```ts
-const response = await fetch('https://entrywise.webbound.in/f/ew_live_your_site_key', {
+const response = await fetch('https://entrywise.si/f/ew_live_your_site_key', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -209,7 +209,7 @@ EntryWise is engineered to **Zalando RESTful API Guidelines** (scoring **100/100
 | [**Self-Hosting & Docker Guide**](./docs/SELF_HOSTING.md) | Running via `docker compose`, configuring `QUEUE_DRIVER` and `DEFAULT_EMAIL_PROVIDER`, Cloudflare Workers setup, and Caddy/Nginx SSL. |
 | [**Connectors & Email Studio**](./docs/CONNECTORS_AND_EMAIL.md) | Connecting Resend/SMTP2GO/MailerSend/Mailtrap/Webhook email, Airtable, Notion, Google Sheets, Slack, Discord, and verifying `X-EntryWise-Signature`. |
 | [**Security & Privacy Architecture**](./docs/SECURITY_AND_PRIVACY.md) | Bot defense, GDPR Zero-IP mode, data retention auto-pruning, SSRF/XSS/CSV hardening, and Pipeline Diagnostics. |
-| [**Interactive OpenAPI 3.1 Reference**](https://entrywise.webbound.in/docs) | Live Scalar API reference for all 30 REST endpoints (`/v1/companies`, `/v1/sites`, `/v1/submissions`, `/f/:apiKey`). |
+| [**Interactive OpenAPI 3.1 Reference**](https://entrywise.si/reference) | Live Scalar API reference for all 30 REST endpoints (`/v1/companies`, `/v1/sites`, `/v1/submissions`, `/f/:apiKey`). |
 
 ---
 
@@ -234,4 +234,4 @@ bun run security:check
 
 ## License
 
-MIT © [Webbound](https://webbound.in) — see [LICENSE](./LICENSE) for details.
+MIT © EntryWise contributors — see [LICENSE](./LICENSE) for details.

@@ -15,11 +15,11 @@ const prevDoc = currentIndex > 0 ? allDocs[currentIndex - 1] : null;
 const nextDoc =
   currentIndex >= 0 && currentIndex < allDocs.length - 1 ? allDocs[currentIndex + 1] : null;
 
-const calloutStyles = {
-  info: 'border-sky-500/30 bg-sky-950/20 text-sky-200',
-  tip: 'border-emerald-500/30 bg-emerald-950/20 text-emerald-200',
-  warning: 'border-amber-500/30 bg-amber-950/20 text-amber-200',
-  security: 'border-teal-500/30 bg-teal-950/20 text-teal-200',
+const calloutBorder = {
+  info: 'border-l-[#70b8ff]',
+  tip: 'border-l-[#3ad389]',
+  warning: 'border-l-[#ffca16]',
+  security: 'border-l-[#f7f8f8]',
 };
 ---
 
@@ -31,39 +31,35 @@ const calloutStyles = {
   sections={doc.sections}
   isFromCms={doc.isFromCms}
 >
-  <article {...doc.edit} class="space-y-8">
-    <!-- Breadcrumb & Metadata Header -->
-    <header class="space-y-4 border-b border-white/[0.08] pb-6">
-      <div class="flex flex-wrap items-center gap-2 text-xs font-mono">
-        <a href="/docs" class="text-zinc-500 hover:text-zinc-300 transition">Docs</a>
-        <span class="text-zinc-600">/</span>
-        <span {...doc.edit.category} class="text-emerald-400 font-semibold">{doc.category}</span>
-        <span class="text-zinc-600">•</span>
-        <span {...doc.edit.badge} class="text-zinc-300 bg-white/[0.05] border border-white/[0.09] px-2 py-0.5 rounded-full">
-          {doc.badge}
-        </span>
-        <span class="text-zinc-600">•</span>
-        <span {...doc.edit.reading_time} class="text-zinc-500">{doc.readingTime}</span>
+  <article {...doc.edit} class="space-y-10">
+    <!-- Article Header -->
+    <header class="space-y-3 pb-8 border-b border-[#181a1f]">
+      <div class="flex flex-wrap items-center gap-2 text-[11px] font-mono text-[#686d76]">
+        <a href="/docs" class="hover:text-[#a1a6b0] transition">Docs</a>
+        <span>/</span>
+        <span {...doc.edit.category} class="text-[#a1a6b0]">{doc.category}</span>
+        <span>·</span>
+        <span {...doc.edit.reading_time} class="tabular-nums">{doc.readingTime}</span>
       </div>
 
       <h1
         {...doc.edit.title}
-        class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight"
+        class="text-[30px] sm:text-[34px] font-medium tracking-[-0.03em] text-[#f7f8f8] leading-[1.15]"
       >
         {doc.title}
       </h1>
 
-      <p {...doc.edit.summary} class="text-base text-zinc-400 leading-relaxed">
+      <p {...doc.edit.summary} class="text-[15px] text-[#a1a6b0] leading-[1.65]">
         {doc.summary}
       </p>
     </header>
 
-    <!-- Custom Markdown Notes from EmDash CMS (if added by editor) -->
+    <!-- Optional CMS Body Markdown -->
     {
       doc.bodyMarkdown && (
         <div
           {...doc.edit.body_markdown}
-          class="docs-surface rounded-2xl p-5 border border-emerald-500/25 space-y-2 text-sm text-zinc-200 whitespace-pre-wrap leading-relaxed"
+          class="rounded-[8px] border border-[#22252b] bg-[#0d0e11] p-5 text-[14px] text-[#d0d6e0] whitespace-pre-wrap leading-[1.7]"
         >
           {doc.bodyMarkdown}
         </div>
@@ -71,15 +67,15 @@ const calloutStyles = {
     }
 
     <!-- Structured Documentation Sections -->
-    <div class="space-y-10">
+    <div class="space-y-11">
       {
         doc.sections.map((sec) => (
-          <section id={sec.id} class="scroll-mt-24 space-y-4">
-            <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2 group">
+          <section id={sec.id} class="scroll-mt-20 space-y-4">
+            <h2 class="text-[19px] sm:text-[21px] font-medium text-[#f7f8f8] tracking-[-0.02em] flex items-center gap-2 group">
               <span>{sec.heading}</span>
               <a
                 href={`#${sec.id}`}
-                class="text-zinc-600 opacity-0 group-hover:opacity-100 hover:text-emerald-400 transition text-sm font-mono"
+                class="text-[#686d76] opacity-0 group-hover:opacity-100 hover:text-[#f7f8f8] transition text-sm font-mono"
                 aria-label="Link to section"
               >
                 #
@@ -87,14 +83,14 @@ const calloutStyles = {
             </h2>
 
             {sec.paragraphs.map((p) => (
-              <p class="text-sm sm:text-[15px] text-zinc-300 leading-relaxed">{p}</p>
+              <p class="text-[14.5px] text-[#d0d6e0] leading-[1.7] max-w-[65ch]">{p}</p>
             ))}
 
             {sec.bullets && sec.bullets.length > 0 && (
-              <ul class="space-y-2 pl-1">
+              <ul class="space-y-2 pt-1">
                 {sec.bullets.map((bullet) => (
-                  <li class="flex items-start gap-2.5 text-sm text-zinc-300 leading-relaxed">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0" />
+                  <li class="flex items-start gap-3 text-[14px] text-[#d0d6e0] leading-[1.65]">
+                    <span class="text-[#686d76] font-mono text-xs mt-1 select-none">—</span>
                     <span>{bullet}</span>
                   </li>
                 ))}
@@ -102,32 +98,32 @@ const calloutStyles = {
             )}
 
             {sec.table && (
-              <div class="overflow-x-auto rounded-xl border border-white/[0.08] bg-[#0a0c12]">
-                <table class="w-full text-left border-collapse text-xs">
+              <div class="overflow-x-auto rounded-[8px] border border-[#22252b] bg-[#0d0e11] my-4">
+                <table class="w-full text-left border-collapse text-[12.5px]">
                   <thead>
-                    <tr class="border-b border-white/[0.08] bg-white/[0.03] text-zinc-300 font-mono">
+                    <tr class="border-b border-[#181a1f] bg-[#08090a] text-[#8a8f98] font-mono text-[11px] uppercase tracking-[0.06em]">
                       {sec.table.headers.map((h) => (
-                        <th class="py-3 px-4 font-semibold">{h}</th>
+                        <th class="py-2.5 px-4 font-medium">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-white/[0.06]">
+                  <tbody class="divide-y divide-[#181a1f]">
                     {sec.table.rows.map((row) => (
-                      <tr class="hover:bg-white/[0.02] transition">
-                        <td class="py-3 px-4 font-mono text-emerald-300 font-medium whitespace-nowrap">
+                      <tr class="hover:bg-[#131519]/60 transition-colors">
+                        <td class="py-2.5 px-4 font-mono text-[#f7f8f8] whitespace-nowrap">
                           {row.key}
                         </td>
                         {row.type !== undefined && (
-                          <td class="py-3 px-4 font-mono text-zinc-300 whitespace-nowrap">
+                          <td class="py-2.5 px-4 font-mono text-[#8a8f98] whitespace-nowrap">
                             {row.type}
                           </td>
                         )}
                         {sec.table?.headers.length === 4 && (
-                          <td class="py-3 px-4 font-mono text-zinc-400 whitespace-nowrap">
+                          <td class="py-2.5 px-4 font-mono text-[#686d76] whitespace-nowrap tabular-nums">
                             {row.defaultVal ?? '—'}
                           </td>
                         )}
-                        <td class="py-3 px-4 text-zinc-300 leading-relaxed">{row.description}</td>
+                        <td class="py-2.5 px-4 text-[#a1a6b0] leading-[1.55]">{row.description}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -137,39 +133,38 @@ const calloutStyles = {
 
             {sec.codeExamples &&
               sec.codeExamples.map((example) => (
-                <div class="docs-code-block rounded-2xl overflow-hidden docs-code-wrapper">
-                  <div class="px-4 py-2.5 border-b border-white/[0.08] bg-white/[0.02] flex items-center justify-between gap-2">
+                <div class="rounded-[8px] border border-[#22252b] bg-[#0d0e11] overflow-hidden docs-code-wrapper my-4">
+                  <div class="px-4 py-2 border-b border-[#181a1f] bg-[#08090a] flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2">
-                      <span class="w-2 h-2 rounded-full bg-emerald-400" />
-                      <span class="text-xs font-semibold text-zinc-200">{example.label}</span>
+                      <span class="text-[12px] font-medium text-[#d0d6e0]">{example.label}</span>
                       {example.filename && (
-                        <span class="text-[11px] font-mono text-zinc-500">
-                          • {example.filename}
+                        <span class="text-[11px] font-mono text-[#686d76]">
+                          · {example.filename}
                         </span>
                       )}
                     </div>
                     <button
                       type="button"
                       onclick="copyDocsCode(this)"
-                      class="text-[11px] font-mono text-zinc-400 hover:text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] px-2.5 py-1 rounded-lg transition cursor-pointer"
+                      class="text-[11px] font-mono text-[#a1a6b0] hover:text-[#f7f8f8] border border-[#22252b] hover:border-[#32363f] bg-[#0d0e11] px-2 py-0.5 rounded-[4px] transition cursor-pointer"
                     >
                       Copy
                     </button>
                   </div>
-                  <pre class="p-4 text-xs font-mono text-zinc-200 overflow-x-auto leading-relaxed"><code>{example.code}</code></pre>
+                  <pre class="p-4 text-[12.5px] font-mono text-[#d0d6e0] overflow-x-auto leading-[1.65]"><code>{example.code}</code></pre>
                 </div>
               ))}
 
             {sec.callout && (
               <div
-                class={`rounded-xl border p-4 space-y-1.5 ${
-                  calloutStyles[sec.callout.type] || calloutStyles.info
+                class={`rounded-r-[6px] border border-[#22252b] border-l-2 bg-[#0d0e11] p-4 space-y-1 ${
+                  calloutBorder[sec.callout.type] || calloutBorder.info
                 }`}
               >
-                <div class="text-xs font-bold uppercase tracking-wider font-mono">
+                <div class="text-[11px] font-mono uppercase tracking-[0.08em] text-[#f7f8f8]">
                   {sec.callout.title}
                 </div>
-                <p class="text-xs sm:text-sm leading-relaxed opacity-90">{sec.callout.body}</p>
+                <p class="text-[13.5px] text-[#a1a6b0] leading-[1.6]">{sec.callout.body}</p>
               </div>
             )}
           </section>
@@ -177,16 +172,16 @@ const calloutStyles = {
       }
     </div>
 
-    <!-- Previous / Next Pagination -->
-    <nav class="pt-8 border-t border-white/[0.08] grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <!-- Previous / Next Navigation -->
+    <nav class="pt-8 border-t border-[#181a1f] grid grid-cols-1 sm:grid-cols-2 gap-4">
       {
         prevDoc ? (
           <a
             href={`/docs/${prevDoc.slug}`}
-            class="docs-surface rounded-xl p-4 hover:border-emerald-500/40 transition group flex flex-col gap-1"
+            class="rounded-[6px] border border-[#22252b] hover:border-[#32363f] bg-[#0d0e11] p-4 transition group flex flex-col gap-1"
           >
-            <span class="text-[11px] font-mono text-zinc-500">← Previous Guide</span>
-            <span class="text-sm font-bold text-white group-hover:text-emerald-300 transition">
+            <span class="text-[11px] font-mono text-[#686d76]">← Previous</span>
+            <span class="text-[14px] font-medium text-[#f7f8f8] group-hover:text-white transition">
               {prevDoc.title}
             </span>
           </a>
@@ -199,10 +194,10 @@ const calloutStyles = {
         nextDoc && (
           <a
             href={`/docs/${nextDoc.slug}`}
-            class="docs-surface rounded-xl p-4 hover:border-emerald-500/40 transition group flex flex-col items-end text-right gap-1"
+            class="rounded-[6px] border border-[#22252b] hover:border-[#32363f] bg-[#0d0e11] p-4 transition group flex flex-col items-end text-right gap-1"
           >
-            <span class="text-[11px] font-mono text-zinc-500">Next Guide →</span>
-            <span class="text-sm font-bold text-white group-hover:text-emerald-300 transition">
+            <span class="text-[11px] font-mono text-[#686d76]">Next →</span>
+            <span class="text-[14px] font-medium text-[#f7f8f8] group-hover:text-white transition">
               {nextDoc.title}
             </span>
           </a>

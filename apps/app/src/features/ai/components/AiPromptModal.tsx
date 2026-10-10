@@ -16,7 +16,7 @@ export const AiPromptModal: React.FC<AiPromptModalProps> = ({ site, fields = [],
   const apiKey = site?.api_key || 'YOUR_SITE_API_KEY';
   const siteDomain = site?.domain || 'yourdomain.com';
   const siteName = site?.name || siteDomain;
-  const endpointUrl = `https://entrywise.webbound.in/f/${apiKey}`;
+  const endpointUrl = `https://entrywise.si/f/${apiKey}`;
 
   const activeFields: FormField[] =
     fields.length > 0
@@ -145,13 +145,13 @@ export const AiPromptModal: React.FC<AiPromptModalProps> = ({ site, fields = [],
   );
 
   const snippets = {
-    prompt: `You are integrating EntryWise (https://entrywise.webbound.in) as the headless form backend for "${siteName}".
+    prompt: `You are integrating EntryWise (https://entrywise.si) as the headless form backend for "${siteName}".
 
 ### Project Credentials:
 - Site Domain: "${siteDomain}"
 - Site API Key: "${apiKey}"
 - Ingestion Endpoint: POST ${endpointUrl}
-- Authenticated API: POST https://entrywise.webbound.in/v1/submissions (Header: X-Api-Key: "${apiKey}")
+- Authenticated API: POST https://entrywise.si/v1/submissions (Header: X-Api-Key: "${apiKey}")
 
 ### Form Schema Inputs (${activeFields.length} fields):
 ${schemaList}

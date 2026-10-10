@@ -1,28 +1,22 @@
 // @ts-check
 
-import node from '@astrojs/node';
+import cloudflare from '@astrojs/cloudflare';
 import react from '@astrojs/react';
+import { d1, r2 } from '@emdash-cms/cloudflare';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
-import emdash, { local } from 'emdash/astro';
-import { sqlite } from 'emdash/db';
+import emdash from 'emdash/astro';
 
 // https://astro.build/config
 export default defineConfig({
   output: 'server',
-  adapter: node({
-    mode: 'standalone',
-  }),
+  adapter: cloudflare(),
+  site: 'https://entrywise.si',
   integrations: [
     react(),
     emdash({
-      database: sqlite({
-        url: process.env.EMDASH_DB_URL || 'file:./data.db',
-      }),
-      storage: local({
-        directory: './uploads',
-        baseUrl: '/_emdash/api/media/file',
-      }),
+      database: d1({ binding: 'DB' }),
+      storage: r2({ binding: 'MEDIA' }),
       admin: {
         siteName: 'EntryWise CMS & Docs',
         footerLabel: 'EntryWise',

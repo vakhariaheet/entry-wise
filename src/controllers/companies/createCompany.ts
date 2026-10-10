@@ -4,7 +4,7 @@ import type { Env } from '../../types/env';
 import { encrypt } from '../../utils/encryption';
 import { sendResponse } from '../../utils/sendResponse';
 
-const CF_FROM_EMAIL = 'no-reply@entrywise.webbound.in';
+const CF_FROM_EMAIL = 'no-reply@entrywise.si';
 const CF_FROM_NAME = 'EntryWise';
 
 export const createCompany = async (c: Context<{ Bindings: Env }>) => {

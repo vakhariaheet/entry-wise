@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "entrywise-web",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-02-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "EMDASH_SITE_URL": "https://entrywise.si"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "entrywise-cms"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "entrywise-cms-media"
+    }
+  ],
+  "services": [
+    {
+      "binding": "ENTRYWISE_API",
+      "service": "entry-wise"
+    }
+  ],
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+  "routes": [
+    {
+      "pattern": "entrywise.si",
+      "custom_domain": true
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

@@ -14,13 +14,15 @@
     "preview": "astro preview",
     "astro": "astro",
     "seed:generate": "bun run scripts/generate-seed.ts",
-    "cms:init": "emdash init && emdash seed seed/seed.json --on-conflict=update",
-    "cms:seed": "emdash seed seed/seed.json --on-conflict=update",
-    "cms:types": "emdash types"
+    "cms:types": "emdash types",
+    "deploy": "astro build && wrangler deploy",
+    "seed:validate": "emdash seed seed/seed.json --validate",
+    "cms:check": "emdash doctor"
   },
   "dependencies": {
-    "@astrojs/node": "^11.1.7",
+    "@astrojs/cloudflare": "^14.3.4",
     "@astrojs/react": "^7.0.1",
+    "@emdash-cms/cloudflare": "^1.2.0",
     "astro": "^7.3.3",
     "emdash": "^1.2.0",
     "react": "^19.3.0",
@@ -30,7 +32,9 @@
     "esbuild": true
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261010.1",
     "@tailwindcss/vite": "^4.3.3",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "wrangler": "^4.149.0"
   }
 }
