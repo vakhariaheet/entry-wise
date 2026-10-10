@@ -80,10 +80,15 @@ export const testSubmission = async (c: Context<{ Bindings: Env }>) => {
         timestamp: new Date().toISOString(),
       };
 
-      if (c.executionCtx && typeof c.executionCtx.waitUntil === 'function') {
-        c.executionCtx.waitUntil(processSubmissionDelivery(queueMessage as any, c.env));
-      } else {
-        // Run asynchronously without awaiting to keep test endpoint responsive
+      try {
+        if (c.executionCtx && typeof c.executionCtx.waitUntil === 'function') {
+          c.executionCtx.waitUntil(processSubmissionDelivery(queueMessage as any, c.env));
+        } else {
+          processSubmissionDelivery(queueMessage as any, c.env).catch((err) =>
+            console.error('[Test Submission Delivery Error]', err)
+          );
+        }
+      } catch {
         processSubmissionDelivery(queueMessage as any, c.env).catch((err) =>
           console.error('[Test Submission Delivery Error]', err)
         );

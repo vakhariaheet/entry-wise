@@ -77,19 +77,8 @@ export const testSiteEmail = async (c: Context<{ Bindings: Env }>) => {
       }
     }
 
-    if (company.email_provider !== 'cloudflare' && !decryptedToken) {
-      return sendProblemDetails(
-        c,
-        400,
-        `No API key configured for ${company.email_provider}. Please configure your workspace email provider credentials first.`
-      );
-    }
-
-    const emailService = EmailServiceFactory.createEmailService({
-      provider: company.email_provider || 'cloudflare',
-      apiKey: decryptedToken || undefined,
-      binding: company.email_provider === 'cloudflare' ? c.env.EMAIL : undefined,
-    });
+    const resolvedEmail = EmailServiceFactory.resolveForCompany(company, c.env, decryptedToken);
+    const emailService = resolvedEmail.service;
 
     const templateType = body.template_type || 'auto_responder';
     const companyDisplayName = site.name || company.name || site.domain;
@@ -238,8 +227,8 @@ export const testSiteEmail = async (c: Context<{ Bindings: Env }>) => {
     }
 
     await emailService.send({
-      from: company.from_email || 'no-reply@entrywise.webbound.in',
-      fromName: site.name || company.from_name || 'EntryWise Preview',
+      from: resolvedEmail.fromEmail,
+      fromName: site.name || resolvedEmail.fromName || 'EntryWise Preview',
       to: recipient,
       subject: finalSubject,
       html: finalHtml,

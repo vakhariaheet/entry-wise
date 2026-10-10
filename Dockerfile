@@ -1,47 +1,32 @@
-# =========================================================
-# Stage 1: Build React Dashboard (apps/app)
-# =========================================================
-FROM oven/bun:1-alpine AS frontend-builder
-WORKDIR /build
-
-COPY apps/app/package.json ./apps/app/
-COPY package.json ./
-
-WORKDIR /build/apps/app
-RUN bun install
-
-COPY apps/app/ ./
-RUN bun run build
-
-# =========================================================
-# Stage 2: Production Server Runner
-# =========================================================
-FROM oven/bun:1-alpine AS runner
+# EntryWise Self-Hosted Docker Image (Zero Cloudflare Lock-In)
+FROM oven/bun:1-alpine AS base
 WORKDIR /app
-
-ENV NODE_ENV=production
-ENV PORT=8787
-ENV HOST=0.0.0.0
 
 # Install production dependencies
 COPY package.json bun.lock ./
-RUN bun install --production
+RUN bun install --frozen-lockfile --production
 
-# Copy application source code
-COPY src/ ./src/
-COPY migrations/ ./migrations/
-COPY public/ ./public/
+# Copy application source, SQL migrations, and static assets
+COPY src ./src
+COPY migrations ./migrations
+COPY public ./public
+COPY tsconfig.json ./
 
-# Copy built frontend assets from builder into public directory
-COPY --from=frontend-builder /build/apps/app/dist ./public/app
+# Create persistent data directory for SQLite & file uploads
+RUN mkdir -p /app/data/uploads && chown -R bun:bun /app/data
 
-# Data volumes for persistent SQLite and file uploads
-VOLUME ["/app/data", "/app/uploads"]
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=8787
+ENV DATABASE_PATH=/app/data/entrywise.sqlite
+ENV UPLOAD_DIR=/app/data/uploads
+ENV MIGRATIONS_DIR=/app/migrations
+ENV PUBLIC_DIR=/app/public
 
+USER bun
 EXPOSE 8787
 
-# Healthcheck endpoint
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8787/ || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8787/health || exit 1
 
 CMD ["bun", "run", "src/server.ts"]

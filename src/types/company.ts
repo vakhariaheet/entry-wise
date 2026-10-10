@@ -1,4 +1,11 @@
-export type EmailProvider = 'resend' | 'mailersend' | 'mailtrap' | 'smtp2go' | 'cloudflare';
+export type EmailProvider =
+  | 'resend'
+  | 'mailersend'
+  | 'mailtrap'
+  | 'smtp2go'
+  | 'cloudflare'
+  | 'webhook'
+  | 'console';
 
 export interface Company {
   id: string;

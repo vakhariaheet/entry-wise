@@ -61,19 +61,8 @@ export const testCompanyEmail = async (c: Context<{ Bindings: Env }>) => {
       }
     }
 
-    if (company.email_provider !== 'cloudflare' && !decryptedToken) {
-      return sendProblemDetails(
-        c,
-        400,
-        `No API key configured for ${company.email_provider}. Please configure your provider API key first.`
-      );
-    }
-
-    const emailService = EmailServiceFactory.createEmailService({
-      provider: company.email_provider || 'cloudflare',
-      apiKey: decryptedToken || undefined,
-      binding: company.email_provider === 'cloudflare' ? c.env.EMAIL : undefined,
-    });
+    const resolvedEmail = EmailServiceFactory.resolveForCompany(company, c.env, decryptedToken);
+    const emailService = resolvedEmail.service;
 
     const testHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #09090b; color: #f4f4f5; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
@@ -83,8 +72,8 @@ export const testCompanyEmail = async (c: Context<{ Bindings: Env }>) => {
           <p style="font-size: 13px; color: #a1a1aa; margin: 0;">Sent via EntryWise Workspace "${company.name}"</p>
         </div>
         <div style="background: #121215; border-radius: 12px; padding: 16px; border: 1px solid rgba(255,255,255,0.06); font-size: 12px; line-height: 1.6; margin-bottom: 24px;">
-          <p style="margin: 0 0 8px;"><strong>Delivery Engine:</strong> <span style="font-family: monospace; color: #10b981;">${company.email_provider.toUpperCase()}</span></p>
-          <p style="margin: 0 0 8px;"><strong>From:</strong> ${company.from_name || 'EntryWise'} &lt;${company.from_email}&gt;</p>
+          <p style="margin: 0 0 8px;"><strong>Delivery Engine:</strong> <span style="font-family: monospace; color: #10b981;">${resolvedEmail.provider.toUpperCase()}</span></p>
+          <p style="margin: 0 0 8px;"><strong>From:</strong> ${resolvedEmail.fromName} &lt;${resolvedEmail.fromEmail}&gt;</p>
           <p style="margin: 0 0 8px;"><strong>To:</strong> ${recipient}</p>
           <p style="margin: 0;"><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
         </div>
@@ -93,8 +82,8 @@ export const testCompanyEmail = async (c: Context<{ Bindings: Env }>) => {
     `;
 
     await emailService.send({
-      from: company.from_email || 'no-reply@entrywise.webbound.in',
-      fromName: company.from_name || 'EntryWise Test',
+      from: resolvedEmail.fromEmail,
+      fromName: resolvedEmail.fromName,
       to: recipient,
       subject: `[Verified] EntryWise email test for ${company.name}`,
       html: testHtml,
@@ -102,8 +91,8 @@ export const testCompanyEmail = async (c: Context<{ Bindings: Env }>) => {
 
     return sendOk(c, {
       success: true,
-      message: `Test email successfully dispatched to ${recipient} via ${company.email_provider}.`,
-      provider: company.email_provider,
+      message: `Test email successfully dispatched to ${recipient} via ${resolvedEmail.provider}.`,
+      provider: resolvedEmail.provider,
       recipient,
     });
   } catch (err: unknown) {

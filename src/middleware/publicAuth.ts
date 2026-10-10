@@ -1,6 +1,6 @@
 import type { Context, Next } from 'hono';
-import { getConnInfo } from 'hono/cloudflare-workers';
 import type { Env } from '../types/env';
+import { getClientIp } from '../utils/clientIp';
 import { sendProblemDetails } from '../utils/sendResponse';
 
 /**
@@ -101,11 +101,11 @@ export const verifyDomain = async (c: Context<{ Bindings: Env }>, next: Next) =>
 const RATE_LIMIT_MAX_PER_HOUR = 100;
 
 /**
- * Rate limiting middleware using Cloudflare KV (RATE_LIMIT_MAX_PER_HOUR requests/hour per site:IP)
+ * Rate limiting middleware using KV (RATE_LIMIT_MAX_PER_HOUR requests/hour per site:IP)
  */
 export const rateLimiter = async (c: Context<{ Bindings: Env }>, next: Next) => {
   try {
-    const ip = getConnInfo(c)?.remote?.address || 'unknown';
+    const ip = getClientIp(c);
     const siteId = c.get('site_id') || 'public';
     const key = `ratelimit:${siteId}:${ip}`;
 

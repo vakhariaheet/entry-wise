@@ -80,11 +80,8 @@ export async function processSubmissionDelivery(
       }
     }
 
-    const emailService = EmailServiceFactory.createEmailService({
-      provider: company.email_provider || 'cloudflare',
-      apiKey: decryptedApiKey || undefined,
-      binding: company.email_provider === 'cloudflare' ? env.EMAIL : undefined,
-    });
+    const resolvedEmail = EmailServiceFactory.resolveForCompany(company, env, decryptedApiKey);
+    const emailService = resolvedEmail.service;
 
     // Convert savedAttachmentMeta to email attachment references if any
     const emailAttachments: EmailAttachment[] = (savedAttachmentMeta || []).map((f) => ({
@@ -239,8 +236,8 @@ export async function processSubmissionDelivery(
           deliveryTasks.push(
             emailService
               .send({
-                from: company.from_email || 'no-reply@entrywise.webbound.in',
-                fromName: site.name || company.from_name || 'EntryWise',
+                from: resolvedEmail.fromEmail,
+                fromName: site.name || resolvedEmail.fromName,
                 to: recipient,
                 subject: alertSubject,
                 html: alertHtml,
@@ -280,8 +277,8 @@ export async function processSubmissionDelivery(
       deliveryTasks.push(
         emailService
           .send({
-            from: company.from_email || 'no-reply@entrywise.webbound.in',
-            fromName: site.name || company.from_name || 'EntryWise',
+            from: resolvedEmail.fromEmail,
+            fromName: site.name || resolvedEmail.fromName,
             to: submitterEmail,
             subject: interpolatedSubject,
             html: autoReplyHtml,

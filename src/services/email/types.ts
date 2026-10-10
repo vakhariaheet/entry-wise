@@ -18,7 +18,7 @@ export interface SendEmailParams {
 }
 
 export interface EmailService {
-  send(params: SendEmailParams): Promise<any>;
+  send(params: SendEmailParams): Promise<unknown>;
 }
 
 export interface EmailServiceConfig {

@@ -442,15 +442,15 @@ import '../styles/global.css';
 
                 <!-- Tab: Self-Host CLI -->
                 <div id="contentSelfhost" class="hidden text-zinc-300">
-<pre><code><span class="text-zinc-500"># Self-Host EntryWise on your own Cloudflare account in 3 commands</span>
-git clone https://github.com/vakhariaheet/entry-wise.git
-cd entry-wise &amp;&amp; bun install
+<pre><code><span class="text-zinc-500"># Option A: Docker Compose (Any VPS, Railway, Fly.io — Zero Cloudflare Lock-In)</span>
+git clone https://github.com/vakhariaheet/entry-wise.git &amp;&amp; cd entry-wise
+cp .env.example .env
 
-<span class="text-zinc-500"># Provision D1 SQLite &amp; apply edge schema migrations</span>
-bunx wrangler d1 create entrywise
-bunx wrangler d1 migrations apply entrywise --remote
+<span class="text-zinc-500"># Bring your own Queue ('memory' | 'http') &amp; Email ('resend' | 'smtp2go' | 'mailersend' | 'webhook')</span>
+QUEUE_DRIVER=memory DEFAULT_EMAIL_PROVIDER=resend RESEND_API_KEY=re_123 docker compose up -d
 
-<span class="text-zinc-500"># Deploy your Worker (automatically serves /f/:key and /embed.js on your domain)</span>
+<span class="text-zinc-500"># Option B: Cloudflare Workers &amp; D1 Edge</span>
+bunx wrangler d1 create entrywise &amp;&amp; bunx wrangler d1 migrations apply entrywise --remote
 bunx wrangler deploy</code></pre>
                 </div>
 

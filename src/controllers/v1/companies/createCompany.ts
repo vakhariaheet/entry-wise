@@ -16,8 +16,16 @@ export const createCompany = async (c: Context<{ Bindings: Env }>) => {
     const body = (await c.req.json()) as CreateCompanyBody;
     const id = `company_${crypto.randomUUID()}`;
 
-    const provider = body.email_provider ?? 'cloudflare';
-    const isCloudflare = provider === 'cloudflare';
+    const provider = body.email_provider ?? c.env.DEFAULT_EMAIL_PROVIDER ?? 'cloudflare';
+    const isManagedOrConsole = provider === 'cloudflare' || provider === 'console';
+    const hasEnvToken = Boolean(
+      c.env.DEFAULT_EMAIL_API_KEY ||
+        (provider === 'resend' && c.env.RESEND_API_KEY) ||
+        (provider === 'smtp2go' && c.env.SMTP2GO_API_KEY) ||
+        (provider === 'mailersend' && c.env.MAILERSEND_API_KEY) ||
+        (provider === 'mailtrap' && c.env.MAILTRAP_API_KEY) ||
+        (provider === 'webhook' && c.env.EMAIL_WEBHOOK_URL)
+    );
 
     if (!body.name) {
       return sendProblemDetails(c, 422, 'Workspace / Company name is required', {
@@ -25,7 +33,7 @@ export const createCompany = async (c: Context<{ Bindings: Env }>) => {
       });
     }
 
-    if (!isCloudflare && !body.from_name) {
+    if (!isManagedOrConsole && !hasEnvToken && !body.from_name && !c.env.DEFAULT_FROM_NAME) {
       return sendProblemDetails(c, 422, 'from_name is required for third-party email providers', {
         invalidParams: [
           { name: 'from_name', reason: 'Field is required when email_provider is not cloudflare' },
@@ -33,9 +41,11 @@ export const createCompany = async (c: Context<{ Bindings: Env }>) => {
       });
     }
 
+    const effectiveFromEmail = body.from_email?.trim() || c.env.DEFAULT_FROM_EMAIL || '';
     if (
-      !isCloudflare &&
-      (!body.from_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.from_email.trim()))
+      !isManagedOrConsole &&
+      !hasEnvToken &&
+      (!effectiveFromEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(effectiveFromEmail))
     ) {
       return sendProblemDetails(
         c,
@@ -52,7 +62,7 @@ export const createCompany = async (c: Context<{ Bindings: Env }>) => {
       );
     }
 
-    if (!isCloudflare && !body.email_provider_token) {
+    if (!isManagedOrConsole && !hasEnvToken && !body.email_provider_token) {
       return sendProblemDetails(
         c,
         422,
@@ -63,10 +73,12 @@ export const createCompany = async (c: Context<{ Bindings: Env }>) => {
       );
     }
 
-    const fromEmail = isCloudflare ? CF_FROM_EMAIL : body.from_email?.trim() || CF_FROM_EMAIL;
-    const fromName = isCloudflare
-      ? body.from_name || body.name || CF_FROM_NAME
-      : body.from_name?.trim() || CF_FROM_NAME;
+    const fromEmail = isManagedOrConsole
+      ? c.env.DEFAULT_FROM_EMAIL || CF_FROM_EMAIL
+      : effectiveFromEmail || c.env.DEFAULT_FROM_EMAIL || CF_FROM_EMAIL;
+    const fromName = isManagedOrConsole
+      ? body.from_name || body.name || c.env.DEFAULT_FROM_NAME || CF_FROM_NAME
+      : body.from_name?.trim() || c.env.DEFAULT_FROM_NAME || body.name || CF_FROM_NAME;
     const encryptedToken = body.email_provider_token
       ? await encrypt(body.email_provider_token, c.env.ENCRYPTION_KEY)
       : null;

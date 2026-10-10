@@ -1,11 +1,11 @@
 import type { Context } from 'hono';
-import { getConnInfo } from 'hono/cloudflare-workers';
 import { processSubmissionDelivery } from '../../../queue/submissionProcessor';
 import type { EmailAttachment } from '../../../services/email';
 import { renderConfirmationPage } from '../../../templates/ConfirmationPage';
 import type { Env } from '../../../types/env';
 import type { SubmissionQueueMessage } from '../../../types/queue';
 import { HONEYPOT_FIELDS, MAX_FILE_SIZE, VALID_FILE_TYPES } from '../../../types/submission';
+import { getClientIp } from '../../../utils/clientIp';
 import { validateRedirectUrl } from '../../../utils/redirectGuard';
 import { sendProblemDetails } from '../../../utils/sendResponse';
 import {
@@ -194,7 +194,7 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
   try {
     let siteId = c.get('site_id');
     let companyId = c.get('company_id');
-    const ipAddress = getConnInfo(c)?.remote?.address || 'unknown';
+    const ipAddress = getClientIp(c);
 
     // Fallback: If not passed by middleware, look up directly via param or header
     if (!siteId) {
@@ -426,8 +426,10 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
             )
         ).catch((err) => console.error('[AutoSchema] Failed to auto-discover fields:', err));
 
-        if (c.executionCtx) {
-          c.executionCtx.waitUntil(autoDiscoverPromise);
+        try {
+          c.executionCtx?.waitUntil(autoDiscoverPromise);
+        } catch {
+          // ExecutionContext not attached in standalone/test mode; promise runs in background
         }
       }
     }
@@ -506,6 +508,18 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
       )
       .run();
 
+    const runInBackground = (promise: Promise<unknown>) => {
+      try {
+        if (c.executionCtx) {
+          c.executionCtx.waitUntil(promise);
+          return;
+        }
+      } catch {
+        // ExecutionContext not present outside Cloudflare Workers
+      }
+      promise.catch(console.error);
+    };
+
     // 5b. Automated Data Retention Cleanup (Auto-Prune)
     if (site.data_retention_days && Number(site.data_retention_days) > 0) {
       const retentionDays = String(Number(site.data_retention_days));
@@ -517,12 +531,10 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
         .run()
         .catch((err) => console.error('[AutoPrune] Error pruning old submissions:', err));
 
-      if (c.executionCtx) {
-        c.executionCtx.waitUntil(prunePromise);
-      }
+      runInBackground(prunePromise);
     }
 
-    // 6. Async Delivery: Cloudflare Queue (Skip delivery for spam submissions)
+    // 6. Async Delivery: Pluggable Queue (Skip delivery for spam submissions)
     if (!isSpamSubmission) {
       const queuePayload: SubmissionQueueMessage = {
         type: 'submission.process',
@@ -540,7 +552,31 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
         submittedAt: new Date().toISOString(),
       };
 
-      if (c.env.SUBMISSIONS_QUEUE) {
+      if (c.env.QUEUE_DRIVER === 'http' && c.env.QUEUE_WEBHOOK_URL) {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'User-Agent': 'EntryWise-Queue-Driver/1.0',
+        };
+        if (c.env.QUEUE_WEBHOOK_TOKEN) {
+          headers.Authorization = `Bearer ${c.env.QUEUE_WEBHOOK_TOKEN}`;
+        }
+        try {
+          const res = await fetch(c.env.QUEUE_WEBHOOK_URL, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(queuePayload),
+          });
+          if (!res.ok) {
+            throw new Error(`HTTP Queue returned ${res.status}`);
+          }
+        } catch (queueErr) {
+          console.error(
+            '[SubmitForm] Failed to dispatch to HTTP queue webhook, falling back to background delivery:',
+            queueErr
+          );
+          runInBackground(processSubmissionDelivery(queuePayload, c.env));
+        }
+      } else if (c.env.SUBMISSIONS_QUEUE) {
         try {
           await c.env.SUBMISSIONS_QUEUE.send(queuePayload);
         } catch (queueErr) {
@@ -548,19 +584,11 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
             '[SubmitForm] Failed to enqueue submission message, falling back to waitUntil:',
             queueErr
           );
-          if (c.executionCtx) {
-            c.executionCtx.waitUntil(processSubmissionDelivery(queuePayload, c.env));
-          } else {
-            processSubmissionDelivery(queuePayload, c.env).catch(console.error);
-          }
+          runInBackground(processSubmissionDelivery(queuePayload, c.env));
         }
       } else {
         // Self-hosted / Free plan / Local dev fallback
-        if (c.executionCtx) {
-          c.executionCtx.waitUntil(processSubmissionDelivery(queuePayload, c.env));
-        } else {
-          processSubmissionDelivery(queuePayload, c.env).catch(console.error);
-        }
+        runInBackground(processSubmissionDelivery(queuePayload, c.env));
       }
     }
 

@@ -478,19 +478,25 @@ ${magicInputs}${fieldInputs}
       }
 
       case 'selfhost': {
-        return `# Self-Host EntryWise on your own Cloudflare account in 60 seconds
-# 1. Clone the repository & install dependencies
+        return `# Option A: Self-Host via Docker Compose (Any VPS, Railway, Fly.io — Zero Cloudflare Lock-In)
 git clone https://github.com/vakhariaheet/entry-wise.git
-cd entry-wise && bun install
+cd entry-wise && cp .env.example .env
 
-# 2. Provision your Edge D1 Database & apply migrations
-bunx wrangler d1 create entrywise
-bunx wrangler d1 migrations apply entrywise --remote
+# Configure your preferred Queue & Email engine in .env (no Cloudflare required):
+# QUEUE_DRIVER=memory                  # 'memory' (built-in retry queue) or 'http' (QStash/BullMQ/n8n)
+# DEFAULT_EMAIL_PROVIDER=resend        # 'resend' | 'smtp2go' | 'mailersend' | 'mailtrap' | 'webhook'
+# RESEND_API_KEY=re_xxxxxxxxx
+# DEFAULT_FROM_EMAIL=forms@${site.domain}
 
-# 3. Deploy your Worker (serves both /f/:key and /embed.js on your own domain)
-bunx wrangler deploy
+docker compose up -d
 
-# 4. Point your forms or class-name binder to your self-hosted Worker:
+# ------------------------------------------------------------------------------
+# Option B: Self-Host on Cloudflare Workers & D1 Edge
+# bunx wrangler d1 create entrywise && bunx wrangler d1 migrations apply entrywise --remote
+# bunx wrangler deploy
+# ------------------------------------------------------------------------------
+
+# Point your HTML forms or class-name binder to your self-hosted instance:
 # <script
 #   src="${cleanBaseUrl}/embed.js"
 #   data-site-key="${site.api_key}"${isCustomClass ? `\n#   data-class="${effectiveClass}"` : ''}
@@ -516,7 +522,7 @@ bunx wrangler deploy
       case 'html':
         return 'form.html';
       case 'selfhost':
-        return 'deploy-self-hosted.sh';
+        return 'docker-compose & self-host.sh';
     }
   };
 
