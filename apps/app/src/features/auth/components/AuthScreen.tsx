@@ -125,6 +125,23 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ mode, isClerkConfigured 
             />
           )}
         </div>
+        <p className="text-center text-xs leading-relaxed text-zinc-400">
+          By creating an account, you agree to our{' '}
+          <a
+            href="https://entrywise.si/terms"
+            className="text-zinc-200 underline underline-offset-4 hover:text-white"
+          >
+            Terms of Service
+          </a>{' '}
+          and acknowledge our{' '}
+          <a
+            href="https://entrywise.si/privacy"
+            className="text-zinc-200 underline underline-offset-4 hover:text-white"
+          >
+            Privacy Policy
+          </a>
+          .
+        </p>
       </div>
     </div>
   );

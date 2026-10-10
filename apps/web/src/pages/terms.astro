@@ -1,0 +1,62 @@
+---
+import LegalLayout from '../components/LegalLayout.astro';
+
+export const prerender = true;
+const sections = [
+  { id: 'agreement', heading: 'Agreement and scope' },
+  { id: 'accounts', heading: 'Accounts and security' },
+  { id: 'use', heading: 'Acceptable use' },
+  { id: 'data', heading: 'Your content and data' },
+  { id: 'integrations', heading: 'Third-party services' },
+  { id: 'availability', heading: 'Availability and changes' },
+  { id: 'termination', heading: 'Suspension and termination' },
+  { id: 'liability', heading: 'Disclaimers and liability' },
+  { id: 'contact', heading: 'Changes and contact' },
+];
+---
+
+<LegalLayout title="Terms of Service" description="Terms governing use of the EntryWise hosted website, console, API, form submissions, and integrations." sections={sections}>
+  <p>These Terms of Service govern your use of the EntryWise website, hosted console, and hosted form backend API. By creating an account or using the hosted service, you agree to these terms and acknowledge our <a href="/privacy">Privacy Policy</a>.</p>
+
+  <h2 id="agreement">1. Agreement and scope</h2>
+  <p>EntryWise provides form endpoints, submission storage and management, spam controls, email delivery, and integrations with third-party services. You must be legally able to enter into this agreement. If you use EntryWise for an organization, you confirm that you have authority to accept these terms on its behalf.</p>
+  <p>The open-source software is separately licensed under the <a href="https://github.com/vakhariaheet/entry-wise/blob/main/LICENSE">MIT License</a>. These terms govern our hosted service; they do not replace that software license. Operators of self-hosted instances are responsible for their own service terms and data handling.</p>
+
+  <h2 id="accounts">2. Accounts and security</h2>
+  <p>Provide accurate account information and keep your sign-in credentials, API keys, and integration secrets secure. You are responsible for activity under your account and for granting workspace access only to authorized users. Notify us if you suspect unauthorized access, and revoke or rotate affected credentials.</p>
+
+  <h2 id="use">3. Acceptable use</h2>
+  <p>You must use EntryWise in accordance with applicable law and the rights of others. You must not:</p>
+  <ul>
+    <li>Send spam, phishing messages, malware, or fraudulent or unlawful content.</li>
+    <li>Collect or share personal information without appropriate authorization, notices, and any required consent.</li>
+    <li>Attempt unauthorized access, disrupt the service, bypass security or rate limits, or misuse another person’s credentials.</li>
+    <li>Use the service to infringe intellectual property rights or distribute abusive content.</li>
+  </ul>
+  <p>Do not use forms to collect passwords, payment card details, or highly sensitive information unless you have independently established that your use and the service’s protections meet all applicable requirements.</p>
+
+  <h2 id="data">4. Your content and data</h2>
+  <p>You retain your rights to the content and data you submit. You grant EntryWise permission to receive, store, process, and transmit that content as needed to provide the service and carry out your configured delivery instructions.</p>
+  <p>As a form owner, you are responsible for your form fields, privacy notices, lawful collection and use of submissions, recipient addresses, integration settings, and responses to requests from people whose data you collect. Configure retention and access controls appropriate to your needs. Our handling of personal information is described in the <a href="/privacy">Privacy Policy</a>.</p>
+  <p>You are responsible for maintaining any independent copies or exports you need. Deleting data from EntryWise does not remove copies already delivered to external services or recipients.</p>
+
+  <h2 id="integrations">5. Third-party services</h2>
+  <p>Authentication and integrations depend on third-party providers, including Clerk, Google, email providers, and other destinations you configure. Their terms and privacy policies apply to your use of those services. You authorize EntryWise to transmit the information required for integrations you enable and confirm that you have permission to use the destination accounts.</p>
+  <p>Third-party services can change, impose limits, reject deliveries, or become unavailable. EntryWise cannot guarantee their performance. You can stop future transmissions by disabling an integration.</p>
+
+  <h2 id="availability">6. Availability and service changes</h2>
+  <p>We may update features, impose reasonable usage limits, or interrupt service for maintenance, security, or operational reasons. Features identified as beta may change and may contain errors. Unless separately agreed in writing, we do not promise uninterrupted availability, guaranteed delivery, or a particular service level.</p>
+  <p>If we introduce paid features, applicable prices and payment terms will be presented before you purchase them.</p>
+
+  <h2 id="termination">7. Suspension and termination</h2>
+  <p>You may stop using EntryWise at any time and contact us to request account deletion. We may suspend or terminate access for violations of these terms, security risks, unlawful activity, or discontinuation of the service. Where practicable, we will provide notice and an opportunity to export data, unless doing so would create a security risk or conflict with legal obligations.</p>
+  <p>After termination, access to your account and data may end. Any continued retention is subject to our Privacy Policy and applicable law.</p>
+
+  <h2 id="liability">8. Disclaimers and liability</h2>
+  <p>To the extent permitted by applicable law, the service is provided “as is” and “as available,” without warranties of merchantability, fitness for a particular purpose, or non-infringement. We do not guarantee that spam filtering, integrations, or delivery will be error-free.</p>
+  <p>To the extent permitted by applicable law, EntryWise and its operators are not liable for indirect, incidental, special, consequential, or punitive damages, or loss of profits, data, or business opportunities arising from use of the service. Nothing in these terms excludes liability or limits consumer rights that cannot lawfully be excluded or limited.</p>
+
+  <h2 id="contact">9. Changes and contact</h2>
+  <p>We may revise these terms as the service evolves. We will update the date above and provide notice of material changes where required. Continued use after updated terms take effect constitutes acceptance to the extent permitted by law.</p>
+  <p>For questions about these terms or account deletion, email <a href="mailto:help@entrywise.si">help@entrywise.si</a>.</p>
+</LegalLayout>
