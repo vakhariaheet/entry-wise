@@ -134,9 +134,9 @@ export class EmailServiceFactory {
     }
 
     const fromEmail =
-      company.from_email && company.from_email !== 'no-reply@entrywise.webbound.in'
+      company.from_email && company.from_email !== 'no-reply@entrywise.si'
         ? company.from_email
-        : env.DEFAULT_FROM_EMAIL || company.from_email || 'no-reply@entrywise.webbound.in';
+        : env.DEFAULT_FROM_EMAIL || company.from_email || 'no-reply@entrywise.si';
 
     const fromName = company.from_name || env.DEFAULT_FROM_NAME || company.name || 'EntryWise';
 

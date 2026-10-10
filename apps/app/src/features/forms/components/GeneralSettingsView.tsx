@@ -92,7 +92,7 @@ export const GeneralSettingsView: React.FC<GeneralSettingsViewProps> = ({
     setAnonymizeIp(Boolean(site.anonymize_ip));
   }, [site]);
 
-  const endpointUrl = `https://entrywise.webbound.in/f/${site.api_key}`;
+  const endpointUrl = `https://entrywise.si/f/${site.api_key}`;
 
   const handleCopyKey = () => {
     navigator.clipboard.writeText(site.api_key);

@@ -64,7 +64,7 @@ export const patchCompany = async (c: Context<{ Bindings: Env }>) => {
 
     const updateBody: Record<string, unknown> = { ...body };
     if (isCloudflare && body.email_provider === 'cloudflare') {
-      updateBody.from_email = 'no-reply@entrywise.webbound.in';
+      updateBody.from_email = 'no-reply@entrywise.si';
       updateBody.from_name = body.name || results[0].id || 'EntryWise';
       updateBody.email_provider_token = null;
     }

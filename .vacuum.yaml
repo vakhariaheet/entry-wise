@@ -1,5 +1,5 @@
 description: EntryWise OpenAPI & OWASP Top 10 API Security Ruleset
-documentationUrl: https://entrywise.webbound.in/docs
+documentationUrl: https://entrywise.si/reference
 
 extends:
   - [vacuum:oas, recommended]

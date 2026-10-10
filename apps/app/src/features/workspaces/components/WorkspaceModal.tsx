@@ -214,7 +214,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({
               </select>
               <p className="text-[11px] text-zinc-400 mt-1.5 leading-relaxed">
                 {emailProvider === 'cloudflare'
-                  ? 'Zero configuration required. Notifications and receipts are delivered instantly via Cloudflare Email Service from no-reply@entrywise.webbound.in.'
+                  ? 'Zero configuration required. Notifications and receipts are delivered instantly via Cloudflare Email Service from no-reply@entrywise.si.'
                   : 'Bring Your Own Key (BYOK). Emails will be dispatched using your provider account from your own verified domain.'}
               </p>
             </div>

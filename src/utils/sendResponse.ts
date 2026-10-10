@@ -121,7 +121,7 @@ export const sendProblemDetails = (
   const title = options?.title || statusMessages[status] || 'Error';
   const type =
     options?.type ||
-    `https://entrywise.webbound.in/problems/${problemTypeSlugs[status] || 'error'}`;
+    `https://entrywise.si/problems/${problemTypeSlugs[status] || 'error'}`;
 
   const problem: ProblemDetails = {
     type,

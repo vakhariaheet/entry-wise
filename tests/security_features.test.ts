@@ -21,7 +21,7 @@ describe('SpamGuard: Disposable Email Blocker', () => {
     expect(isDisposableEmail('sarah@gmail.com')).toBe(false);
     expect(isDisposableEmail('alex@outlook.com')).toBe(false);
     expect(isDisposableEmail('developer@entrywise.dev')).toBe(false);
-    expect(isDisposableEmail('ceo@webbound.in')).toBe(false);
+    expect(isDisposableEmail('ceo@entrywise.si')).toBe(false);
   });
 
   it('handles invalid email values gracefully without throwing', () => {

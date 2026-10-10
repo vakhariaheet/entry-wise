@@ -142,7 +142,7 @@ const seed: SeedFile = {
         { type: 'custom', label: 'Developer Docs', url: '/docs' },
         { type: 'custom', label: 'Quickstart', url: '/docs/quickstart' },
         { type: 'custom', label: 'Self-Hosting (Docker)', url: '/docs/self-hosting-docker' },
-        { type: 'custom', label: 'OpenAPI Reference', url: 'https://entrywise.webbound.in/docs' },
+        { type: 'custom', label: 'OpenAPI Reference', url: 'https://entrywise.si/reference' },
       ],
     },
   ],

@@ -32,7 +32,7 @@ export const testWebhook = async (c: Context<{ Bindings: Env }>) => {
       return sendProblemDetails(c, 404, `Webhook '${webhookId}' not found`);
     }
 
-    const domain = site.domain || 'entrywise.webbound.in';
+    const domain = site.domain || 'entrywise.si';
 
     const testPayload = {
       event: 'submission.created' as const,

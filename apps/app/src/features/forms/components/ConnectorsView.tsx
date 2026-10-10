@@ -610,7 +610,7 @@ function doGet(e) {
                 </h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
                   {provider === 'cloudflare'
-                    ? 'Cloudflare Managed Email (Zero Config). Alerts and receipts are delivered from no-reply@entrywise.webbound.in.'
+                    ? 'Cloudflare Managed Email (Zero Config). Alerts and receipts are delivered from no-reply@entrywise.si.'
                     : `Custom ${provider.toUpperCase()} provider connected. Sending from ${workspace?.from_name || 'EntryWise'} <${workspace?.from_email || 'configured email'}>.`}
                 </p>
               </div>

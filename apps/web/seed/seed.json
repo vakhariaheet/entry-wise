@@ -154,7 +154,7 @@
         {
           "type": "custom",
           "label": "OpenAPI Reference",
-          "url": "https://entrywise.webbound.in/docs"
+          "url": "https://entrywise.si/reference"
         }
       ]
     }
@@ -275,7 +275,7 @@
                   "label": "HTML + embed.js",
                   "language": "html",
                   "filename": "index.html",
-                  "code": "<script src=\"https://entrywise.webbound.in/embed.js\" defer></script>\n\n<form\n  class=\"entrywise-form\"\n  data-form-key=\"ew_live_your_form_key\"\n  data-success-message=\"Thanks! We will get back to you within 24 hours.\"\n  data-submitting-text=\"Sending...\"\n>\n  <input type=\"text\" name=\"name\" placeholder=\"Jane Doe\" required />\n  <input type=\"email\" name=\"email\" placeholder=\"jane@company.com\" required />\n  <textarea name=\"message\" placeholder=\"How can we help?\" required></textarea>\n  <button type=\"submit\">Send Message</button>\n</form>"
+                  "code": "<script src=\"https://entrywise.si/embed.js\" defer></script>\n\n<form\n  class=\"entrywise-form\"\n  data-form-key=\"ew_live_your_form_key\"\n  data-success-message=\"Thanks! We will get back to you within 24 hours.\"\n  data-submitting-text=\"Sending...\"\n>\n  <input type=\"text\" name=\"name\" placeholder=\"Jane Doe\" required />\n  <input type=\"email\" name=\"email\" placeholder=\"jane@company.com\" required />\n  <textarea name=\"message\" placeholder=\"How can we help?\" required></textarea>\n  <button type=\"submit\">Send Message</button>\n</form>"
                 }
               ]
             },
@@ -290,7 +290,7 @@
                   "label": "Pure HTML5 Form",
                   "language": "html",
                   "filename": "contact.html",
-                  "code": "<form action=\"https://entrywise.webbound.in/f/ew_live_your_form_key\" method=\"POST\">\n  <!-- Honeypot spam trap (keep hidden) -->\n  <input type=\"text\" name=\"_gotcha\" style=\"display:none\" tabindex=\"-1\" autocomplete=\"off\" />\n\n  <!-- Optional custom redirect after submission -->\n  <input type=\"hidden\" name=\"_redirect\" value=\"https://yoursite.com/thank-you\" />\n\n  <!-- Optional dynamic email subject -->\n  <input type=\"hidden\" name=\"_subject\" value=\"New Website Lead\" />\n\n  <input type=\"email\" name=\"email\" required placeholder=\"you@domain.com\" />\n  <textarea name=\"message\" required placeholder=\"Your message\"></textarea>\n  <button type=\"submit\">Submit</button>\n</form>"
+                  "code": "<form action=\"https://entrywise.si/f/ew_live_your_form_key\" method=\"POST\">\n  <!-- Honeypot spam trap (keep hidden) -->\n  <input type=\"text\" name=\"_gotcha\" style=\"display:none\" tabindex=\"-1\" autocomplete=\"off\" />\n\n  <!-- Optional custom redirect after submission -->\n  <input type=\"hidden\" name=\"_redirect\" value=\"https://yoursite.com/thank-you\" />\n\n  <!-- Optional dynamic email subject -->\n  <input type=\"hidden\" name=\"_subject\" value=\"New Website Lead\" />\n\n  <input type=\"email\" name=\"email\" required placeholder=\"you@domain.com\" />\n  <textarea name=\"message\" required placeholder=\"Your message\"></textarea>\n  <button type=\"submit\">Submit</button>\n</form>"
                 }
               ]
             },
@@ -305,7 +305,7 @@
                   "label": "React / TypeScript",
                   "language": "tsx",
                   "filename": "ContactForm.tsx",
-                  "code": "async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {\n  e.preventDefault();\n  const formData = new FormData(e.currentTarget);\n\n  const res = await fetch('https://entrywise.webbound.in/f/ew_live_your_form_key', {\n    method: 'POST',\n    headers: {\n      'Content-Type': 'application/json',\n      'Accept': 'application/json',\n    },\n    body: JSON.stringify(Object.fromEntries(formData)),\n  });\n\n  const data = await res.json();\n  if (!res.ok) {\n    throw new Error(data.error || 'Submission failed');\n  }\n  console.log('Saved submission ID:', data.submissionId);\n}"
+                  "code": "async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {\n  e.preventDefault();\n  const formData = new FormData(e.currentTarget);\n\n  const res = await fetch('https://entrywise.si/f/ew_live_your_form_key', {\n    method: 'POST',\n    headers: {\n      'Content-Type': 'application/json',\n      'Accept': 'application/json',\n    },\n    body: JSON.stringify(Object.fromEntries(formData)),\n  });\n\n  const data = await res.json();\n  if (!res.ok) {\n    throw new Error(data.error || 'Submission failed');\n  }\n  console.log('Saved submission ID:', data.submissionId);\n}"
                 }
               ]
             }
@@ -379,7 +379,7 @@
                   "label": "cURL Mock Submission",
                   "language": "bash",
                   "filename": "terminal",
-                  "code": "curl -X POST \"https://entrywise.webbound.in/f/ew_live_your_form_key?mock=true\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"name\": \"Test User\", \"email\": \"test@example.com\"}'"
+                  "code": "curl -X POST \"https://entrywise.si/f/ew_live_your_form_key?mock=true\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"name\": \"Test User\", \"email\": \"test@example.com\"}'"
                 }
               ]
             }
@@ -587,7 +587,7 @@
                   "label": "Direct HTML Class Binding for Salesforce",
                   "language": "html",
                   "filename": "salesforce-lead.html",
-                  "code": "<script src=\"https://entrywise.webbound.in/embed.js\" defer></script>\n\n<form\n  class=\"entrywise-form\"\n  data-form-key=\"ew_live_your_form_key\"\n  data-oid=\"00D5g000004ABCD\"\n  data-lead-source=\"Pricing Page Enterprise Inquiry\"\n>\n  <input type=\"text\" name=\"name\" placeholder=\"Full Name\" required />\n  <input type=\"email\" name=\"email\" placeholder=\"Work Email\" required />\n  <input type=\"text\" name=\"company\" placeholder=\"Company Name\" required />\n  <button type=\"submit\">Request Enterprise Demo</button>\n</form>"
+                  "code": "<script src=\"https://entrywise.si/embed.js\" defer></script>\n\n<form\n  class=\"entrywise-form\"\n  data-form-key=\"ew_live_your_form_key\"\n  data-oid=\"00D5g000004ABCD\"\n  data-lead-source=\"Pricing Page Enterprise Inquiry\"\n>\n  <input type=\"text\" name=\"name\" placeholder=\"Full Name\" required />\n  <input type=\"email\" name=\"email\" placeholder=\"Work Email\" required />\n  <input type=\"text\" name=\"company\" placeholder=\"Company Name\" required />\n  <button type=\"submit\">Request Enterprise Demo</button>\n</form>"
                 }
               ]
             },

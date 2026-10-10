@@ -190,7 +190,7 @@ export const renderAutoResponderEmail = ({
                                 This confirmation was sent because you submitted a form on <strong>${cleanDomain}</strong>.
                             </p>
                             <p style="margin: 0;">
-                                Delivered securely on behalf of <strong>${displayName}</strong> via <a href="https://entrywise.webbound.in" target="_blank" style="color: #64748b; text-decoration: none; font-weight: 500;">EntryWise</a>
+                                Delivered securely on behalf of <strong>${displayName}</strong> via <a href="https://entrywise.si" target="_blank" style="color: #64748b; text-decoration: none; font-weight: 500;">EntryWise</a>
                             </p>
                         </td>
                     </tr>

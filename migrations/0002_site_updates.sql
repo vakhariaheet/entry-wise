@@ -17,7 +17,7 @@ CREATE TABLE companies (
     name TEXT NOT NULL,
     email_provider TEXT NOT NULL DEFAULT 'cloudflare',
     email_provider_token TEXT,
-    from_email TEXT NOT NULL DEFAULT 'no-reply@entrywise.webbound.in',
+    from_email TEXT NOT NULL DEFAULT 'no-reply@entrywise.si',
     from_name TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
