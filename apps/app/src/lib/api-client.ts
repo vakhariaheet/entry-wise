@@ -1,6 +1,6 @@
 import type { Company, FieldType, FormField, Site, Submission, Webhook } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://entrywise.si/v1';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.entrywise.si/v1';
 
 class ApiService {
   private token: string | null = null;

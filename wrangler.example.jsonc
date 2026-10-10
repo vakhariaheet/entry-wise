@@ -28,7 +28,7 @@
   "routes": [
     {
       "custom_domain": true,
-      "pattern": "your-domain.com"
+      "pattern": "api.entrywise.si"
     }
   ],
   "assets": {

@@ -84,7 +84,7 @@ describe('Lightweight Competitor Features & Self-Hosted Class Binder', () => {
         },
       };
 
-      const req = new Request('https://entrywise.si/f/ew_live_test', {
+      const req = new Request('https://api.entrywise.si/f/ew_live_test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

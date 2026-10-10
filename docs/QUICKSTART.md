@@ -6,7 +6,7 @@ Get your first form live in under 60 seconds using the **Drop-In Class Binder (`
 
 ## 1. Create a Workspace & Form Endpoint
 
-1. Open the [**EntryWise Console**](https://entrywise-app.pages.dev) (or your self-hosted dashboard).
+1. Open the [**EntryWise Console**](https://app.entrywise.si) (or your self-hosted dashboard).
 2. Create a **Workspace** (choose Managed Default Email or connect your own Resend / SMTP2GO / MailerSend / Mailtrap / Webhook key).
 3. Create a **Site** with your domain (e.g., `acme.com`) and copy your **Site API Key** (`ew_live_...`).
 
@@ -24,7 +24,7 @@ If you want AJAX submission handling (no full-page reload, automatic button load
 ```html
 <!-- 1. Include the lightweight binder once on your page -->
 <script
-  src="https://entrywise.si/embed.js"
+  src="https://api.entrywise.si/embed.js"
   data-site-key="ew_live_your_site_key"
   defer
 ></script>
@@ -60,7 +60,7 @@ Ideal for static HTML sites, Webflow, Framer, Hugo, Jekyll, or Astro static page
 
 ```html
 <form
-  action="https://entrywise.si/f/ew_live_your_site_key"
+  action="https://api.entrywise.si/f/ew_live_your_site_key"
   method="POST"
   enctype="multipart/form-data"
 >
@@ -98,7 +98,7 @@ Ideal for static HTML sites, Webflow, Framer, Hugo, Jekyll, or Astro static page
 'use server';
 
 export async function submitContactForm(formData: FormData) {
-  const response = await fetch('https://entrywise.si/f/ew_live_your_site_key', {
+  const response = await fetch('https://api.entrywise.si/f/ew_live_your_site_key', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -140,7 +140,7 @@ All `_`-prefixed directives are processed by EntryWise to customize delivery, sa
 Before embedding your form, you can verify your entire delivery pipeline (Database commit + Email + Webhooks + Slack/Discord/Airtable/Notion) directly from the Console or via the **Pipeline Diagnostics API**:
 
 ```bash
-curl -X POST "https://entrywise.si/v1/sites/YOUR_SITE_ID/test-submission" \
+curl -X POST "https://api.entrywise.si/v1/sites/YOUR_SITE_ID/test-submission" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{ "dispatch_connectors": true }'

@@ -17,7 +17,7 @@ export const invalidParamSchema = z.object({
 export const problemDetailsSchema = z.object({
   type: z.string().openapi({
     description: 'URI reference that identifies the problem type',
-    example: 'https://entrywise.si/problems/unprocessable-entity',
+    example: 'https://api.entrywise.si/problems/unprocessable-entity',
     format: 'uri',
   }),
   title: z.string().openapi({

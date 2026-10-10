@@ -47,7 +47,7 @@ const { content: landing, edit: landingEdit } = await getLandingContent();
           <a href="#specifications" class="hover:text-[#f7f8f8] transition">Specifications</a>
           <a href="/docs" class="hover:text-[#f7f8f8] transition">Docs</a>
           <a
-            href="https://entrywise.si/reference"
+            href="https://api.entrywise.si/reference"
             target="_blank"
             rel="noopener noreferrer"
             class="hover:text-[#f7f8f8] transition inline-flex items-center gap-1"
@@ -67,7 +67,7 @@ const { content: landing, edit: landingEdit } = await getLandingContent();
           <span id="navPromptText">Copy Agent Prompt</span>
         </button>
         <a
-          href="https://entrywise-app.pages.dev"
+          href="https://app.entrywise.si"
           class="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#08090a] bg-[#f7f8f8] hover:bg-white px-3.5 py-1 rounded-[6px] transition"
         >
           <span>Console</span>
@@ -221,7 +221,7 @@ const { content: landing, edit: landingEdit } = await getLandingContent();
             <div id="contentScript">
               <pre><code><span class="text-[#686d76]">&lt;!-- 1. Drop-in &lt;1.5KB script --&gt;</span>
 &lt;<span class="text-[#70b8ff]">script</span>
-  <span class="text-[#a1a6b0]">src</span>=<span class="text-[#f7f8f8]">"https://entrywise.si/embed.js"</span>
+  <span class="text-[#a1a6b0]">src</span>=<span class="text-[#f7f8f8]">"https://api.entrywise.si/embed.js"</span>
   <span class="text-[#a1a6b0]">defer</span>
 &gt;&lt;/<span class="text-[#70b8ff]">script</span>&gt;
 
@@ -254,7 +254,7 @@ docker compose up -d</code></pre>
 
 <span class="text-[#70b8ff]">export async function</span> <span class="text-[#f7f8f8]">submitLead</span>(formData: FormData) &#123;
   <span class="text-[#70b8ff]">const</span> res = <span class="text-[#70b8ff]">await</span> fetch(
-    <span class="text-[#f7f8f8]">`https://entrywise.si/f/$&#123;process.env.EW_KEY&#125;`</span>,
+    <span class="text-[#f7f8f8]">`https://api.entrywise.si/f/$&#123;process.env.EW_KEY&#125;`</span>,
     &#123; method: <span class="text-[#f7f8f8]">'POST'</span>, body: formData &#125;
   );
   <span class="text-[#70b8ff]">return</span> res.json(); <span class="text-[#686d76]">// &#123; submission_id: "sub_..." &#125;</span>
@@ -262,7 +262,7 @@ docker compose up -d</code></pre>
             </div>
 
             <div id="contentCurl" class="hidden">
-              <pre><code>curl -X POST https://entrywise.si/f/ew_live_79a2 \
+              <pre><code>curl -X POST https://api.entrywise.si/f/ew_live_79a2 \
   -H <span class="text-[#f7f8f8]">"Content-Type: application/json"</span> \
   -d <span class="text-[#f7f8f8]">'&#123;
     "name": "Alex Rivera",
@@ -632,7 +632,7 @@ docker compose up -d</code></pre>
         <a href="/docs/self-hosting-docker" class="hover:text-[#f7f8f8] transition">Docker Guide</a>
         <a href="/_emdash/admin" class="hover:text-[#f7f8f8] transition">EmDash CMS</a>
         <a
-          href="https://entrywise.si/reference"
+          href="https://api.entrywise.si/reference"
           target="_blank"
           rel="noopener noreferrer"
           class="hover:text-[#f7f8f8] transition"
@@ -640,7 +640,7 @@ docker compose up -d</code></pre>
           OpenAPI 3.1 ↗
         </a>
         <a
-          href="https://entrywise-app.pages.dev"
+          href="https://app.entrywise.si"
           class="text-[#f7f8f8] hover:underline transition"
         >
           Open Console →
@@ -653,7 +653,7 @@ docker compose up -d</code></pre>
     const UNIVERSAL_PROMPT = `Integrate EntryWise (v0.2.0) into this project as the headless form backend.
 
 ### Option A: Zero-JS Drop-In Class Binder
-<script src="https://entrywise.si/embed.js" defer><\/script>
+<script src="https://api.entrywise.si/embed.js" defer><\/script>
 <form class="entrywise-form" data-form-key="YOUR_SITE_API_KEY">
   <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" />
   <input type="email" name="email" required />
@@ -662,7 +662,7 @@ docker compose up -d</code></pre>
 </form>
 
 ### Option B: Direct JSON / FormData POST
-- Endpoint: POST https://entrywise.si/f/YOUR_SITE_API_KEY
+- Endpoint: POST https://api.entrywise.si/f/YOUR_SITE_API_KEY
 - Magic Directives: _gotcha (honeypot), _subject, _replyto, _cc, _redirect, ?mock=true
 - Status: 201 Created on success; RFC 7807 problem+json on validation error.`;
 

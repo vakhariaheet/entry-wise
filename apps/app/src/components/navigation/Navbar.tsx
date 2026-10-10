@@ -261,7 +261,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
 
           <a
-            href="https://entrywise.si/reference"
+            href="https://api.entrywise.si/reference"
             target="_blank"
             rel="noopener noreferrer"
             className="hidden md:flex items-center gap-1 text-xs text-zinc-400 hover:text-white px-2 py-1.5 transition"

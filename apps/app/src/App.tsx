@@ -498,13 +498,13 @@ export const AppContent: React.FC<AppProps> = () => {
                           POST
                         </span>
                         <span className="text-zinc-400 select-all">
-                          https://entrywise.si/f/{currentSite.api_key}
+                          https://api.entrywise.si/f/{currentSite.api_key}
                         </span>
                         <button
                           type="button"
                           onClick={() => {
                             navigator.clipboard.writeText(
-                              `https://entrywise.si/f/${currentSite.api_key}`
+                              `https://api.entrywise.si/f/${currentSite.api_key}`
                             );
                             setCopiedEndpoint(true);
                             setTimeout(() => setCopiedEndpoint(false), 2000);

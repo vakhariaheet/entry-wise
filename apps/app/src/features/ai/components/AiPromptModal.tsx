@@ -16,7 +16,7 @@ export const AiPromptModal: React.FC<AiPromptModalProps> = ({ site, fields = [],
   const apiKey = site?.api_key || 'YOUR_SITE_API_KEY';
   const siteDomain = site?.domain || 'yourdomain.com';
   const siteName = site?.name || siteDomain;
-  const endpointUrl = `https://entrywise.si/f/${apiKey}`;
+  const endpointUrl = `https://api.entrywise.si/f/${apiKey}`;
 
   const activeFields: FormField[] =
     fields.length > 0
@@ -151,7 +151,7 @@ export const AiPromptModal: React.FC<AiPromptModalProps> = ({ site, fields = [],
 - Site Domain: "${siteDomain}"
 - Site API Key: "${apiKey}"
 - Ingestion Endpoint: POST ${endpointUrl}
-- Authenticated API: POST https://entrywise.si/v1/submissions (Header: X-Api-Key: "${apiKey}")
+- Authenticated API: POST https://api.entrywise.si/v1/submissions (Header: X-Api-Key: "${apiKey}")
 
 ### Form Schema Inputs (${activeFields.length} fields):
 ${schemaList}

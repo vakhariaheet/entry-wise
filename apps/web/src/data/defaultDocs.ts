@@ -154,7 +154,7 @@ export const DEFAULT_DOCS: DocArticle[] = [
             label: 'HTML + embed.js',
             language: 'html',
             filename: 'index.html',
-            code: `<script src="https://entrywise.si/embed.js" defer></script>
+            code: `<script src="https://api.entrywise.si/embed.js" defer></script>
 
 <form
   class="entrywise-form"
@@ -181,7 +181,7 @@ export const DEFAULT_DOCS: DocArticle[] = [
             label: 'Pure HTML5 Form',
             language: 'html',
             filename: 'contact.html',
-            code: `<form action="https://entrywise.si/f/ew_live_your_form_key" method="POST">
+            code: `<form action="https://api.entrywise.si/f/ew_live_your_form_key" method="POST">
   <!-- Honeypot spam trap (keep hidden) -->
   <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" />
 
@@ -213,7 +213,7 @@ export const DEFAULT_DOCS: DocArticle[] = [
   e.preventDefault();
   const formData = new FormData(e.currentTarget);
 
-  const res = await fetch('https://entrywise.si/f/ew_live_your_form_key', {
+  const res = await fetch('https://api.entrywise.si/f/ew_live_your_form_key', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -302,7 +302,7 @@ export const DEFAULT_DOCS: DocArticle[] = [
             label: 'cURL Mock Submission',
             language: 'bash',
             filename: 'terminal',
-            code: `curl -X POST "https://entrywise.si/f/ew_live_your_form_key?mock=true" \\
+            code: `curl -X POST "https://api.entrywise.si/f/ew_live_your_form_key?mock=true" \\
   -H "Content-Type: application/json" \\
   -d '{"name": "Test User", "email": "test@example.com"}'`,
           },
@@ -718,5 +718,5 @@ export const DEFAULT_LANDING_CONTENT: LandingPageContent = {
   subtitle:
     'Drop one endpoint into React, Next.js, Astro, or static HTML. Deploy on Cloudflare Workers or self-host anywhere with Docker, native SQLite, zero-OAuth connectors, and HMAC webhooks.',
   primaryCtaLabel: 'Start Free in Console',
-  primaryCtaUrl: 'https://entrywise-app.pages.dev',
+  primaryCtaUrl: 'https://app.entrywise.si',
 };
