@@ -1,40 +1,36 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "entrywise-web",
-	"main": "src/worker.ts",
-	"compatibility_date": "2026-02-24",
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
-	"vars": {
-		"EMDASH_SITE_URL": "https://entrywise.si"
-	},
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "entrywise-cms",
-			"migrations_dir": "../../migrations",
-			"database_id": "d1a78286-37a0-4c29-ae93-d11480bdeceb"
-		}
-	],
-	"r2_buckets": [
-		{
-			"binding": "MEDIA",
-			"bucket_name": "entrywise-cms-media"
-		}
-	],
-	"triggers": {
-		"crons": [
-			"* * * * *"
-		]
-	},
-	"routes": [
-		{
-			"pattern": "entrywise.si",
-			"custom_domain": true
-		}
-	],
-	"observability": {
-		"enabled": true
-	}
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "entrywise-web",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-02-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "EMDASH_SITE_URL": "https://entrywise.si"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "entrywise-cms",
+      "migrations_dir": "../../migrations",
+      "database_id": "d1a78286-37a0-4c29-ae93-d11480bdeceb"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "entrywise-cms-media"
+    }
+  ],
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+  "routes": [
+    {
+      "pattern": "entrywise.si",
+      "custom_domain": true
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
 }
