@@ -306,11 +306,19 @@ export const SchemaFieldsView: React.FC<SchemaFieldsViewProps> = ({
         {/* Fields List */}
         <div className="rounded-xl border border-white/[0.08] bg-[#090a0f] divide-y divide-white/[0.04] overflow-hidden">
           {localFields.length === 0 ? (
-            <div className="p-8 text-center space-y-1.5">
-              <div className="text-sm font-semibold text-zinc-300">No fields defined yet</div>
+            <div className="p-8 text-center space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono font-semibold">
+                <span>⚡ Auto-Schema Discovery Enabled</span>
+              </div>
+              <div className="text-sm font-semibold text-zinc-200">
+                Zero upfront setup — send your first submission to auto-populate fields
+              </div>
               <p className="text-xs text-zinc-500 max-w-md mx-auto leading-relaxed">
-                This form operates in dynamic schema mode (accepts all submitted JSON keys). Add
-                fields below to specify standard inputs and generate code snippets.
+                EntryWise automatically inspects your first incoming submission and infers field
+                names and types (<code className="text-zinc-400">email</code>,{' '}
+                <code className="text-zinc-400">phone</code>,{' '}
+                <code className="text-zinc-400">url</code>,{' '}
+                <code className="text-zinc-400">text</code>), or you can define them manually below.
               </p>
             </div>
           ) : (

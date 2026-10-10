@@ -739,7 +739,8 @@ export const SubmissionsTable: React.FC<SubmissionsTableProps> = ({
                 Prev
               </button>
               <span className="text-zinc-500">
-                Page {Math.floor(offset / pageSize) + 1} of {Math.max(1, Math.ceil(total / pageSize))}
+                Page {Math.floor(offset / pageSize) + 1} of{' '}
+                {Math.max(1, Math.ceil(total / pageSize))}
               </span>
               <button
                 type="button"

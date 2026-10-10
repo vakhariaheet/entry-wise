@@ -1,4 +1,4 @@
-import { Check, Code2, Copy } from 'lucide-react';
+import { Check, Code2, Copy, Server, Sparkles, Wand2 } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 import type { FormField, Site } from '@/types';
@@ -9,14 +9,37 @@ interface CodeEmbedViewProps {
   onNavigateToStudio?: () => void;
 }
 
-export type CodeSnippetFormat = 'react' | 'nextjs' | 'typescript' | 'curl' | 'html';
+export type CodeSnippetFormat =
+  | 'script'
+  | 'react'
+  | 'nextjs'
+  | 'html'
+  | 'typescript'
+  | 'curl'
+  | 'selfhost';
 
 export const CodeEmbedView: React.FC<CodeEmbedViewProps> = ({ site, fields }) => {
-  const [snippetFormat, setSnippetFormat] = useState<CodeSnippetFormat>('react');
+  const [snippetFormat, setSnippetFormat] = useState<CodeSnippetFormat>('script');
   const [copiedEndpoint, setCopiedEndpoint] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  const endpointUrl = `https://entrywise.webbound.in/f/${site.api_key}`;
+  // Self-hosted & class-name customization state
+  const [isSelfHosted, setIsSelfHosted] = useState(false);
+  const [customBaseUrl, setCustomBaseUrl] = useState('https://forms.yourdomain.com');
+  const [customClassName, setCustomClassName] = useState('entrywise-form');
+
+  // Magic HTML fields toggles
+  const [includeSubject, setIncludeSubject] = useState(true);
+  const [includeReplyTo, setIncludeReplyTo] = useState(false);
+  const [includeCc, setIncludeCc] = useState(false);
+
+  const cleanBaseUrl = (isSelfHosted ? customBaseUrl : 'https://entrywise.webbound.in')
+    .trim()
+    .replace(/\/+$/, '');
+  const endpointUrl = `${cleanBaseUrl}/f/${site.api_key}`;
+  const embedScriptUrl = `${cleanBaseUrl}/embed.js`;
+  const effectiveClass = customClassName.trim().replace(/^\.+/, '') || 'entrywise-form';
+  const isCustomClass = effectiveClass !== 'entrywise-form' && effectiveClass !== 'ew-form';
 
   const activeFields =
     fields.length > 0
@@ -41,13 +64,81 @@ export const CodeEmbedView: React.FC<CodeEmbedViewProps> = ({ site, fields }) =>
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
+  const getMagicHtmlInputs = (indent = '  ') => {
+    const lines: string[] = [];
+    if (includeSubject) {
+      lines.push(
+        `${indent}<input type="hidden" name="_subject" value="New submission from ${site.domain}" />`
+      );
+    }
+    if (includeReplyTo) {
+      lines.push(
+        `${indent}<!-- Overrides Reply-To header (defaults to 'email' field automatically) -->`,
+        `${indent}<input type="hidden" name="_replyto" value="customer@example.com" />`
+      );
+    }
+    if (includeCc) {
+      lines.push(`${indent}<input type="hidden" name="_cc" value="team@${site.domain}" />`);
+    }
+    return lines.length > 0 ? `${lines.join('\n')}\n\n` : '';
+  };
+
   const generateSnippet = () => {
     switch (snippetFormat) {
-      case 'react': {
-        const stateFields = activeFields
-          .filter((f) => f.type !== 'file')
-          .map((f) => `    ${f.name}: '',`)
+      case 'script': {
+        const fieldInputs = activeFields
+          .map((f) => {
+            const label = f.name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+            const isTextarea =
+              f.name.toLowerCase() === 'message' || f.name.toLowerCase().includes('body');
+            if (isTextarea) {
+              return `  <textarea name="${f.name}" placeholder="${label}" required></textarea>`;
+            }
+            if (f.type === 'file') {
+              return `  <input type="file" name="${f.name}" />`;
+            }
+            const inputType =
+              f.type === 'email'
+                ? 'email'
+                : f.type === 'phone'
+                  ? 'tel'
+                  : f.type === 'url'
+                    ? 'url'
+                    : 'text';
+            return `  <input type="${inputType}" name="${f.name}" placeholder="${label}" required />`;
+          })
           .join('\n');
+
+        const magicInputs = getMagicHtmlInputs('  ');
+
+        return `<!-- 1. Drop-in <1.5KB script (auto-detects ${isSelfHosted ? 'your self-hosted origin' : 'EntryWise edge'} & binds by class name) -->
+<script
+  src="${embedScriptUrl}"
+  data-site-key="${site.api_key}"${isCustomClass ? `\n  data-class="${effectiveClass}"` : ''}
+  defer
+></script>
+
+<!-- 2. Add class="${effectiveClass}" to any <form> — zero JS boilerplate needed -->
+<form
+  class="${effectiveClass}"
+  data-success="Thanks! We received your message and will reply shortly."
+>
+${magicInputs}${fieldInputs}
+  <button type="submit">Send Message</button>
+</form>`;
+      }
+
+      case 'react': {
+        const magicStateLines: string[] = [];
+        if (includeSubject)
+          magicStateLines.push(`    _subject: 'New submission from ${site.domain}',`);
+        if (includeReplyTo) magicStateLines.push(`    _replyto: '',`);
+        if (includeCc) magicStateLines.push(`    _cc: 'team@${site.domain}',`);
+
+        const stateFields = [
+          ...activeFields.filter((f) => f.type !== 'file').map((f) => `    ${f.name}: '',`),
+          ...magicStateLines,
+        ].join('\n');
 
         const inputs = activeFields
           .map((f) => {
@@ -249,7 +340,7 @@ ${inputs}
 export async function submitEntryWiseForm(formData: FormData) {
   // Extract typed fields matching your schema
   const payload = {
-${fieldsMapping}
+${fieldsMapping}${includeSubject ? `\n    _subject: 'New submission from ${site.domain}',` : ''}${includeCc ? `\n    _cc: 'team@${site.domain}',` : ''}
   };
 
   const res = await fetch('${endpointUrl}', {
@@ -295,12 +386,18 @@ ${fieldsMapping}
  */
 export interface ${site.name ? site.name.replace(/[^a-zA-Z0-9]/g, '') : 'Form'}SubmissionData {
 ${types}
+  /** Optional Magic HTML / JSON Directives */
+  _subject?: string;
+  _replyto?: string;
+  _cc?: string;
+  _redirect?: string;
 }
 
 export interface EntryWiseSubmissionResponse {
   success: boolean;
   submission_id: string;
   timestamp: string;
+  redirect?: string;
 }`;
       }
 
@@ -326,20 +423,21 @@ curl -X POST "${endpointUrl}" \\
 ${formParts}`;
         }
 
-        const samplePayload = JSON.stringify(
-          Object.fromEntries(
-            activeFields.map((f) => [
-              f.name,
-              f.type === 'email'
-                ? 'alex@example.com'
-                : f.name === 'name'
-                  ? 'Alex Taylor'
-                  : `Sample ${f.name} value`,
-            ])
-          ),
-          null,
-          2
+        const payloadObj: Record<string, string> = Object.fromEntries(
+          activeFields.map((f) => [
+            f.name,
+            f.type === 'email'
+              ? 'alex@example.com'
+              : f.name === 'name'
+                ? 'Alex Taylor'
+                : `Sample ${f.name} value`,
+          ])
         );
+        if (includeSubject) payloadObj._subject = `New inquiry from ${site.domain}`;
+        if (includeReplyTo) payloadObj._replyto = 'alex@example.com';
+        if (includeCc) payloadObj._cc = `team@${site.domain}`;
+
+        const samplePayload = JSON.stringify(payloadObj, null, 2);
 
         return `# Direct API Ingestion via cURL (JSON)
 curl -X POST "${endpointUrl}" \\
@@ -363,7 +461,9 @@ curl -X POST "${endpointUrl}" \\
           })
           .join('\n');
 
-        return `<!-- Clean HTML form for Webflow, Framer, or static sites -->
+        const magicInputs = getMagicHtmlInputs('  ');
+
+        return `<!-- Clean HTML form for Webflow, Framer, Astro, or static sites -->
 <form
   action="${endpointUrl}"
   method="POST"${hasFile ? '\n  enctype="multipart/form-data"' : ''}
@@ -371,16 +471,40 @@ curl -X POST "${endpointUrl}" \\
   <!-- Honeypot anti-spam (invisible to users) -->
   <input type="text" name="_gotcha" style="display:none !important" tabindex="-1" autocomplete="off" />
 
-${fieldInputs}
+${magicInputs}${fieldInputs}
 
   <button type="submit">Submit</button>
 </form>`;
+      }
+
+      case 'selfhost': {
+        return `# Self-Host EntryWise on your own Cloudflare account in 60 seconds
+# 1. Clone the repository & install dependencies
+git clone https://github.com/vakhariaheet/entry-wise.git
+cd entry-wise && bun install
+
+# 2. Provision your Edge D1 Database & apply migrations
+bunx wrangler d1 create entrywise
+bunx wrangler d1 migrations apply entrywise --remote
+
+# 3. Deploy your Worker (serves both /f/:key and /embed.js on your own domain)
+bunx wrangler deploy
+
+# 4. Point your forms or class-name binder to your self-hosted Worker:
+# <script
+#   src="${cleanBaseUrl}/embed.js"
+#   data-site-key="${site.api_key}"${isCustomClass ? `\n#   data-class="${effectiveClass}"` : ''}
+#   defer
+# ></script>
+# <form class="${effectiveClass}">...</form>`;
       }
     }
   };
 
   const getFileName = () => {
     switch (snippetFormat) {
+      case 'script':
+        return 'index.html (Drop-in Class Binder)';
       case 'react':
         return 'ContactForm.tsx';
       case 'nextjs':
@@ -391,35 +515,97 @@ ${fieldInputs}
         return 'submit.sh';
       case 'html':
         return 'form.html';
+      case 'selfhost':
+        return 'deploy-self-hosted.sh';
     }
   };
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header Bar */}
-      <div className="pb-4 border-b border-white/[0.08]">
-        <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-          <Code2 className="w-5 h-5 text-emerald-400" />
-          <span>Code &amp; SDK Integration</span>
-        </h2>
-        <p className="text-xs text-zinc-400 mt-1">
-          Connect your Next.js, React, or mobile app directly to this form endpoint.
-        </p>
+      <div className="pb-4 border-b border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+            <Code2 className="w-5 h-5 text-emerald-400" />
+            <span>Code, Class Binder &amp; Self-Hosting</span>
+          </h2>
+          <p className="text-xs text-zinc-400 mt-1">
+            Bind any form using a single CSS class name, native HTML, React/Next.js, or your own
+            self-hosted Cloudflare Worker.
+          </p>
+        </div>
+
+        {/* Cloud vs Self-Hosted Toggle */}
+        <div className="flex items-center gap-1 bg-[#0a0a0d] p-1 rounded-xl border border-white/[0.08] self-start">
+          <button
+            type="button"
+            onClick={() => setIsSelfHosted(false)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+              !isSelfHosted
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            Managed Cloud
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsSelfHosted(true)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 ${
+              isSelfHosted
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Server className="w-3.5 h-3.5" />
+            <span>Self-Hosted URL</span>
+          </button>
+        </div>
       </div>
 
       {/* Universal Ingestion Endpoint */}
-      <div className="p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] space-y-3 shadow-lg">
-        <div className="flex items-center justify-between">
+      <div className="p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] space-y-4 shadow-lg">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <label
             htmlFor="universal-endpoint-input"
             className="block font-semibold text-emerald-400 uppercase tracking-wider text-xs"
           >
-            Universal Ingestion Endpoint
+            {isSelfHosted
+              ? 'Self-Hosted Worker Ingestion Endpoint'
+              : 'Universal Ingestion Endpoint'}
           </label>
           <span className="text-[11px] font-mono text-zinc-400 bg-white/[0.04] border border-white/[0.08] px-2 py-0.5 rounded">
-            POST JSON or FormData
+            POST JSON / FormData &bull; Auto-Schema Discovery Enabled
           </span>
         </div>
+
+        {isSelfHosted && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-1">
+            <div>
+              <label
+                htmlFor="self-hosted-base-url"
+                className="block text-[11px] font-medium text-zinc-400 mb-1"
+              >
+                Your Self-Hosted Worker Origin
+              </label>
+              <input
+                id="self-hosted-base-url"
+                type="url"
+                value={customBaseUrl}
+                onChange={(e) => setCustomBaseUrl(e.target.value)}
+                placeholder="https://forms.yourdomain.com"
+                className="w-full bg-[#0a0a0d] border border-emerald-500/30 rounded-xl px-3.5 py-2 font-mono text-emerald-300 text-xs focus:outline-none focus:border-emerald-400"
+              />
+            </div>
+            <div className="flex items-end">
+              <p className="text-[11px] text-zinc-400 leading-relaxed pb-1">
+                All snippets below — including <code className="text-zinc-200">/embed.js</code> —
+                automatically point to your custom Worker origin.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <input
             id="universal-endpoint-input"
@@ -439,30 +625,100 @@ ${fieldInputs}
         </div>
       </div>
 
-      {/* Dynamic Schema Sync Status Pill */}
-      <div className="flex items-center justify-between px-4 py-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] text-xs">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-zinc-300 font-medium">Dynamic Schema Sync:</span>
-          <span className="text-emerald-400 font-mono font-semibold">
-            {activeFields.length} {activeFields.length === 1 ? 'field' : 'fields'} mapped
-          </span>
-          <span className="text-zinc-500 hidden sm:inline">
-            ({activeFields.map((f) => f.name).join(', ')})
-          </span>
+      {/* Lightweight Customizer Bar: Custom Class Name + Magic HTML Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Custom Class Name Input */}
+        <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#121318] flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between">
+            <label
+              htmlFor="custom-class-input"
+              className="text-xs font-semibold text-white flex items-center gap-1.5"
+            >
+              <Wand2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Form CSS Class Name</span>
+            </label>
+            <span className="text-[10px] font-mono text-zinc-500">
+              Used by /embed.js auto-binder
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono text-zinc-500 select-none">class=&quot;</span>
+            <input
+              id="custom-class-input"
+              type="text"
+              value={customClassName}
+              onChange={(e) => setCustomClassName(e.target.value)}
+              placeholder="entrywise-form"
+              className="flex-1 bg-[#0a0a0d] border border-white/[0.08] focus:border-emerald-500/50 rounded-lg px-3 py-1.5 text-xs font-mono text-emerald-400 focus:outline-none"
+            />
+            <span className="text-xs font-mono text-zinc-500 select-none">&quot;</span>
+            {customClassName !== 'entrywise-form' && (
+              <button
+                type="button"
+                onClick={() => setCustomClassName('entrywise-form')}
+                className="text-[11px] text-zinc-400 hover:text-white px-2 py-1 rounded bg-white/[0.04]"
+              >
+                Reset
+              </button>
+            )}
+          </div>
         </div>
-        <span className="text-[11px] text-zinc-400 font-mono hidden md:inline">
-          Live synced to Form Schema
-        </span>
+
+        {/* Magic HTML Directives */}
+        <div className="p-4 rounded-2xl border border-white/[0.08] bg-[#121318] flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Magic HTML Directives</span>
+            </span>
+            <span className="text-[10px] font-mono text-zinc-500">Zero-config email routing</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setIncludeSubject(!includeSubject)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono border transition ${
+                includeSubject
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                  : 'bg-[#0a0a0d] border-white/[0.08] text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              _subject
+            </button>
+            <button
+              type="button"
+              onClick={() => setIncludeReplyTo(!includeReplyTo)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono border transition ${
+                includeReplyTo
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                  : 'bg-[#0a0a0d] border-white/[0.08] text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              _replyto
+            </button>
+            <button
+              type="button"
+              onClick={() => setIncludeCc(!includeCc)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-mono border transition ${
+                includeCc
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                  : 'bg-[#0a0a0d] border-white/[0.08] text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              _cc
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Code Snippets Studio */}
       <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#121318] space-y-5 shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h3 className="text-sm font-semibold text-white">Integration Snippets</h3>
             <p className="text-xs text-zinc-400 mt-0.5">
-              Production-ready snippets typed to your schema fields.
+              Synced with your {activeFields.length} schema fields (
+              {activeFields.map((f) => f.name).join(', ')}).
             </p>
           </div>
 
@@ -470,11 +726,13 @@ ${fieldInputs}
           <div className="flex items-center gap-1 bg-[#0a0a0d] p-1 rounded-xl border border-white/[0.08] overflow-x-auto">
             {(
               [
+                { id: 'script', label: '✨ Class Script' },
+                { id: 'html', label: 'Plain HTML' },
                 { id: 'react', label: 'React / Next.js' },
                 { id: 'nextjs', label: 'Server Action' },
-                { id: 'typescript', label: 'TypeScript Types' },
-                { id: 'curl', label: 'cURL API' },
-                { id: 'html', label: 'Plain HTML' },
+                { id: 'typescript', label: 'TS Types' },
+                { id: 'curl', label: 'cURL' },
+                { id: 'selfhost', label: 'Self-Host CLI' },
               ] as const
             ).map((fmt) => (
               <button
@@ -531,29 +789,32 @@ ${fieldInputs}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
           <div className="p-4 rounded-xl border border-white/[0.06] bg-[#0e0f13] space-y-1">
             <div className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
-              <span>🛡️ Anti-Spam Honeypot</span>
+              <span>⚡ Auto-Schema Discovery</span>
             </div>
             <p className="text-[11px] text-zinc-400 leading-relaxed">
-              Include a hidden <code className="text-zinc-300 font-mono">_gotcha</code> input.
-              Automated spambots filling it are silently blocked.
+              No upfront schema setup required. Your first submission automatically populates field
+              names and types.
             </p>
           </div>
           <div className="p-4 rounded-xl border border-white/[0.06] bg-[#0e0f13] space-y-1">
             <div className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
-              <span>📎 File Attachments</span>
+              <span>🎯 Class-Name Binding</span>
             </div>
             <p className="text-[11px] text-zinc-400 leading-relaxed">
-              Accepts <code className="text-zinc-300 font-mono">multipart/form-data</code> with up
-              to 25MB per submission uploaded straight to R2 edge storage.
+              Add{' '}
+              <code className="text-zinc-300 font-mono">class=&quot;{effectiveClass}&quot;</code>{' '}
+              for automatic AJAX submission, button loading states, and inline thank-you alerts.
             </p>
           </div>
           <div className="p-4 rounded-xl border border-white/[0.06] bg-[#0e0f13] space-y-1">
             <div className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5">
-              <span>↩️ Custom Redirects</span>
+              <span>🛡️ Honeypot &amp; Magic Fields</span>
             </div>
             <p className="text-[11px] text-zinc-400 leading-relaxed">
-              Add <code className="text-zinc-300 font-mono">_redirect</code> to send users to a
-              custom thank-you page after successful submission.
+              Control <code className="text-zinc-300 font-mono">_subject</code>,{' '}
+              <code className="text-zinc-300 font-mono">_replyto</code>,{' '}
+              <code className="text-zinc-300 font-mono">_cc</code>, and{' '}
+              <code className="text-zinc-300 font-mono">_redirect</code> directly from HTML inputs.
             </p>
           </div>
         </div>

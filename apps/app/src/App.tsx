@@ -199,11 +199,6 @@ export const AppContent: React.FC<AppProps> = () => {
     }
   }, [currentSite, loadSubmissions]);
 
-  // Reset to the first page whenever the active form or status filter changes
-  useEffect(() => {
-    setSubmissionsOffset(0);
-  }, [currentSite?.id, statusFilter]);
-
   // 5. Fetch Defined Form Fields for the active site
   const loadFields = useCallback(async () => {
     if (!currentSite) {
@@ -399,6 +394,7 @@ export const AppContent: React.FC<AppProps> = () => {
         currentSite={currentSite}
         onSelectSite={(site) => {
           setCurrentSite(site);
+          setSubmissionsOffset(0);
         }}
         onOpenCreateSite={() => setShowCreateSite(true)}
         onOpenAiPrompt={() => setShowAiPrompt(true)}
@@ -642,7 +638,10 @@ export const AppContent: React.FC<AppProps> = () => {
                     submissions={submissions}
                     total={totalSubmissions}
                     currentStatus={statusFilter}
-                    onStatusChange={setStatusFilter}
+                    onStatusChange={(newStatus) => {
+                      setStatusFilter(newStatus);
+                      setSubmissionsOffset(0);
+                    }}
                     onSelectSubmission={setSelectedSubmission}
                     onUpdateStatus={handleUpdateStatus}
                     onDeleteSubmission={handleDeleteSubmission}

@@ -1,7 +1,9 @@
 import { renderAutoResponderEmail } from '../emails/AutoResponderEmail';
 import { renderFormSubmissionEmail } from '../emails/FormSubmissionEmail';
+import { dispatchAirtable } from '../services/connectors/airtable';
 import { dispatchDiscordNotification } from '../services/connectors/discord';
 import { dispatchGoogleSheets } from '../services/connectors/googleSheets';
+import { dispatchNotion } from '../services/connectors/notion';
 import { dispatchSlackNotification } from '../services/connectors/slack';
 import { type EmailAttachment, EmailServiceFactory } from '../services/email';
 import type { Company } from '../types/company';
@@ -25,7 +27,7 @@ function recipientListFirst(
 
 /**
  * Universal Submission Delivery Processor
- * Executes all external integrations (Email, Webhooks, Slack, Discord, Google Sheets).
+ * Executes all external integrations (Email, Webhooks, Slack, Discord, Google Sheets, Airtable, Notion).
  * Designed for both Cloudflare Queues batch processing and fallback waitUntil execution.
  */
 export async function processSubmissionDelivery(
@@ -41,6 +43,9 @@ export async function processSubmissionDelivery(
     savedAttachmentMeta,
     submitterEmail,
     submitterName,
+    magicSubject,
+    magicReplyTo,
+    magicCc,
   } = message;
 
   try {
@@ -177,6 +182,20 @@ export async function processSubmissionDelivery(
         recipientList.push(site.admin_email.trim());
       }
 
+      // Magic _cc field: allow up to 5 valid CC addresses to receive the notification
+      if (magicCc) {
+        const ccEmails = magicCc
+          .split(/[,;\n]/)
+          .map((e: string) => e.trim())
+          .filter((e: string) => emailRegex.test(e))
+          .slice(0, 5);
+        for (const ccEmail of ccEmails) {
+          if (!recipientList.includes(ccEmail)) {
+            recipientList.push(ccEmail);
+          }
+        }
+      }
+
       if (recipientList.length > 0) {
         let alertHtml = '';
         let alertSubject = `New Form Submission: ${site.name || site.domain}`;
@@ -194,6 +213,16 @@ export async function processSubmissionDelivery(
             alertSubject = interpolateVars(alertConf.subject);
           }
         }
+
+        // Magic _subject override from HTML form / JSON payload
+        if (magicSubject && magicSubject.trim()) {
+          alertSubject = interpolateVars(magicSubject.trim());
+        }
+
+        const effectiveReplyTo =
+          magicReplyTo && emailRegex.test(magicReplyTo.trim())
+            ? magicReplyTo.trim()
+            : submitterEmail || undefined;
 
         if (!alertHtml) {
           alertHtml = renderFormSubmissionEmail({
@@ -215,7 +244,7 @@ export async function processSubmissionDelivery(
                 to: recipient,
                 subject: alertSubject,
                 html: alertHtml,
-                replyTo: submitterEmail || undefined,
+                replyTo: effectiveReplyTo,
                 attachments: emailAttachments,
               })
               .catch((err) => {
@@ -346,6 +375,51 @@ export async function processSubmissionDelivery(
         }).catch((err) => {
           console.error('[Queue] Google Sheets dispatch error:', err);
           errors.push(`Google Sheets error: ${err.message}`);
+        })
+      );
+    }
+
+    // 10. Airtable Direct Sync Connector
+    if (site.airtable_token && site.airtable_base_id && site.airtable_table_name) {
+      deliveryTasks.push(
+        dispatchAirtable(
+          {
+            token: site.airtable_token,
+            baseId: site.airtable_base_id,
+            tableName: site.airtable_table_name,
+          },
+          {
+            siteDomain: site.domain,
+            submissionId,
+            formData: fields,
+            submittedAt: message.submittedAt || new Date().toISOString(),
+          }
+        ).then((res) => {
+          if (!res.success && res.error) {
+            errors.push(`Airtable error: ${res.error}`);
+          }
+        })
+      );
+    }
+
+    // 11. Notion Direct Sync Connector
+    if (site.notion_token && site.notion_database_id) {
+      deliveryTasks.push(
+        dispatchNotion(
+          {
+            token: site.notion_token,
+            databaseId: site.notion_database_id,
+          },
+          {
+            siteDomain: site.domain,
+            submissionId,
+            formData: fields,
+            submittedAt: message.submittedAt || new Date().toISOString(),
+          }
+        ).then((res) => {
+          if (!res.success && res.error) {
+            errors.push(`Notion error: ${res.error}`);
+          }
         })
       );
     }

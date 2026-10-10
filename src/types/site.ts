@@ -19,6 +19,11 @@ export interface Site {
   google_sheets_url?: string | null;
   slack_webhook_url?: string | null;
   discord_webhook_url?: string | null;
+  airtable_token?: string | null;
+  airtable_base_id?: string | null;
+  airtable_table_name?: string | null;
+  notion_token?: string | null;
+  notion_database_id?: string | null;
   allowed_origins?: string | null;
   block_disposable_emails?: number | boolean | null;
   spam_keywords?: string | null;

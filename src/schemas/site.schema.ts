@@ -51,6 +51,71 @@ export const siteSchema = z.object({
     example: 'We received your message and will get back to you shortly.',
     format: 'text',
   }),
+  name: z.string().nullable().optional().openapi({
+    description: 'Human-readable name for the form or site',
+    example: 'Contact Us Form',
+    format: 'text',
+  }),
+  allowed_origins: z.string().nullable().optional().openapi({
+    description: 'Comma-separated list of allowed CORS origins and domains',
+    example: 'https://example.com,https://app.example.com',
+    format: 'text',
+  }),
+  notification_emails: z.string().nullable().optional().openapi({
+    description: 'Comma-separated list of team email addresses to notify on new submissions',
+    example: 'sales@example.com,support@example.com',
+    format: 'text',
+  }),
+  notify_on_submission: z.union([z.boolean(), z.number()]).nullable().optional().openapi({
+    description: 'Whether to send an email notification to the site team on each submission',
+    example: true,
+  }),
+  auto_responder_config: z.string().nullable().optional().openapi({
+    description: 'Serialized JSON configuration for custom email studio templates',
+    example: '{"mode":"visual"}',
+    format: 'text',
+  }),
+  google_sheets_url: z.string().nullable().optional().openapi({
+    description: 'Google Apps Script Web App URL for real-time Google Sheets synchronization',
+    example: 'https://script.google.com/macros/s/AKfycb.../exec',
+    format: 'uri',
+  }),
+  slack_webhook_url: z.string().nullable().optional().openapi({
+    description: 'Slack Incoming Webhook URL for channel notifications',
+    example: 'https://hooks.slack.com/services/T00/B00/X00',
+    format: 'uri',
+  }),
+  discord_webhook_url: z.string().nullable().optional().openapi({
+    description: 'Discord Webhook URL for server channel notifications',
+    example: 'https://discord.com/api/webhooks/123/abc',
+    format: 'uri',
+  }),
+  airtable_token: z.string().nullable().optional().openapi({
+    description: 'Airtable Personal Access Token (pat...) for direct table synchronization',
+    example: 'pat1234567890abcdef',
+    format: 'text',
+  }),
+  airtable_base_id: z.string().nullable().optional().openapi({
+    description: 'Airtable Base ID (app...)',
+    example: 'app1234567890',
+    format: 'text',
+  }),
+  airtable_table_name: z.string().nullable().optional().openapi({
+    description:
+      'Airtable Table Name or ID where records will be created with automatic typecasting',
+    example: 'Leads',
+    format: 'text',
+  }),
+  notion_token: z.string().nullable().optional().openapi({
+    description: 'Notion Internal Integration Secret (ntn_... or secret_...) for database sync',
+    example: 'ntn_1234567890abcdef',
+    format: 'text',
+  }),
+  notion_database_id: z.string().nullable().optional().openapi({
+    description: 'Notion Database ID where form submissions will be inserted as pages',
+    example: 'a1b2c3d4e5f67890a1b2c3d4e5f67890',
+    format: 'text',
+  }),
   webhook_url: z.string().url().nullable().optional().openapi({
     description:
       'Webhook URL to dispatch real-time submission payloads to (Slack, Discord, Zapier, etc.)',

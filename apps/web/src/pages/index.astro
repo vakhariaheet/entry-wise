@@ -283,35 +283,35 @@ import '../styles/global.css';
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- 1. Google Sheets LockService -->
+            <!-- 1. Google Sheets, Airtable & Notion -->
             <div class="card-surface rounded-2xl p-6 space-y-4 flex flex-col justify-between">
                 <div class="space-y-3">
                     <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     </div>
-                    <h3 class="text-base font-semibold text-white">Concurrency-Safe Google Sheets</h3>
+                    <h3 class="text-base font-semibold text-white">Google Sheets, Airtable &amp; Notion</h3>
                     <p class="text-xs text-zinc-400 leading-relaxed">
-                        Apps Script template equipped with a 30s LockService mutex so concurrent submissions never overwrite each other. Automatically appends new columns when your form changes.
+                        Concurrency-safe Google Sheets Apps Script (30s LockService mutex) plus zero-OAuth Airtable Base typecasting and Notion Database property mapping.
                     </p>
                 </div>
                 <div class="p-2.5 rounded-xl bg-[#07080b] border border-white/[0.06] font-mono text-[11px] text-emerald-300">
-                    Auto-discovers new headers
+                    Auto-discovers columns &amp; schema
                 </div>
             </div>
 
-            <!-- 2. Multi-Webhooks with HMAC -->
+            <!-- 2. Drop-in Class-Name Auto-Binder & Self-Hosting -->
             <div class="card-surface rounded-2xl p-6 space-y-4 flex flex-col justify-between">
                 <div class="space-y-3">
                     <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
                     </div>
-                    <h3 class="text-base font-semibold text-white">Multiple Webhooks &amp; HMAC Signatures</h3>
+                    <h3 class="text-base font-semibold text-white">Class-Name Binder &amp; Self-Hosted</h3>
                     <p class="text-xs text-zinc-400 leading-relaxed">
-                        Dispatch submissions to multiple webhooks (e.g. Zapier, Make, and your private backend) with cryptographic Web Crypto SHA256 signatures for tamper-proof validation.
+                        Drop in <code class="text-zinc-200">/embed.js</code> and add <code class="text-zinc-200">class="entrywise-form"</code> (or define your own custom class name). Self-host on your own Cloudflare Worker in 3 commands.
                     </p>
                 </div>
                 <div class="p-2.5 rounded-xl bg-[#07080b] border border-white/[0.06] font-mono text-[11px] text-amber-300 truncate">
-                    X-EntryWise-Signature: sha256=...
+                    &lt;form class="entrywise-form"&gt;
                 </div>
             </div>
 
@@ -347,19 +347,19 @@ import '../styles/global.css';
                 </div>
             </div>
 
-            <!-- 5. Solo-Founder Mini-CRM -->
+            <!-- 5. Magic HTML Directives & Auto-Schema -->
             <div class="card-surface rounded-2xl p-6 space-y-4 flex flex-col justify-between">
                 <div class="space-y-3">
                     <div class="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/25 flex items-center justify-center text-teal-400">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
                     </div>
-                    <h3 class="text-base font-semibold text-white">Notes &amp; Copy for Slack</h3>
+                    <h3 class="text-base font-semibold text-white">Magic HTML Fields &amp; Mini-CRM</h3>
                     <p class="text-xs text-zinc-400 leading-relaxed">
-                        Add internal follow-up notes on any lead, track status, and copy structured markdown cards for pasting directly into Slack, Discord, or Linear tickets.
+                        Control <code class="text-zinc-200">_subject</code>, <code class="text-zinc-200">_replyto</code>, <code class="text-zinc-200">_cc</code>, and <code class="text-zinc-200">_redirect</code> directly from HTML inputs. Plus internal lead notes &amp; 1-click Copy for Slack.
                     </p>
                 </div>
                 <div class="p-2.5 rounded-xl bg-[#07080b] border border-white/[0.06] font-mono text-[11px] text-teal-300">
-                    No bloated CRM subscriptions
+                    Auto-Schema Discovery on 1st submit
                 </div>
             </div>
 
@@ -385,28 +385,30 @@ import '../styles/global.css';
     <section id="sdk" class="py-20 px-6 max-w-5xl mx-auto border-t border-white/[0.08]">
         <div class="text-center space-y-3 mb-12">
             <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 font-mono">Developer Experience</span>
-            <h2 class="text-3xl sm:text-5xl font-bold tracking-tight text-white">One endpoint. Zero boilerplate.</h2>
+            <h2 class="text-3xl sm:text-5xl font-bold tracking-tight text-white">One class name. Or self-host in 60s.</h2>
             <p class="text-sm sm:text-base text-zinc-400 max-w-xl mx-auto">
-                Paste the Universal Prompt into your AI editor, or copy production-ready code for your favorite frontend framework.
+                Bind any form with a single CSS class name, paste the Universal Prompt into Cursor, or deploy on your own Cloudflare Worker.
             </p>
         </div>
 
         <div class="card-surface rounded-2xl shadow-2xl overflow-hidden">
             <!-- Terminal Header -->
             <div class="px-5 py-3.5 border-b border-white/[0.08] bg-[#090a0f] flex flex-wrap items-center justify-between gap-3">
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-4 overflow-x-auto">
+                    <div class="flex items-center gap-1.5 shrink-0">
                         <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
                         <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
                         <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
                     </div>
                     <!-- Framework Tabs -->
                     <div class="flex items-center bg-[#141721] p-1 rounded-xl border border-white/[0.08] text-xs font-medium text-zinc-400">
-                        <button type="button" onclick="switchSdkTab('prompt')" id="tabPrompt" class="px-3 py-1.5 rounded-lg text-white bg-zinc-800 transition font-medium cursor-pointer">AI Prompt</button>
-                        <button type="button" onclick="switchSdkTab('nextjs')" id="tabNextjs" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer">Next.js 15</button>
-                        <button type="button" onclick="switchSdkTab('react')" id="tabReact" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer">React 19</button>
-                        <button type="button" onclick="switchSdkTab('html')" id="tabHtml" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer">Static HTML</button>
-                        <button type="button" onclick="switchSdkTab('curl')" id="tabCurl" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer">cURL</button>
+                        <button type="button" onclick="switchSdkTab('script')" id="tabScript" class="px-3 py-1.5 rounded-lg text-white bg-zinc-800 transition font-medium cursor-pointer whitespace-nowrap">✨ Class Binder</button>
+                        <button type="button" onclick="switchSdkTab('selfhost')" id="tabSelfhost" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer whitespace-nowrap">Self-Host CLI</button>
+                        <button type="button" onclick="switchSdkTab('prompt')" id="tabPrompt" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer whitespace-nowrap">AI Prompt</button>
+                        <button type="button" onclick="switchSdkTab('nextjs')" id="tabNextjs" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer whitespace-nowrap">Next.js 15</button>
+                        <button type="button" onclick="switchSdkTab('react')" id="tabReact" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer whitespace-nowrap">React 19</button>
+                        <button type="button" onclick="switchSdkTab('html')" id="tabHtml" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer whitespace-nowrap">Static HTML</button>
+                        <button type="button" onclick="switchSdkTab('curl')" id="tabCurl" class="px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer whitespace-nowrap">cURL</button>
                     </div>
                 </div>
 
@@ -418,8 +420,42 @@ import '../styles/global.css';
 
             <!-- Terminal Snippet Body -->
             <div class="p-6 bg-[#07080b] font-mono text-xs leading-relaxed overflow-x-auto min-h-[300px]">
+                <!-- Tab: Drop-in Class Script -->
+                <div id="contentScript" class="text-zinc-300">
+<pre><code><span class="text-zinc-500">&lt;!-- 1. Drop-in &lt;1.5KB script (supports custom class names &amp; self-hosted origins) --&gt;</span>
+&lt;<span class="text-pink-400">script</span>
+  <span class="text-purple-400">src</span>=<span class="text-amber-300">"https://entrywise.webbound.in/embed.js"</span>
+  <span class="text-purple-400">data-site-key</span>=<span class="text-amber-300">"ew_live_YOUR_SITE_KEY"</span>
+  <span class="text-purple-400">data-class</span>=<span class="text-amber-300">"entrywise-form"</span>
+  <span class="text-purple-400">defer</span>
+&gt;&lt;/<span class="text-pink-400">script</span>&gt;
+
+<span class="text-zinc-500">&lt;!-- 2. Just add your class name to any &lt;form&gt; — zero JS boilerplate needed --&gt;</span>
+&lt;<span class="text-pink-400">form</span> <span class="text-purple-400">class</span>=<span class="text-amber-300">"entrywise-form"</span> <span class="text-purple-400">data-success</span>=<span class="text-amber-300">"Thanks! We'll be in touch shortly."</span>&gt;
+  &lt;<span class="text-pink-400">input</span> <span class="text-purple-400">type</span>=<span class="text-amber-300">"hidden"</span> <span class="text-purple-400">name</span>=<span class="text-amber-300">"_subject"</span> <span class="text-purple-400">value</span>=<span class="text-amber-300">"New Website Lead"</span> /&gt;
+  &lt;<span class="text-pink-400">input</span> <span class="text-purple-400">type</span>=<span class="text-amber-300">"text"</span> <span class="text-purple-400">name</span>=<span class="text-amber-300">"name"</span> <span class="text-purple-400">placeholder</span>=<span class="text-amber-300">"Your Name"</span> <span class="text-purple-400">required</span> /&gt;
+  &lt;<span class="text-pink-400">input</span> <span class="text-purple-400">type</span>=<span class="text-amber-300">"email"</span> <span class="text-purple-400">name</span>=<span class="text-amber-300">"email"</span> <span class="text-purple-400">placeholder</span>=<span class="text-amber-300">"you@company.com"</span> <span class="text-purple-400">required</span> /&gt;
+  &lt;<span class="text-pink-400">textarea</span> <span class="text-purple-400">name</span>=<span class="text-amber-300">"message"</span> <span class="text-purple-400">placeholder</span>=<span class="text-amber-300">"How can we help?"</span> <span class="text-purple-400">required</span>&gt;&lt;/<span class="text-pink-400">textarea</span>&gt;
+  &lt;<span class="text-pink-400">button</span> <span class="text-purple-400">type</span>=<span class="text-amber-300">"submit"</span>&gt;Send Message&lt;/<span class="text-pink-400">button</span>&gt;
+&lt;/<span class="text-pink-400">form</span>&gt;</code></pre>
+                </div>
+
+                <!-- Tab: Self-Host CLI -->
+                <div id="contentSelfhost" class="hidden text-zinc-300">
+<pre><code><span class="text-zinc-500"># Self-Host EntryWise on your own Cloudflare account in 3 commands</span>
+git clone https://github.com/vakhariaheet/entry-wise.git
+cd entry-wise &amp;&amp; bun install
+
+<span class="text-zinc-500"># Provision D1 SQLite &amp; apply edge schema migrations</span>
+bunx wrangler d1 create entrywise
+bunx wrangler d1 migrations apply entrywise --remote
+
+<span class="text-zinc-500"># Deploy your Worker (automatically serves /f/:key and /embed.js on your domain)</span>
+bunx wrangler deploy</code></pre>
+                </div>
+
                 <!-- Tab: Universal AI Prompt -->
-                <div id="contentPrompt" class="space-y-2 text-zinc-300">
+                <div id="contentPrompt" class="hidden space-y-2 text-zinc-300">
                     <div class="text-zinc-500 mb-2"># Paste directly into Cursor Composer, Claude Code, v0, Bolt, or ChatGPT:</div>
                     <p class="text-emerald-400 font-semibold">Integrate EntryWise (v0.2.0) into this project as the headless form backend.</p>
                     <p class="text-zinc-400 pt-2 font-bold">### Target Endpoint:</p>
@@ -730,9 +766,37 @@ import '../styles/global.css';
 
     <!-- CLIENT SCRIPTS (Interactive Sandbox, Pipeline Demo, Code Tabs) -->
     <script is:inline>
-        let currentSdkTab = 'prompt';
+        let currentSdkTab = 'script';
 
         const sdkSnippets = {
+            script: `<!-- 1. Drop-in <1.5KB script (supports custom class names & self-hosted origins) -->
+<script
+  src="https://entrywise.webbound.in/embed.js"
+  data-site-key="ew_live_YOUR_SITE_KEY"
+  data-class="entrywise-form"
+  defer
+><\/script>
+
+<!-- 2. Just add your class name to any <form> — zero JS boilerplate needed -->
+<form class="entrywise-form" data-success="Thanks! We'll be in touch shortly.">
+  <input type="hidden" name="_subject" value="New Website Lead" />
+  <input type="text" name="name" placeholder="Your Name" required />
+  <input type="email" name="email" placeholder="you@company.com" required />
+  <textarea name="message" placeholder="How can we help?" required></textarea>
+  <button type="submit">Send Message</button>
+</form>`,
+
+            selfhost: `# Self-Host EntryWise on your own Cloudflare account in 3 commands
+git clone https://github.com/vakhariaheet/entry-wise.git
+cd entry-wise && bun install
+
+# Provision D1 SQLite & apply edge schema migrations
+bunx wrangler d1 create entrywise
+bunx wrangler d1 migrations apply entrywise --remote
+
+# Deploy your Worker (automatically serves /f/:key and /embed.js on your domain)
+bunx wrangler deploy`,
+
             prompt: `Integrate EntryWise (v0.2.0) into this project as the headless form backend.
 
 ### Target Endpoint:
@@ -823,15 +887,16 @@ export function ContactForm() {
 
         function switchSdkTab(tab) {
             currentSdkTab = tab;
-            const tabs = ['prompt', 'nextjs', 'react', 'html', 'curl'];
+            const tabs = ['script', 'selfhost', 'prompt', 'nextjs', 'react', 'html', 'curl'];
             tabs.forEach(t => {
                 const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
                 const content = document.getElementById('content' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (!btn || !content) return;
                 if (t === tab) {
-                    btn.className = 'px-3 py-1.5 rounded-lg text-white bg-zinc-800 transition font-medium cursor-pointer';
+                    btn.className = 'px-3 py-1.5 rounded-lg text-white bg-zinc-800 transition font-medium cursor-pointer whitespace-nowrap';
                     content.classList.remove('hidden');
                 } else {
-                    btn.className = 'px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer';
+                    btn.className = 'px-3 py-1.5 rounded-lg hover:text-white transition cursor-pointer whitespace-nowrap';
                     content.classList.add('hidden');
                 }
             });

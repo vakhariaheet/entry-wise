@@ -15,12 +15,66 @@ import {
 } from '../../../utils/spamGuard';
 import { verifyTurnstileToken } from '../../../utils/turnstile';
 
-interface ParsedSubmissionPayload {
+export interface ParsedSubmissionPayload {
   fields: Record<string, string>;
   files: Map<string, File>;
   honeypotTriggered: boolean;
   turnstileToken?: string;
   redirectUrl?: string;
+  magicSubject?: string;
+  magicReplyTo?: string;
+  magicCc?: string;
+}
+
+/**
+ * Sanitizes single-line email header values (Subject, Reply-To, CC) against CRLF header injection
+ */
+export function sanitizeHeaderValue(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const cleaned = raw.replace(/[\r\n]+/g, ' ').trim();
+  return cleaned.length > 0 ? cleaned.slice(0, 200) : undefined;
+}
+
+/**
+ * Automatically infers a field's schema type from its name and sample value
+ */
+export function inferFieldType(
+  fieldName: string,
+  sampleValue: string,
+  isFile = false
+): 'text' | 'email' | 'phone' | 'url' | 'file' {
+  if (isFile) return 'file';
+  const lowerName = fieldName.toLowerCase();
+  const trimmedVal = String(sampleValue || '').trim();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (
+    lowerName === 'email' ||
+    lowerName.includes('email') ||
+    lowerName.includes('e_mail') ||
+    emailRegex.test(trimmedVal)
+  ) {
+    return 'email';
+  }
+  if (
+    lowerName === 'url' ||
+    lowerName.includes('website') ||
+    lowerName.includes('portfolio') ||
+    lowerName.includes('linkedin') ||
+    /^https?:\/\/\S+$/i.test(trimmedVal)
+  ) {
+    return 'url';
+  }
+  if (
+    lowerName === 'phone' ||
+    lowerName === 'tel' ||
+    lowerName.includes('phone') ||
+    lowerName.includes('mobile') ||
+    lowerName.includes('whatsapp')
+  ) {
+    return 'phone';
+  }
+  return 'text';
 }
 
 /**
@@ -35,6 +89,9 @@ async function parseSubmissionRequest(
   let honeypotTriggered = false;
   let turnstileToken = c.req.header('cf-turnstile-response');
   let redirectUrl: string | undefined;
+  let magicSubject: string | undefined;
+  let magicReplyTo: string | undefined;
+  let magicCc: string | undefined;
 
   if (contentType.includes('application/json')) {
     const json = (await c.req.json().catch(() => ({}))) as Record<string, any>;
@@ -44,11 +101,19 @@ async function parseSubmissionRequest(
       if (json[hp]) honeypotTriggered = true;
     }
 
-    turnstileToken = turnstileToken || json['cf-turnstile-response'];
-    redirectUrl = json['_redirect'] || json['_next'];
+    const sourceFields = json.fields && typeof json.fields === 'object' ? json.fields : json;
+
+    turnstileToken =
+      turnstileToken || json['cf-turnstile-response'] || sourceFields['cf-turnstile-response'];
+    redirectUrl =
+      json['_redirect'] || json['_next'] || sourceFields['_redirect'] || sourceFields['_next'];
+    magicSubject = sanitizeHeaderValue(json['_subject'] ?? sourceFields['_subject']);
+    magicReplyTo = sanitizeHeaderValue(
+      json['_replyto'] ?? json['_reply_to'] ?? sourceFields['_replyto'] ?? sourceFields['_reply_to']
+    );
+    magicCc = sanitizeHeaderValue(json['_cc'] ?? sourceFields['_cc']);
 
     // Extract fields
-    const sourceFields = json.fields && typeof json.fields === 'object' ? json.fields : json;
     for (const [key, value] of Object.entries(sourceFields)) {
       if (
         !HONEYPOT_FIELDS.includes(key) &&
@@ -78,7 +143,9 @@ async function parseSubmissionRequest(
         }
         if (parsed.fields && typeof parsed.fields === 'object') {
           for (const [k, v] of Object.entries(parsed.fields)) {
-            fields[k] = String(v);
+            if (!k.startsWith('_')) {
+              fields[k] = String(v);
+            }
           }
         }
       } catch {
@@ -93,8 +160,14 @@ async function parseSubmissionRequest(
         turnstileToken = String(value);
       } else if (key === '_redirect' || key === '_next') {
         redirectUrl = String(value);
-      } else if (key === 'metadata' || key === 'api_key') {
-        // skip internal fields
+      } else if (key === '_subject') {
+        magicSubject = sanitizeHeaderValue(String(value));
+      } else if (key === '_replyto' || key === '_reply_to') {
+        magicReplyTo = sanitizeHeaderValue(String(value));
+      } else if (key === '_cc') {
+        magicCc = sanitizeHeaderValue(String(value));
+      } else if (key === 'metadata' || key === 'api_key' || key.startsWith('_')) {
+        // skip internal or reserved underscore fields
       } else if (value instanceof File) {
         if (value.size > 0 && value.name) {
           files.set(key, value);
@@ -105,7 +178,16 @@ async function parseSubmissionRequest(
     }
   }
 
-  return { fields, files, honeypotTriggered, turnstileToken, redirectUrl };
+  return {
+    fields,
+    files,
+    honeypotTriggered,
+    turnstileToken,
+    redirectUrl,
+    magicSubject,
+    magicReplyTo,
+    magicCc,
+  };
 }
 
 export const submitForm = async (c: Context<{ Bindings: Env }>) => {
@@ -134,8 +216,16 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
       return sendProblemDetails(c, 403, 'Site configuration not found or invalid API key');
     }
 
-    const { fields, files, honeypotTriggered, turnstileToken, redirectUrl } =
-      await parseSubmissionRequest(c);
+    const {
+      fields,
+      files,
+      honeypotTriggered,
+      turnstileToken,
+      redirectUrl,
+      magicSubject,
+      magicReplyTo,
+      magicCc,
+    } = await parseSubmissionRequest(c);
 
     // Fetch site configuration
     const { results: sites } = await c.env.DB.prepare(`
@@ -203,18 +293,24 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
     let submitterEmail: string | undefined;
     let submitterName: string | undefined;
 
+    if (magicReplyTo && emailRegex.test(magicReplyTo)) {
+      submitterEmail = magicReplyTo;
+    }
+
     // Auto-detect submitter email
-    for (const [key, val] of Object.entries(fields)) {
-      const lowerKey = key.toLowerCase();
-      if (
-        lowerKey === 'email' ||
-        lowerKey === 'e-mail' ||
-        lowerKey.includes('email') ||
-        lowerKey.includes('e_mail')
-      ) {
-        if (emailRegex.test(val.trim())) {
-          submitterEmail = val.trim();
-          break;
+    if (!submitterEmail) {
+      for (const [key, val] of Object.entries(fields)) {
+        const lowerKey = key.toLowerCase();
+        if (
+          lowerKey === 'email' ||
+          lowerKey === 'e-mail' ||
+          lowerKey.includes('email') ||
+          lowerKey.includes('e_mail')
+        ) {
+          if (emailRegex.test(val.trim())) {
+            submitterEmail = val.trim();
+            break;
+          }
         }
       }
     }
@@ -286,6 +382,53 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
       }
       if (invalidParams.length > 0) {
         return sendProblemDetails(c, 422, 'Form submission validation failed', { invalidParams });
+      }
+    } else if (!isSpamSubmission) {
+      // 3c. Auto-Schema Discovery: When a site has 0 defined fields, automatically populate
+      // the Form Schema from the first valid incoming submission's fields.
+      const discoveredEntries: Array<{ name: string; type: string }> = [];
+      const seenNames = new Set<string>();
+
+      for (const [rawKey, rawVal] of Object.entries(fields)) {
+        const cleanName = rawKey
+          .trim()
+          .replace(/[^a-zA-Z0-9_-]/g, '_')
+          .replace(/^_+|_+$/g, '');
+        if (!cleanName || seenNames.has(cleanName.toLowerCase())) continue;
+        seenNames.add(cleanName.toLowerCase());
+        discoveredEntries.push({
+          name: cleanName,
+          type: inferFieldType(cleanName, rawVal, false),
+        });
+      }
+
+      for (const [fileFieldName] of files.entries()) {
+        const cleanName = fileFieldName
+          .trim()
+          .replace(/[^a-zA-Z0-9_-]/g, '_')
+          .replace(/^_+|_+$/g, '');
+        if (!cleanName || seenNames.has(cleanName.toLowerCase())) continue;
+        seenNames.add(cleanName.toLowerCase());
+        discoveredEntries.push({
+          name: cleanName,
+          type: 'file',
+        });
+      }
+
+      if (discoveredEntries.length > 0) {
+        const autoDiscoverPromise = Promise.allSettled(
+          discoveredEntries
+            .slice(0, 25)
+            .map((entry) =>
+              c.env.DB.prepare('INSERT INTO fields (id, site_id, name, type) VALUES (?, ?, ?, ?)')
+                .bind(crypto.randomUUID(), siteId, entry.name, entry.type)
+                .run()
+            )
+        ).catch((err) => console.error('[AutoSchema] Failed to auto-discover fields:', err));
+
+        if (c.executionCtx) {
+          c.executionCtx.waitUntil(autoDiscoverPromise);
+        }
       }
     }
 
@@ -390,6 +533,9 @@ export const submitForm = async (c: Context<{ Bindings: Env }>) => {
         savedAttachmentMeta,
         submitterEmail: submitterEmail || null,
         submitterName: submitterName || null,
+        magicSubject: magicSubject || null,
+        magicReplyTo: magicReplyTo || null,
+        magicCc: magicCc || null,
         ipAddress: effectiveIp,
         submittedAt: new Date().toISOString(),
       };

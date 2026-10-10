@@ -13,6 +13,7 @@ import publicRoutes from './routes/public.routes';
 import sitesRoutes from './routes/sites.routes';
 import v1Router from './routes/v1';
 import type { Env } from './types/env';
+import { EMBED_SCRIPT_JS } from './utils/embedScript';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -164,6 +165,15 @@ app.post('/f/:key', verifyDomain, rateLimiter, submitForm);
 app.get('/f/:key', (c) =>
   c.text('EntryWise Form Ingestion Endpoint. Submit submissions via POST.', 405)
 );
+
+// Lightweight Auto-Binder Script (/embed.js)
+app.get('/embed.js', (c) => {
+  return c.body(EMBED_SCRIPT_JS, 200, {
+    'Content-Type': 'application/javascript; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'public, max-age=3600',
+  });
+});
 
 // Legacy Root & Aliases
 app.route('/auth', authRoutes);

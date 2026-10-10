@@ -1,11 +1,13 @@
 import {
   AlertCircle,
+  BookOpen,
   Check,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   Code2,
   Copy,
+  Database,
   Edit2,
   FileSpreadsheet,
   Key,
@@ -44,6 +46,23 @@ export const ConnectorsView: React.FC<ConnectorsViewProps> = ({
   const [googleSheetsUrl, setGoogleSheetsUrl] = useState(site.google_sheets_url || '');
   const [slackWebhookUrl, setSlackWebhookUrl] = useState(site.slack_webhook_url || '');
   const [discordWebhookUrl, setDiscordWebhookUrl] = useState(site.discord_webhook_url || '');
+  const [airtableToken, setAirtableToken] = useState('');
+  const [airtableBaseId, setAirtableBaseId] = useState(site.airtable_base_id || '');
+  const [airtableTableName, setAirtableTableName] = useState(
+    site.airtable_table_name || 'Submissions'
+  );
+  const [clearAirtable, setClearAirtable] = useState(false);
+  const [showAirtableConfig, setShowAirtableConfig] = useState(
+    Boolean(site.airtable_configured || site.airtable_base_id)
+  );
+
+  const [notionToken, setNotionToken] = useState('');
+  const [notionDatabaseId, setNotionDatabaseId] = useState(site.notion_database_id || '');
+  const [clearNotion, setClearNotion] = useState(false);
+  const [showNotionConfig, setShowNotionConfig] = useState(
+    Boolean(site.notion_configured || site.notion_database_id)
+  );
+
   const [webhookUrl, setWebhookUrl] = useState(site.webhook_url || '');
   const [webhookSecret, setWebhookSecret] = useState(site.webhook_secret || '');
 
@@ -85,6 +104,13 @@ export const ConnectorsView: React.FC<ConnectorsViewProps> = ({
     setGoogleSheetsUrl(site.google_sheets_url || '');
     setSlackWebhookUrl(site.slack_webhook_url || '');
     setDiscordWebhookUrl(site.discord_webhook_url || '');
+    setAirtableToken('');
+    setAirtableBaseId(site.airtable_base_id || '');
+    setAirtableTableName(site.airtable_table_name || 'Submissions');
+    setClearAirtable(false);
+    setNotionToken('');
+    setNotionDatabaseId(site.notion_database_id || '');
+    setClearNotion(false);
     setWebhookUrl(site.webhook_url || '');
     setWebhookSecret(site.webhook_secret || '');
   }, [site]);
@@ -264,13 +290,30 @@ function doGet(e) {
     setErrorMessage(null);
 
     try {
-      const updated = await api.updateSite(site.id, {
+      const payload: Partial<Site> = {
         google_sheets_url: googleSheetsUrl.trim() || null,
         slack_webhook_url: slackWebhookUrl.trim() || null,
         discord_webhook_url: discordWebhookUrl.trim() || null,
+        airtable_base_id: clearAirtable ? null : airtableBaseId.trim() || null,
+        airtable_table_name: clearAirtable ? null : airtableTableName.trim() || 'Submissions',
+        notion_database_id: clearNotion ? null : notionDatabaseId.trim() || null,
         webhook_url: webhookUrl.trim() || null,
         webhook_secret: webhookSecret.trim() || null,
-      });
+      };
+
+      if (clearAirtable) {
+        payload.airtable_token = null;
+      } else if (airtableToken.trim()) {
+        payload.airtable_token = airtableToken.trim();
+      }
+
+      if (clearNotion) {
+        payload.notion_token = null;
+      } else if (notionToken.trim()) {
+        payload.notion_token = notionToken.trim();
+      }
+
+      const updated = await api.updateSite(site.id, payload);
 
       onSiteUpdated(updated);
       setSaveSuccess(true);
@@ -481,10 +524,19 @@ function doGet(e) {
 
   const provider = workspace?.email_provider || 'cloudflare';
 
+  const airtableConnected =
+    !clearAirtable &&
+    Boolean((site.airtable_configured || airtableToken.trim()) && airtableBaseId.trim());
+  const notionConnected =
+    !clearNotion &&
+    Boolean((site.notion_configured || notionToken.trim()) && notionDatabaseId.trim());
+
   const activeWebhooksCount = webhooks.filter((w) => w.enabled).length;
   const activeCount = [
     true, // Email Delivery Engine
     Boolean(googleSheetsUrl),
+    airtableConnected,
+    notionConnected,
     Boolean(slackWebhookUrl),
     Boolean(discordWebhookUrl),
     activeWebhooksCount > 0 || Boolean(webhookUrl),
@@ -787,6 +839,256 @@ function doGet(e) {
               </div>
             </div>
           )}
+        </div>
+
+        {/* 2B. Airtable & Notion Direct Sync (Side-by-Side Progressive Disclosure) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Airtable Card */}
+          <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#0e1017] space-y-4 shadow-xl flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 shrink-0">
+                    <Database className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">Airtable Base Sync</h3>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Zero-OAuth row creation with automatic column typecasting.
+                    </p>
+                  </div>
+                </div>
+                {airtableConnected ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    Connected
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/[0.04] text-zinc-500 border border-white/[0.08] shrink-0">
+                    Optional
+                  </span>
+                )}
+              </div>
+
+              {showAirtableConfig && (
+                <div className="space-y-3 pt-2 border-t border-white/[0.06]">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label
+                        htmlFor="airtable-token-input"
+                        className="text-xs font-semibold text-zinc-300"
+                      >
+                        Personal Access Token
+                      </label>
+                      {site.airtable_configured && !clearAirtable && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setClearAirtable(true);
+                            setAirtableToken('');
+                            setAirtableBaseId('');
+                          }}
+                          className="text-[11px] text-rose-400 hover:text-rose-300"
+                        >
+                          Disconnect
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      id="airtable-token-input"
+                      type="password"
+                      placeholder={
+                        site.airtable_configured && !clearAirtable
+                          ? '•••••••••••••••• (Saved — enter new token to replace)'
+                          : 'patXXXXXXXXXXXXXX.XXXX...'
+                      }
+                      value={airtableToken}
+                      onChange={(e) => {
+                        setClearAirtable(false);
+                        setAirtableToken(e.target.value);
+                      }}
+                      className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-3.5 py-2 text-xs text-zinc-100 focus:outline-none focus:border-sky-500/50 font-mono"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label
+                        htmlFor="airtable-base-input"
+                        className="block text-xs font-semibold text-zinc-300 mb-1"
+                      >
+                        Base ID
+                      </label>
+                      <input
+                        id="airtable-base-input"
+                        type="text"
+                        placeholder="appXXXXXXXXXXXXXX"
+                        value={airtableBaseId}
+                        onChange={(e) => {
+                          setClearAirtable(false);
+                          setAirtableBaseId(e.target.value);
+                        }}
+                        className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-3.5 py-2 text-xs text-zinc-100 focus:outline-none focus:border-sky-500/50 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="airtable-table-input"
+                        className="block text-xs font-semibold text-zinc-300 mb-1"
+                      >
+                        Table Name
+                      </label>
+                      <input
+                        id="airtable-table-input"
+                        type="text"
+                        placeholder="Submissions"
+                        value={airtableTableName}
+                        onChange={(e) => setAirtableTableName(e.target.value)}
+                        className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-3.5 py-2 text-xs text-zinc-100 focus:outline-none focus:border-sky-500/50"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">
+                    Create a token at{' '}
+                    <code className="text-zinc-400">airtable.com/create/tokens</code> with{' '}
+                    <code className="text-zinc-400">data.records:write</code> scope.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAirtableConfig(!showAirtableConfig)}
+              className="flex items-center gap-1.5 text-xs text-sky-400 hover:text-sky-300 font-medium self-start"
+            >
+              <span>
+                {showAirtableConfig
+                  ? 'Hide Airtable settings'
+                  : airtableConnected
+                    ? 'Edit Airtable configuration'
+                    : 'Configure Airtable Sync'}
+              </span>
+              {showAirtableConfig ? (
+                <ChevronUp className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+
+          {/* Notion Card */}
+          <div className="p-6 rounded-2xl border border-white/[0.08] bg-[#0e1017] space-y-4 shadow-xl flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-500/10 border border-white/[0.15] flex items-center justify-center text-zinc-200 shrink-0">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">Notion Database Sync</h3>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Auto-maps database properties &amp; appends full submission blocks.
+                    </p>
+                  </div>
+                </div>
+                {notionConnected ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    Connected
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/[0.04] text-zinc-500 border border-white/[0.08] shrink-0">
+                    Optional
+                  </span>
+                )}
+              </div>
+
+              {showNotionConfig && (
+                <div className="space-y-3 pt-2 border-t border-white/[0.06]">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label
+                        htmlFor="notion-token-input"
+                        className="text-xs font-semibold text-zinc-300"
+                      >
+                        Internal Integration Secret
+                      </label>
+                      {site.notion_configured && !clearNotion && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setClearNotion(true);
+                            setNotionToken('');
+                            setNotionDatabaseId('');
+                          }}
+                          className="text-[11px] text-rose-400 hover:text-rose-300"
+                        >
+                          Disconnect
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      id="notion-token-input"
+                      type="password"
+                      placeholder={
+                        site.notion_configured && !clearNotion
+                          ? '•••••••••••••••• (Saved — enter new secret to replace)'
+                          : 'ntn_XXXXXXXXXXXXXX or secret_XXXX...'
+                      }
+                      value={notionToken}
+                      onChange={(e) => {
+                        setClearNotion(false);
+                        setNotionToken(e.target.value);
+                      }}
+                      className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-3.5 py-2 text-xs text-zinc-100 focus:outline-none focus:border-emerald-500/50 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="notion-db-input"
+                      className="block text-xs font-semibold text-zinc-300 mb-1"
+                    >
+                      Notion Database ID or Database Link
+                    </label>
+                    <input
+                      id="notion-db-input"
+                      type="text"
+                      placeholder="Paste Database URL or 32-char ID"
+                      value={notionDatabaseId}
+                      onChange={(e) => {
+                        setClearNotion(false);
+                        setNotionDatabaseId(e.target.value);
+                      }}
+                      className="w-full bg-[#090a0f] border border-white/[0.08] rounded-xl px-3.5 py-2 text-xs text-zinc-100 focus:outline-none focus:border-emerald-500/50 font-mono"
+                    />
+                  </div>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">
+                    Share your Notion database with your integration via{' '}
+                    <code className="text-zinc-400">&bull;&bull;&bull; &rarr; Connections</code>.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowNotionConfig(!showNotionConfig)}
+              className="flex items-center gap-1.5 text-xs text-zinc-300 hover:text-white font-medium self-start"
+            >
+              <span>
+                {showNotionConfig
+                  ? 'Hide Notion settings'
+                  : notionConnected
+                    ? 'Edit Notion configuration'
+                    : 'Configure Notion Sync'}
+              </span>
+              {showNotionConfig ? (
+                <ChevronUp className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* 3. Slack Channel Webhook */}

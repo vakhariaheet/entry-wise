@@ -18,6 +18,9 @@ export interface SubmissionQueueMessage {
   }>;
   submitterEmail?: string | null;
   submitterName?: string | null;
+  magicSubject?: string | null;
+  magicReplyTo?: string | null;
+  magicCc?: string | null;
   ipAddress?: string;
   submittedAt: string;
 }

@@ -120,6 +120,12 @@ export const testSubmission = async (c: Context<{ Bindings: Env }>) => {
         discord: {
           configured: Boolean(site.discord_webhook_url),
         },
+        airtable: {
+          configured: Boolean(site.airtable_token && site.airtable_base_id),
+        },
+        notion: {
+          configured: Boolean(site.notion_token && site.notion_database_id),
+        },
         webhooks: (activeWebhooks || []).map((w) => ({
           id: w.id,
           name: w.name,

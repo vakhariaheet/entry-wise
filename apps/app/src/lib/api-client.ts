@@ -387,10 +387,9 @@ class ApiService {
     if (options.status && options.status !== 'all') params.set('status', options.status);
     if (options.includeTest) params.set('include_test', '1');
 
-    const res = await fetch(
-      `${API_BASE}/sites/${siteId}/submissions/export?${params.toString()}`,
-      { headers: await this.getAuthHeaders() }
-    );
+    const res = await fetch(`${API_BASE}/sites/${siteId}/submissions/export?${params.toString()}`, {
+      headers: await this.getAuthHeaders(),
+    });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(
