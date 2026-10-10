@@ -1,18 +1,30 @@
 {
   "name": "apps-web",
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "engines": {
     "node": ">=22.12.0"
+  },
+  "emdash": {
+    "seed": "seed/seed.json"
   },
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "seed:generate": "bun run scripts/generate-seed.ts",
+    "cms:init": "emdash init && emdash seed seed/seed.json --on-conflict=update",
+    "cms:seed": "emdash seed seed/seed.json --on-conflict=update",
+    "cms:types": "emdash types"
   },
   "dependencies": {
-    "astro": "^7.3.3"
+    "@astrojs/node": "^11.1.7",
+    "@astrojs/react": "^7.0.1",
+    "astro": "^7.3.3",
+    "emdash": "^1.2.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "allowScripts": {
     "esbuild": true

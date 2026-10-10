@@ -1,0 +1,155 @@
+---
+import DocsLayout from '../../components/DocsLayout.astro';
+import { DOC_CATEGORIES } from '../../data/defaultDocs';
+import { getAllDocs } from '../../lib/emdashDocs';
+
+const allDocs = await getAllDocs();
+const isFromCms = allDocs.some((d) => d.isFromCms);
+
+const groupedDocs = DOC_CATEGORIES.map((category) => ({
+  category,
+  items: allDocs.filter((doc) => doc.category === category),
+})).filter((g) => g.items.length > 0);
+---
+
+<DocsLayout
+  title="Developer Documentation"
+  description="Complete guides for EntryWise: 30-second form quickstart, Magic HTML directives, Docker & Bun self-hosting, Zero-OAuth CRM connectors, and GDPR security."
+  allDocs={allDocs}
+  currentSlug=""
+  isFromCms={isFromCms}
+>
+  <div class="space-y-10">
+    <!-- Hero Banner -->
+    <div class="docs-surface rounded-2xl p-6 sm:p-8 space-y-5 relative overflow-hidden">
+      <div class="flex flex-wrap items-center gap-2.5 text-xs">
+        <span class="font-mono text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-0.5 rounded-full">
+          v0.2.0 Documentation Hub
+        </span>
+        <span class="text-zinc-500">•</span>
+        <span class="font-mono text-zinc-400">
+          {isFromCms ? 'Live EmDash CMS Collection (docs)' : 'EmDash Seed Ready'}
+        </span>
+      </div>
+
+      <div class="space-y-3 max-w-2xl">
+        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+          EntryWise Developer Documentation
+        </h1>
+        <p class="text-sm sm:text-base text-zinc-400 leading-relaxed">
+          Everything you need to ingest forms in under 20ms, self-host with Docker &amp; SQLite without Cloudflare lock-in, or sync leads to Salesforce, Airtable, Notion, and Google Sheets.
+        </p>
+      </div>
+
+      <!-- Fast Track CTA Row -->
+      <div class="flex flex-wrap items-center gap-3 pt-1">
+        <a
+          href="/docs/quickstart"
+          class="inline-flex items-center gap-2 text-xs font-semibold text-black bg-emerald-400 hover:bg-emerald-300 px-4 py-2.5 rounded-xl transition shadow-sm"
+        >
+          <span>30-Second Quickstart</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </a>
+        <a
+          href="/docs/self-hosting-docker"
+          class="inline-flex items-center gap-2 text-xs font-medium text-zinc-200 hover:text-white bg-white/[0.05] hover:bg-white/[0.09] border border-white/[0.1] px-4 py-2.5 rounded-xl transition"
+        >
+          <span>Self-Host with Docker</span>
+        </a>
+        <a
+          href="https://entrywise.webbound.in/docs"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] px-4 py-2.5 rounded-xl transition"
+        >
+          <span>Interactive OpenAPI 3.1 Reference</span>
+          <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Instant 30-Second Drop-In Snippet -->
+    <div class="docs-code-block rounded-2xl overflow-hidden docs-code-wrapper">
+      <div class="px-4 py-2.5 border-b border-white/[0.08] bg-white/[0.02] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span class="text-xs font-mono text-zinc-300">Drop-In HTML Class Binder (&lt;1.5KB embed.js)</span>
+        </div>
+        <button
+          type="button"
+          onclick="copyDocsCode(this)"
+          class="text-[11px] font-mono text-zinc-400 hover:text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] px-2.5 py-1 rounded-lg transition cursor-pointer"
+        >
+          Copy Snippet
+        </button>
+      </div>
+      <pre class="p-4 text-xs font-mono text-zinc-200 overflow-x-auto leading-relaxed"><code>{`<script src="https://entrywise.webbound.in/embed.js" defer></script>
+
+<form class="entrywise-form" data-form-key="ew_live_your_form_key">
+  <input type="email" name="email" placeholder="you@company.com" required />
+  <textarea name="message" placeholder="How can we help?" required></textarea>
+  <button type="submit">Send Message</button>
+</form>`}</code></pre>
+    </div>
+
+    <!-- Categorized Guide Grid -->
+    <div class="space-y-8">
+      {
+        groupedDocs.map((group) => (
+          <section class="space-y-3.5">
+            <div class="flex items-center justify-between border-b border-white/[0.08] pb-2">
+              <h2 class="text-sm font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+                {group.category}
+              </h2>
+              <span class="text-xs font-mono text-zinc-500">{group.items.length} guides</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {group.items.map((doc) => (
+                <a
+                  href={`/docs/${doc.slug}`}
+                  {...doc.edit}
+                  class="docs-surface rounded-2xl p-5 space-y-2.5 hover:border-emerald-500/40 transition group flex flex-col justify-between"
+                >
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="text-[10px] font-mono text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                        {doc.badge}
+                      </span>
+                      <span class="text-[11px] font-mono text-zinc-500">{doc.readingTime}</span>
+                    </div>
+                    <h3
+                      {...doc.edit.title}
+                      class="text-base font-bold text-white group-hover:text-emerald-300 transition"
+                    >
+                      {doc.title}
+                    </h3>
+                    <p {...doc.edit.summary} class="text-xs text-zinc-400 leading-relaxed">
+                      {doc.summary}
+                    </p>
+                  </div>
+
+                  <div class="pt-2 flex items-center gap-1 text-xs font-semibold text-zinc-300 group-hover:text-emerald-300 transition">
+                    <span>Read guide</span>
+                    <svg
+                      class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        ))
+      }
+    </div>
+  </div>
+</DocsLayout>

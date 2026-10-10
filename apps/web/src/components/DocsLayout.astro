@@ -1,0 +1,365 @@
+---
+import { DOC_CATEGORIES, type DocSection } from '../data/defaultDocs';
+import type { ResolvedDocArticle } from '../lib/emdashDocs';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  allDocs: ResolvedDocArticle[];
+  currentSlug?: string;
+  sections?: DocSection[];
+  isFromCms?: boolean;
+}
+
+const {
+  title,
+  description,
+  allDocs,
+  currentSlug = '',
+  sections = [],
+  isFromCms = false,
+} = Astro.props;
+
+const groupedDocs = DOC_CATEGORIES.map((category) => ({
+  category,
+  items: allDocs.filter((doc) => doc.category === category),
+})).filter((group) => group.items.length > 0);
+---
+
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title} — EntryWise Docs</title>
+  <meta name="description" content={description} />
+  <link rel="icon" type="image/png" href="/assets/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    .docs-glow {
+      background: radial-gradient(
+        ellipse 65% 40% at 50% -10%,
+        rgba(16, 185, 129, 0.13) 0%,
+        rgba(16, 185, 129, 0.01) 65%,
+        transparent 90%
+      );
+    }
+    .docs-surface {
+      background: #0d0f17;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .docs-code-block {
+      background: #090b10;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-[#07080b] text-[#f4f4f5] min-h-screen relative selection:bg-emerald-500/20 selection:text-emerald-300">
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[480px] docs-glow pointer-events-none -z-10"></div>
+
+  <!-- Top Navigation Header -->
+  <header class="border-b border-white/[0.08] bg-[#07080b]/90 backdrop-blur-xl sticky top-0 z-50">
+    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-6">
+        <a href="/" class="flex items-center gap-2.5 group">
+          <img
+            src="/assets/logo.png"
+            alt="EntryWise"
+            class="w-7 h-7 rounded-lg border border-white/[0.12] group-hover:scale-105 transition-transform"
+          />
+          <span class="font-bold text-sm tracking-tight text-white">EntryWise</span>
+        </a>
+
+        <div class="h-4 w-[1px] bg-white/[0.1] hidden sm:block"></div>
+
+        <a
+          href="/docs"
+          class="inline-flex items-center gap-2 text-xs font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-lg"
+        >
+          <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          <span>Developer Docs</span>
+        </a>
+
+        <nav class="hidden md:flex items-center gap-5 text-xs font-medium text-zinc-400">
+          <a href="/docs/quickstart" class="hover:text-white transition">Quickstart</a>
+          <a href="/docs/self-hosting-docker" class="hover:text-white transition">Docker Self-Host</a>
+          <a href="/docs/connectors" class="hover:text-white transition">Connectors</a>
+          <a href="/docs/security-and-privacy" class="hover:text-white transition">Security</a>
+          <a
+            href="https://entrywise.webbound.in/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="hover:text-white transition inline-flex items-center gap-1"
+          >
+            <span>OpenAPI Reference</span>
+            <span class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">A+</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <a
+          href="/_emdash/admin"
+          class="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] px-3 py-1.5 rounded-xl transition"
+          title="Manage documentation & pages in EmDash CMS"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>EmDash Admin</span>
+        </a>
+        <a
+          href="https://entrywise-app.pages.dev"
+          class="inline-flex items-center gap-1.5 text-xs font-semibold text-black bg-white hover:bg-zinc-200 px-3.5 py-1.5 rounded-xl transition shadow-sm"
+        >
+          <span>Open Console</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Docs Navigation Drawer Trigger -->
+  <div class="lg:hidden border-b border-white/[0.08] bg-[#0a0c12] px-4 py-2.5 flex items-center justify-between">
+    <span class="text-xs font-mono text-zinc-400 truncate">{title}</span>
+    <button
+      type="button"
+      id="mobileDocsMenuBtn"
+      class="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-200 bg-white/[0.06] border border-white/[0.1] px-2.5 py-1 rounded-lg"
+    >
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+      <span>All Guides</span>
+    </button>
+  </div>
+
+  <!-- Three-Column Documentation Layout -->
+  <div class="max-w-[1400px] mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 py-8">
+    <!-- Left Sidebar (3 cols) -->
+    <aside
+      id="docsSidebar"
+      class="hidden lg:block lg:col-span-3 sticky top-24 self-start max-h-[calc(100vh-7rem)] overflow-y-auto pr-2 space-y-6"
+    >
+      <!-- Instant Filter Search -->
+      <div class="relative">
+        <svg
+          class="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="search"
+          id="docsSearchInput"
+          placeholder="Filter guides... (Press /)"
+          class="w-full bg-[#0d0f17] border border-white/[0.09] focus:border-emerald-500/50 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none transition"
+        />
+      </div>
+
+      <!-- Docs Home Link -->
+      <div>
+        <a
+          href="/docs"
+          class={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition ${
+            currentSlug === ''
+              ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold'
+              : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+          }`}
+        >
+          <span>Documentation Hub</span>
+          <span class="text-[10px] font-mono text-zinc-500">{allDocs.length} guides</span>
+        </a>
+      </div>
+
+      <!-- Category Groups -->
+      <div class="space-y-5" id="docsNavGroups">
+        {
+          groupedDocs.map((group) => (
+            <div class="space-y-1.5 docs-nav-group">
+              <div class="px-3 text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
+                {group.category}
+              </div>
+              <ul class="space-y-0.5">
+                {group.items.map((item) => {
+                  const isActive = item.slug === currentSlug;
+                  return (
+                    <li
+                      class="docs-nav-item"
+                      data-title={item.title.toLowerCase()}
+                      data-summary={item.summary.toLowerCase()}
+                      data-category={item.category.toLowerCase()}
+                    >
+                      <a
+                        href={`/docs/${item.slug}`}
+                        class={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs transition ${
+                          isActive
+                            ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold'
+                            : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04]'
+                        }`}
+                      >
+                        <span class="truncate">{item.title}</span>
+                        {isActive && (
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                        )}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+
+      <!-- EmDash CMS Info Card -->
+      <div class="docs-surface rounded-xl p-3.5 space-y-2 border border-white/[0.07]">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-mono font-semibold text-emerald-400 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            EmDash Live CMS
+          </span>
+          <span class="text-[10px] font-mono text-zinc-500">{isFromCms ? 'DB Synced' : 'Seeded'}</span>
+        </div>
+        <p class="text-[11px] text-zinc-400 leading-relaxed">
+          Articles are stored in the <code class="text-zinc-200">docs</code> collection and editable via EmDash Admin.
+        </p>
+        <a
+          href="/_emdash/admin"
+          class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-300 hover:text-emerald-200 transition"
+        >
+          <span>Open /_emdash/admin</span>
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Column (6 or 9 cols depending on ToC) -->
+    <main class={sections.length > 0 ? 'lg:col-span-6 min-w-0' : 'lg:col-span-9 min-w-0'}>
+      <slot />
+    </main>
+
+    <!-- Right Table of Contents Column (3 cols, shown on article pages) -->
+    {
+      sections.length > 0 && (
+        <aside class="hidden lg:block lg:col-span-3 sticky top-24 self-start space-y-6 pl-2">
+          <div class="space-y-2.5">
+            <div class="text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
+              On This Page
+            </div>
+            <ul class="space-y-1.5 border-l border-white/[0.08] pl-3 text-xs">
+              {sections.map((sec) => (
+                <li>
+                  <a
+                    href={`#${sec.id}`}
+                    class="text-zinc-400 hover:text-emerald-300 transition block py-0.5 leading-snug"
+                  >
+                    {sec.heading}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div class="docs-surface rounded-xl p-4 space-y-3">
+            <div class="text-xs font-semibold text-white">Interactive API Reference</div>
+            <p class="text-[11px] text-zinc-400 leading-relaxed">
+              Need full OpenAPI 3.1 schemas, request bodies, and live endpoint testing?
+            </p>
+            <a
+              href="https://entrywise.webbound.in/docs"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 px-3 py-2 rounded-lg transition"
+            >
+              <span>Open Scalar API Docs</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          </div>
+        </aside>
+      )
+    }
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/[0.08] py-8 px-6 mt-16">
+    <div class="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
+      <div class="flex items-center gap-2">
+        <img src="/assets/logo.png" alt="EntryWise" class="w-5 h-5 rounded" />
+        <span>EntryWise Documentation • Powered by Astro &amp; EmDash CMS</span>
+      </div>
+      <div class="flex items-center gap-5">
+        <a href="/" class="hover:text-zinc-300 transition">Landing Page</a>
+        <a href="/docs" class="hover:text-zinc-300 transition">Docs Hub</a>
+        <a href="/_emdash/admin" class="hover:text-zinc-300 transition">CMS Admin</a>
+        <a href="https://entrywise.webbound.in/docs" class="hover:text-zinc-300 transition">OpenAPI 3.1</a>
+      </div>
+    </div>
+  </footer>
+
+  <script is:inline>
+    // Mobile sidebar toggle
+    const mobileBtn = document.getElementById('mobileDocsMenuBtn');
+    const sidebar = document.getElementById('docsSidebar');
+    if (mobileBtn && sidebar) {
+      mobileBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('hidden');
+      });
+    }
+
+    // Instant client-side guide search filter
+    const searchInput = document.getElementById('docsSearchInput');
+    if (searchInput) {
+      window.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement !== searchInput) {
+          e.preventDefault();
+          searchInput.focus();
+        }
+      });
+
+      searchInput.addEventListener('input', (e) => {
+        const query = (e.target.value || '').toLowerCase().trim();
+        const items = document.querySelectorAll('.docs-nav-item');
+        items.forEach((el) => {
+          const title = el.getAttribute('data-title') || '';
+          const summary = el.getAttribute('data-summary') || '';
+          const category = el.getAttribute('data-category') || '';
+          const match =
+            !query ||
+            title.includes(query) ||
+            summary.includes(query) ||
+            category.includes(query);
+          el.style.display = match ? '' : 'none';
+        });
+      });
+    }
+
+    // Copy button handler for code snippets
+    window.copyDocsCode = function (btn) {
+      const wrapper = btn.closest('.docs-code-wrapper');
+      const codeEl = wrapper ? wrapper.querySelector('code') : null;
+      if (!codeEl) return;
+      navigator.clipboard.writeText(codeEl.innerText || codeEl.textContent || '');
+      const original = btn.innerText;
+      btn.innerText = 'Copied!';
+      setTimeout(() => {
+        btn.innerText = original;
+      }, 1800);
+    };
+  </script>
+</body>
+</html>

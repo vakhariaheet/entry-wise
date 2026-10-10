@@ -36,3 +36,10 @@ lerna-debug.log*
 .DS_Store
 bun.lock
 vacuum-report.html
+.astro/
+*.db
+*.db-shm
+*.db-wal
+apps/web/uploads/
+apps/web/.emdash/
+
