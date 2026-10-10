@@ -9,7 +9,7 @@
 export const EMBED_SCRIPT_JS = `(function(w,d){
   var cs=d.currentScript;
   var cfg=w.EntryWiseConfig||{};
-  var scriptOrigin='https://entrywise.si';
+  var scriptOrigin='https://api.entrywise.si';
   try{if(cs&&cs.src)scriptOrigin=new URL(cs.src).origin;}catch(e){}
   var defaultEndpoint=(cs&&cs.getAttribute('data-endpoint'))||cfg.endpoint||scriptOrigin;
   var defaultKey=(cs&&cs.getAttribute('data-site-key'))||cfg.siteKey||'';

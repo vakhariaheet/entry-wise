@@ -10,19 +10,15 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "entrywise-cms"
+      "database_name": "entrywise-cms",
+      "migrations_dir": "../../migrations",
+      "database_id": "d1a78286-37a0-4c29-ae93-d11480bdeceb"
     }
   ],
   "r2_buckets": [
     {
       "binding": "MEDIA",
       "bucket_name": "entrywise-cms-media"
-    }
-  ],
-  "services": [
-    {
-      "binding": "ENTRYWISE_API",
-      "service": "entry-wise"
     }
   ],
   "triggers": {

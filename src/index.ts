@@ -82,7 +82,7 @@ app.get(
       },
       servers: [
         {
-          url: 'https://entrywise.si',
+          url: 'https://api.entrywise.si',
           description: 'Production server',
         },
         {
