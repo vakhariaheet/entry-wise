@@ -1,406 +1,237 @@
-# EntryWise
+<div align="center">
 
-EntryWise is a developer-friendly, production-grade form backend API built with [Hono](https://hono.dev/) and deployed globally on [Cloudflare Workers](https://workers.cloudflare.com/). It provides secure submission ingestion, submission persistence, email notifications with attachments, automated confirmations, webhooks, spam filtering, and CSV/JSON export.
+# ⚡ EntryWise
 
-The API is designed following the **Zalando RESTful API Guidelines** and standard web conventions:
-- Strict `snake_case` payloads and query parameters
-- Consistent `kebab-case` resource URLs
-- Standard HTTP status codes (`200 OK`, `201 Created` with `Location` header, `204 No Content`, `303 See Other`)
-- RFC 7807 Problem Details for all client and server errors
-- Native HTML `<form>` (`multipart/form-data`, `application/x-www-form-urlencoded`) and modern JSON (`application/json`) ingestion
+**The Lightweight, Zero-Lock-In Headless Form Backend for Modern Developers**
 
----
+Accept HTML & JSON form submissions, auto-discover schemas, block spam at the edge, send customizable emails, and sync leads directly to **Airtable, Notion, Google Sheets, Slack, Discord, and Signed Webhooks**—deployed globally on **Cloudflare Workers** or self-hosted anywhere via **Docker**.
 
-## Key Features
+[![OpenAPI 3.1](https://img.shields.io/badge/OpenAPI-3.1-10b981?style=flat-square)](https://entrywise.webbound.in/docs)
+[![Vacuum API Score](https://img.shields.io/badge/Vacuum_Quality-100%2F100_%5BA%2B%5D-10b981?style=flat-square)](https://entrywise.webbound.in/docs)
+[![Docker Ready](https://img.shields.io/badge/Self--Host-Docker_%7C_Cloudflare-3b82f6?style=flat-square)](./docs/SELF_HOSTING.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-zinc?style=flat-square)](./LICENSE)
 
-- 📨 **Frictionless Form Submissions**:
-  - Accept direct JSON payloads (`{ "name": "Jane", "email": "jane@example.com" }`) without artificial metadata wrappers.
-  - Native HTML multi-part and URL-encoded submissions with zero client-side JavaScript required.
-  - Custom redirect support (`_redirect` / `_next` returning `303 See Other`) or friendly default confirmation page.
-  - Attachment matching directly by form field name (`name="resume"`).
-- 📥 **Submission Persistence & Inbox (Cloudflare D1)**:
-  - Every submission is automatically persisted to Cloudflare D1 with IP capture and timestamping.
-  - Full Inbox REST API (`GET /v1/sites/{site_id}/submissions`) with status filtering (`new`, `read`, `archived`, `spam`) and full-text keyword search.
-  - Triage submissions using `PATCH /v1/submissions/{id}` to update status.
-  - RFC 4180 compliant CSV export (`GET /v1/sites/{site_id}/submissions/export?format=csv`) and raw JSON export.
-- 🤖 **Cloudflare Turnstile Bot Protection**:
-  - Native verification against `https://challenges.cloudflare.com/turnstile/v0/siteverify`.
-  - Pass the token via `cf-turnstile-response` in HTML forms or JSON requests.
-  - Transparent spam rejection with RFC 7807 error or honeypot trapping.
-- 🔁 **Auto-Responder Emails**:
-  - Automatically send a confirmation email back to the form submitter.
-  - Dynamic template variable interpolation: `{{name}}`, `{{email}}`, etc.
-  - Configurable per site with custom subjects and HTML/plain-text bodies.
-- 🪝 **Signed Webhooks & Third-Party Integrations**:
-  - Real-time webhook dispatch upon each valid submission (compatible with Zapier, Slack, Discord, Make, or custom backends).
-  - Cryptographically signed with Web Crypto HMAC-SHA256 (`X-EntryWise-Signature` header, hex-encoded `t=<timestamp>,v1=<signature>`) to prevent tampering and replay attacks.
-- 📧 **Versatile Email Delivery**:
-  - Cloudflare Native Email (`cloudflare:email` Worker binding)
-  - Resend
-  - MailerSend
-  - Mailtrap
-  - SMTP2GO
-- 🔒 **Enterprise-Grade Security**:
-  - Domain origin verification (`allowed_domains` per site)
-  - Cloudflare KV-backed sliding window rate limiting
-  - Admin authentication via static `ADMIN_API_KEY` or 6-digit TOTP JWTs
-  - At-rest AES-GCM-256 encryption for provider API tokens and site secrets
-- 📚 **Interactive OpenAPI 3.1 Documentation**:
-  - Interactive Scalar API reference hosted at `/docs`.
+[**Live Console**](https://entrywise-app.pages.dev) · [**Interactive API Reference (`/docs`)**](https://entrywise.webbound.in/docs) · [**Quickstart Guide**](./docs/QUICKSTART.md) · [**Self-Hosting (Docker & Cloudflare)**](./docs/SELF_HOSTING.md) · [**Connectors Guide**](./docs/CONNECTORS_AND_EMAIL.md) · [**Security & Privacy**](./docs/SECURITY_AND_PRIVACY.md)
+
+</div>
 
 ---
 
-## Architecture & Technology Stack
+## Why EntryWise?
 
-- **Runtime**: Cloudflare Workers
-- **Framework**: Hono v4 + `@hono/zod-openapi`
-- **Database**: Cloudflare D1 (SQLite at the edge)
-- **Rate Limiting**: Cloudflare KV
-- **API Spec**: OpenAPI 3.1 + Scalar API Reference
-- **Package Manager**: Bun
+Most form backends force an uncomfortable trade-off: either pay high monthly SaaS tiers for basic webhooks and spam filtering, or deploy a bloated, monolithic form builder that locks you into a single cloud provider.
 
----
-
-## Getting Started
-
-### Prerequisites
-
-- [Node.js 18+](https://nodejs.org/) or [Bun](https://bun.sh/)
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/)
-- Cloudflare account with Workers, D1, and KV enabled
-
-### 1. Installation
-
-```bash
-git clone https://github.com/yourusername/entry-wise.git
-cd entry-wise
-bun install
-```
-
-### 2. Configure Cloudflare Resources
-
-Create your D1 database and KV rate limit namespace:
-
-```bash
-# Create D1 database
-wrangler d1 create entry-wise
-
-# Create KV namespace for rate limiting
-wrangler kv:namespace create RATE_LIMIT
-```
-
-Update your `wrangler.jsonc` (or copy from `wrangler.example.jsonc`) with your D1 `database_id` and KV `id`.
-
-### 3. Apply Database Migrations
-
-Apply the database migrations to your local or remote D1 database:
-
-```bash
-# Local development
-wrangler d1 execute entry-wise --local --file ./migrations/0001_init.sql
-wrangler d1 execute entry-wise --local --file ./migrations/0002_site_updates.sql
-wrangler d1 execute entry-wise --local --file ./migrations/0003_redesign_and_features.sql
-
-# Production
-wrangler d1 execute entry-wise --remote --file ./migrations/0001_init.sql
-wrangler d1 execute entry-wise --remote --file ./migrations/0002_site_updates.sql
-wrangler d1 execute entry-wise --remote --file ./migrations/0003_redesign_and_features.sql
-```
-
-### 4. Environment Variables
-
-Create `.dev.vars` for local development:
-
-```env
-ENCRYPTION_KEY="your-32-byte-hex-encryption-key"
-BASE_URL="http://localhost:8787"
-ADMIN_API_KEY="your-secure-admin-api-key"
-```
-
-### 5. Running Locally
-
-```bash
-bun run dev
-```
-
-Open `http://localhost:8787/docs` to view the interactive Scalar API documentation.
+**EntryWise is built differently:**
+- **Zero Boilerplate (`<1.5KB` Drop-In Binder):** Add `class="entrywise-form"` to any HTML `<form>` or point `action="https://entrywise.webbound.in/f/YOUR_SITE_KEY"`. No client SDKs or state boilerplate required.
+- **Auto-Schema Discovery:** Send your first submission and EntryWise automatically infers field types (`email`, `phone`, `url`, `file`, `text`) and builds your form schema on the fly.
+- **Zero Platform Lock-In:** Run on **Cloudflare Workers + D1 + Queues**, or self-host anywhere with **`docker compose up -d`** using portable SQLite, pluggable queues (`memory` or `http`), and your choice of email engine (`Resend`, `SMTP2GO`, `MailerSend`, `Mailtrap`, or `Webhook`).
+- **Direct Zero-OAuth Connectors:** Sync submissions straight into **Airtable**, **Notion**, **Google Sheets**, **Slack**, **Discord**, and **HMAC-SHA256 Signed Webhooks** without complex OAuth flows.
+- **Privacy & Security First:** Built-in Cloudflare Turnstile, honeypots, disposable email blocking, spam keyword blacklists, GDPR Zero-IP anonymization (`anonymize_ip`), and auto-pruning retention policies.
 
 ---
 
-## Quickstart Guide
+## ⚡ 30-Second Quickstart
 
-### Step 1: Create a Company (Email Provider)
+### Option 1: Drop-In Class Binder (`<1.5KB`, Zero JS Boilerplate)
 
-```bash
-curl -X POST http://localhost:8787/v1/companies \
-  -H "X-Admin-Api-Key: your-secure-admin-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Acme Corp",
-    "email_provider": "resend",
-    "email_provider_token": "re_123456789",
-    "from_email": "forms@acme.com",
-    "from_name": "Acme Notifications",
-    "admin_email": "hello@acme.com"
-  }'
-```
-
-*Response `201 Created` with `Location: /v1/companies/{company_id}`*
-
-### Step 2: Create a Site
-
-```bash
-curl -X POST http://localhost:8787/v1/companies/{company_id}/sites \
-  -H "X-Admin-Api-Key: your-secure-admin-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Landing Page",
-    "allowed_domains": ["acme.com", "localhost"],
-    "rate_limit": 30,
-    "email_recipient": "leads@acme.com",
-    "auto_responder_enabled": true,
-    "auto_responder_subject": "Thanks for reaching out, {{name}}!",
-    "auto_responder_body": "Hi {{name}},\n\nWe received your message: \"{{message}}\". Our team will be in touch shortly!",
-    "webhook_url": "https://api.acme.com/webhooks/forms",
-    "webhook_secret": "whsec_supersecretkey123"
-  }'
-```
-
-*Response `201 Created` contains `site_id` and the unique `api_key`.*
-
-### Step 3: Define Expected Form Fields
-
-```bash
-curl -X POST http://localhost:8787/v1/sites/{site_id}/fields \
-  -H "X-Admin-Api-Key: your-secure-admin-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "fields": [
-      { "name": "name", "type": "text", "required": true },
-      { "name": "email", "type": "email", "required": true },
-      { "name": "message", "type": "text", "required": true },
-      { "name": "resume", "type": "file", "required": false }
-    ]
-  }'
-```
-
----
-
-## Form Submission Integration
-
-### Option A: HTML Form with File Upload (No JavaScript)
+Include `/embed.js` once and add `class="entrywise-form"` (or your own custom class via `data-class`) to any `<form>`. It automatically intercepts submit events, disables the submit button while sending, and renders accessible inline status messages:
 
 ```html
-<form 
-  action="https://forms.yourdomain.com/v1/submissions" 
-  method="POST" 
-  enctype="multipart/form-data"
+<!-- 1. Drop-in script (auto-detects cloud or self-hosted origin) -->
+<script
+  src="https://entrywise.webbound.in/embed.js"
+  data-site-key="ew_live_your_site_key"
+  defer
+></script>
+
+<!-- 2. Add class="entrywise-form" to any HTML form -->
+<form
+  class="entrywise-form"
+  data-success="Thanks! We received your message and will reply shortly."
 >
-  <!-- Authentication & Routing -->
-  <input type="hidden" name="api_key" value="site_api_key_here">
-  <!-- Optional Redirect URL upon success -->
-  <input type="hidden" name="_redirect" value="https://acme.com/thank-you">
+  <!-- Optional Magic HTML Directives -->
+  <input type="hidden" name="_subject" value="New inquiry from acme.com" />
+  <input type="hidden" name="_cc" value="sales@acme.com" />
 
-  <!-- Honeypot for simple bots -->
-  <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off">
+  <input type="text" name="name" placeholder="Full Name" required />
+  <input type="email" name="email" placeholder="Work Email" required />
+  <textarea name="message" placeholder="How can we help?" required></textarea>
 
-  <!-- Cloudflare Turnstile (Optional) -->
-  <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY"></div>
-
-  <!-- Form Fields -->
-  <label>Your Name: <input type="text" name="name" required></label>
-  <label>Email: <input type="email" name="email" required></label>
-  <label>Message: <textarea name="message" required></textarea></label>
-  <label>Resume (PDF/Doc): <input type="file" name="resume"></label>
-
-  <button type="submit">Submit Form</button>
+  <button type="submit">Send Message</button>
 </form>
 ```
 
-### Option B: Modern JSON Submission (Single-Page Apps / Mobile)
+### Option 2: Pure HTML `<form>` (No JavaScript Required)
 
-```javascript
-const response = await fetch("https://forms.yourdomain.com/v1/submissions", {
-  method: "POST",
-  headers: {
-    "X-Api-Key": "site_api_key_here",
-    "Content-Type": "application/json"
-  },
+Works natively with static sites, Astro, Webflow, Framer, or plain HTML (`application/x-www-form-urlencoded` and `multipart/form-data`):
+
+```html
+<form
+  action="https://entrywise.webbound.in/f/ew_live_your_site_key"
+  method="POST"
+  enctype="multipart/form-data"
+>
+  <!-- Invisible Honeypot Bot Trap -->
+  <input type="text" name="_gotcha" style="display:none !important" tabindex="-1" autocomplete="off" />
+
+  <!-- Optional Safe Redirect (303 See Other) -->
+  <input type="hidden" name="_redirect" value="https://yourdomain.com/thank-you" />
+
+  <input type="text" name="name" required />
+  <input type="email" name="email" required />
+  <input type="file" name="attachment" />
+
+  <button type="submit">Submit</button>
+</form>
+```
+
+### Option 3: Direct JSON API (`fetch` / React / Next.js Server Actions)
+
+```ts
+const response = await fetch('https://entrywise.webbound.in/f/ew_live_your_site_key', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    name: "Jane Doe",
-    email: "jane@example.com",
-    message: "I would like to inquire about your enterprise plan.",
-    "cf-turnstile-response": turnstileToken
-  })
+    name: 'Elena Rostova',
+    email: 'elena@acme.com',
+    message: 'Interested in self-hosting EntryWise.',
+    _subject: 'Enterprise Inquiry — Acme Corp',
+    _replyto: 'elena@acme.com',
+  }),
 });
 
-if (response.ok) {
-  const result = await response.json();
-  console.log("Submission ID:", result.submission_id);
-} else {
-  const problem = await response.json();
-  console.error("Submission failed:", problem.title, problem.detail);
-}
+const result = await response.json();
+// => { is_success: true, submission_id: "sub_...", message: "Submission received successfully" }
 ```
 
 ---
 
-## Inbox Management & Export API
+## 🪄 Magic Form Directives
 
-### List Submissions (Inbox)
+Control email routing and post-submission behavior directly from your HTML inputs or JSON keys—all `_`-prefixed directives are sanitized against CRLF header injection and stripped before database storage:
 
-Filter submissions by status (`new`, `read`, `archived`, `spam`) or search content:
+| Directive | Description | Example |
+| :--- | :--- | :--- |
+| `_subject` | Overrides the admin notification email subject (supports `{{variable}}` interpolation). | `"New Lead from {{name}}"` |
+| `_replyto` | Sets the `Reply-To` header on the admin notification email (auto-defaults to the submitter's `email` field). | `"customer@domain.com"` |
+| `_cc` | Comma-separated list of up to 5 additional recipients to CC on the notification email. | `"team@acme.com,founder@acme.com"` |
+| `_redirect` / `_next` | Redirects browser form submissions (`303 See Other`) to a verified same-domain or allowlisted URL. | `"https://acme.com/thanks"` |
+| `_gotcha` / `_honeypot` | Invisible bot trap field; if filled by an automated scraper, the submission is silently rejected. | `""` |
+
+---
+
+## 🔌 Built-In Connectors & Delivery Pipeline
+
+Every valid submission is persisted immediately and dispatched asynchronously through the delivery pipeline:
+
+| Connector | Setup Requirements | Highlights |
+| :--- | :--- | :--- |
+| **Email Notifications & Auto-Responders** | Resend, SMTP2GO, MailerSend, Mailtrap, Webhook, or Cloudflare Email | Visual Email Studio with live preview, custom HTML mode, and `{{variable}}` interpolation. |
+| **Airtable** | Personal Access Token (`pat...`), Base ID (`app...`), Table Name | Uses `typecast: true` so single-select options, dates, and numbers convert automatically. |
+| **Notion** | Internal Integration Secret (`ntn_...`), Database ID or URL | Auto-discovers your database's `title` column and maps matching properties + full page body blocks. |
+| **Google Sheets** | Apps Script Web App URL | Appends timestamped rows in real time with zero OAuth token expiration issues. |
+| **Slack & Discord** | Incoming Webhook URL | Rich formatted blocks/embeds with field tables and direct inbox triage links. |
+| **Signed Webhooks** | Target HTTPS URL + Optional Signing Secret | Multi-webhook fanout signed with `X-EntryWise-Signature` (`HMAC-SHA256` + timestamp replay protection). |
+
+---
+
+## 🐳 Self-Hosting: Docker or Cloudflare (Zero Lock-In)
+
+EntryWise runs identically on **Docker / any VPS** and **Cloudflare Workers**.
+
+### Architecture Matrix
+
+| Layer | Docker / VPS / Railway / Fly.io (`src/server.ts`) | Cloudflare Edge (`src/index.ts`) |
+| :--- | :--- | :--- |
+| **HTTP Runtime** | `Bun.serve` (`oven/bun:1-alpine`) | Cloudflare Workers (`workerd`) |
+| **Database** | Portable `bun:sqlite` D1 Adapter (`./data/entrywise.sqlite`) | Cloudflare D1 Serverless SQLite |
+| **Queue Engine** | `QUEUE_DRIVER=memory` (in-process retry queue) or `QUEUE_DRIVER=http` (QStash / BullMQ / n8n) | Cloudflare Queues (`SUBMISSIONS_QUEUE`) or `QUEUE_DRIVER=http` |
+| **Default Email Engine** | `DEFAULT_EMAIL_PROVIDER=resend \| smtp2go \| mailersend \| mailtrap \| webhook \| console` | Cloudflare Email (`env.EMAIL`) or any configured provider |
+| **Rate Limiting & Files** | In-Memory TTL KV + Local Disk Volume (`./data/uploads`) | Cloudflare KV + Cloudflare R2 |
+
+### Option A: Deploy with Docker Compose (Any Server / VPS)
 
 ```bash
-curl -G "http://localhost:8787/v1/sites/{site_id}/submissions" \
-  -H "X-Admin-Api-Key: your-secure-admin-api-key" \
-  -d "status=new" \
-  -d "limit=20" \
-  -d "offset=0"
+git clone https://github.com/vakhariaheet/entry-wise.git
+cd entry-wise
+cp .env.example .env
+
+# Configure your preferred Queue & Email provider in .env:
+# QUEUE_DRIVER=memory
+# DEFAULT_EMAIL_PROVIDER=resend
+# RESEND_API_KEY=re_xxxxxxxxx
+# DEFAULT_FROM_EMAIL=notifications@yourdomain.com
+
+docker compose up -d
 ```
 
-*Response:*
-```json
-{
-  "items": [
-    {
-      "id": "sub_a1b2c3d4e5",
-      "site_id": "site_xyz123",
-      "data": {
-        "name": "Jane Doe",
-        "email": "jane@example.com",
-        "message": "Hello world!"
-      },
-      "attachments": [
-        {
-          "name": "resume.pdf",
-          "size": 140321,
-          "mime_type": "application/pdf"
-        }
-      ],
-      "status": "new",
-      "ip_address": "203.0.113.1",
-      "created_at": "2026-09-23T00:00:00.000Z",
-      "updated_at": "2026-09-23T00:00:00.000Z"
-    }
-  ],
-  "total_count": 1,
-  "limit": 20,
-  "offset": 0
-}
-```
+On startup, EntryWise automatically initializes `./data/entrywise.sqlite` (WAL mode) and applies all SQL migrations in `./migrations`.
 
-### Update Submission Status (Triage)
+### Option B: Deploy on Cloudflare Workers & D1
 
 ```bash
-curl -X PATCH http://localhost:8787/v1/submissions/{id} \
-  -H "X-Admin-Api-Key: your-secure-admin-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{ "status": "read" }'
+git clone https://github.com/vakhariaheet/entry-wise.git
+cd entry-wise && bun install
+
+# Create D1 database & apply migrations
+bunx wrangler d1 create entrywise
+bunx wrangler d1 migrations apply entrywise --remote
+
+# Deploy Worker
+bunx wrangler deploy --minify
 ```
 
-### Export Submissions (CSV or JSON)
+See the full [**Self-Hosting Guide (`docs/SELF_HOSTING.md`)**](./docs/SELF_HOSTING.md) for reverse-proxy SSL configs (Caddy / Nginx), external HTTP queues, and backup strategies.
 
-Download an RFC 4180 compliant CSV file for spreadsheets:
+---
+
+## 🛡️ Security & Privacy Engine
+
+EntryWise is engineered to **Zalando RESTful API Guidelines** (scoring **100/100 [A+]** on Vacuum OpenAPI linting) and includes defense-in-depth protections for both platform operators and form owners:
+
+- **SSRF Protection (`src/utils/ssrfGuard.ts`):** Blocks loopback, link-local, cloud metadata (`169.254.169.254`), and RFC1918 private IPs on all outbound webhooks and connectors.
+- **Open Redirect Guard (`src/utils/redirectGuard.ts`):** Validates `_redirect` / `_next` URLs against the registered site domain and `allowed_origins`, blocking protocol-relative (`//evil.com`) and `javascript:` payloads.
+- **CSV Formula Injection Defense (CWE-1236):** Neutralizes leading `=`, `+`, `-`, `@`, `\t`, and `\r` characters on CSV exports so spreadsheet apps never execute injected formulas.
+- **User-Facing Privacy Controls:**
+  - **Disposable Email Blocker (`block_disposable_emails`):** Rejects throwaway/temp-mail domains at ingestion.
+  - **Spam Keyword Blacklist (`spam_keywords`):** Auto-routes matching submissions to the `spam` folder and suppresses downstream notifications.
+  - **GDPR Zero-IP Mode (`anonymize_ip`):** Masks the final octet of IPv4 (`203.0.113.0`) and trailing 80 bits of IPv6 before database commit.
+  - **Auto-Prune Data Retention (`data_retention_days`):** Automatically purges submissions older than $N$ days on rolling ingestion.
+- **Secret Encryption & Redaction:** Provider tokens and connector credentials are encrypted at rest with **AES-GCM-256** (`ENCRYPTION_KEY`) and redacted from all `GET` API responses.
+
+---
+
+## 📚 Documentation Hub
+
+| Guide | What It Covers |
+| :--- | :--- |
+| [**Quickstart & Integration Guide**](./docs/QUICKSTART.md) | HTML forms, `/embed.js` class binder, React/Next.js snippets, Magic HTML fields, and Auto-Schema Discovery. |
+| [**Self-Hosting & Docker Guide**](./docs/SELF_HOSTING.md) | Running via `docker compose`, configuring `QUEUE_DRIVER` and `DEFAULT_EMAIL_PROVIDER`, Cloudflare Workers setup, and Caddy/Nginx SSL. |
+| [**Connectors & Email Studio**](./docs/CONNECTORS_AND_EMAIL.md) | Connecting Resend/SMTP2GO/MailerSend/Mailtrap/Webhook email, Airtable, Notion, Google Sheets, Slack, Discord, and verifying `X-EntryWise-Signature`. |
+| [**Security & Privacy Architecture**](./docs/SECURITY_AND_PRIVACY.md) | Bot defense, GDPR Zero-IP mode, data retention auto-pruning, SSRF/XSS/CSV hardening, and Pipeline Diagnostics. |
+| [**Interactive OpenAPI 3.1 Reference**](https://entrywise.webbound.in/docs) | Live Scalar API reference for all 30 REST endpoints (`/v1/companies`, `/v1/sites`, `/v1/submissions`, `/f/:apiKey`). |
+
+---
+
+## 🧪 Local Development & Quality Gates
 
 ```bash
-curl -G "http://localhost:8787/v1/sites/{site_id}/submissions/export?format=csv&status=new" \
-  -H "X-Admin-Api-Key: your-secure-admin-api-key" \
-  -o submissions.csv
+# Run the full unit & integration test suite (50+ tests including Docker SQLite/Queue adapters)
+bun test
+
+# Run in local Docker/Bun standalone mode (auto-migrates ./data/entrywise.sqlite)
+bun run dev:docker
+
+# Run in Cloudflare Workers local simulator
+bun run dev
+
+# Format & lint with Biome + verify OpenAPI 3.1 Vacuum score (100/100 [A+])
+bun run check
+bun run security:check
 ```
-
----
-
-## Webhook Signatures
-
-When webhooks are configured for a site, EntryWise sends an HTTP `POST` request with JSON payload:
-
-```json
-{
-  "event": "form_submission",
-  "submission_id": "sub_a1b2c3d4e5",
-  "site_id": "site_xyz123",
-  "site_name": "Landing Page",
-  "data": {
-    "name": "Jane Doe",
-    "email": "jane@example.com",
-    "message": "Hello world!"
-  },
-  "attachments": [],
-  "created_at": "2026-09-23T00:00:00.000Z"
-}
-```
-
-### Verifying Signatures
-
-The `X-EntryWise-Signature` header has the format:
-```
-t=1774291200000,v1=9b72a...6f
-```
-
-Example verification in Node.js / Bun:
-
-```javascript
-import crypto from "node:crypto";
-
-function verifyWebhookSignature(rawBody, signatureHeader, secret) {
-  const parts = Object.fromEntries(signatureHeader.split(",").map(p => p.split("=")));
-  const timestamp = parts.t;
-  const expectedSig = parts.v1;
-
-  // Prevent replay attacks (tolerance: 5 minutes)
-  if (Math.abs(Date.now() - parseInt(timestamp, 10)) > 5 * 60 * 1000) {
-    return false;
-  }
-
-  const payloadToSign = `${timestamp}.${rawBody}`;
-  const computedSig = crypto
-    .createHmac("sha256", secret)
-    .update(payloadToSign)
-    .digest("hex");
-
-  return crypto.timingSafeEqual(Buffer.from(expectedSig), Buffer.from(computedSig));
-}
-```
-
----
-
-## Error Handling (RFC 7807)
-
-All API errors return standard RFC 7807 Problem Details with `application/problem+json`:
-
-```json
-{
-  "type": "https://entrywise.webbound.in/problems/validation-error",
-  "title": "Validation Error",
-  "status": 400,
-  "detail": "Field 'email' is required",
-  "invalid_params": [
-    {
-      "name": "email",
-      "reason": "Missing required field"
-    }
-  ]
-}
-```
-
-Common status codes:
-- `400 Bad Request`: Validation failure or missing parameters
-- `401 Unauthorized`: Missing or invalid authentication credentials
-- `403 Forbidden`: Origin domain not allowed or invalid API key
-- `404 Not Found`: Resource does not exist
-- `429 Too Many Requests`: Rate limit exceeded
-- `500 Internal Server Error`: Unexpected server error
-
----
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes across releases.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
+MIT © [Webbound](https://webbound.in) — see [LICENSE](./LICENSE) for details.

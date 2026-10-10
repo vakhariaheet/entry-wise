@@ -1,149 +1,144 @@
-# EntryWise Self-Hosting Guide
+# 🐳 EntryWise Self-Hosting Guide (Docker & Cloudflare)
 
-EntryWise is designed with a **Plug-and-Play Dual Architecture**:
-1. **Cloudflare Edge-Native**: Globally distributed across 300+ edge locations using Cloudflare Workers, Cloudflare D1 (SQLite), Cloudflare Queues, and Cloudflare Pages.
-2. **Self-Hosted Standalone**: Runs on any private server, VPS (Hetzner, DigitalOcean, AWS EC2, Linode), or local Docker container without Cloudflare lock-in.
+EntryWise is built on a **Zero Platform Lock-In Architecture**. You can run the exact same codebase on:
+1. **Docker Compose / Any Server / VPS** (Hetzner, DigitalOcean, AWS EC2, Railway, Fly.io, Coolify, Render) using portable SQLite (`bun:sqlite`), pluggable queues (`QUEUE_DRIVER=memory | http`), and any email provider (`DEFAULT_EMAIL_PROVIDER`).
+2. **Cloudflare Edge** using Cloudflare Workers, D1, Queues, KV, R2, and Cloudflare Email Routing.
 
 ---
 
-## Architecture Overview: Cloudflare vs. Self-Hosted
+## Architecture Comparison
 
-| Component | Managed Cloudflare Edge | Self-Hosted Docker / VPS |
+| Component | Docker / Standalone (`src/server.ts`) | Cloudflare Edge (`src/index.ts`) |
 | :--- | :--- | :--- |
-| **Runtime** | Cloudflare Workers (`workerd`) | Bun / Node.js Container |
-| **Database** | Cloudflare D1 (Serverless SQLite) | Local SQLite (`entrywise.db`) or PostgreSQL |
-| **Message Queue** | Cloudflare Queues (`entrywise-submissions`) | In-Memory Async Worker or Redis |
-| **File Attachments**| Cloudflare R2 | Local Mounted Volume (`/app/uploads`) or S3 / MinIO |
-| **Email Delivery** | Cloudflare Send Email / Resend | SMTP (`SMTP_HOST`) or Resend API |
-| **Dashboard UI** | Cloudflare Pages SPA | Bundled Static SPA inside container |
-| **Latency** | Global edge (~15–30ms) | Dependent on VPS location |
+| **Runtime** | `Bun.serve` (`oven/bun:1-alpine`) | Cloudflare Workers (`workerd`) |
+| **Database** | Local SQLite (`./data/entrywise.sqlite`) via `createSqliteD1Adapter` | Cloudflare D1 Serverless SQLite |
+| **Migrations** | Auto-applied on startup from `./migrations/*.sql` | Applied via `wrangler d1 migrations apply` |
+| **Queue Engine** | `QUEUE_DRIVER=memory` (in-process retry queue) or `QUEUE_DRIVER=http` (QStash / BullMQ / n8n) | Cloudflare Queues (`SUBMISSIONS_QUEUE`) or `QUEUE_DRIVER=http` |
+| **Default Email Engine** | `DEFAULT_EMAIL_PROVIDER=resend \| smtp2go \| mailersend \| mailtrap \| webhook \| console` | Cloudflare Email (`env.EMAIL`) or any configured provider |
+| **Rate Limiting & Uploads** | In-Memory TTL KV + Local Disk Volume (`./data/uploads`) | Cloudflare KV + Cloudflare R2 |
 
 ---
 
-## 1. Quickstart (Docker Compose)
+## Option A: Self-Hosting via Docker Compose (Zero Cloudflare Lock-In)
 
-### Prerequisites
-- Docker Engine 24+ and Docker Compose v2 installed.
+### 1. Clone & Configure `.env`
 
-### Step 1: Clone and Configure
 ```bash
 git clone https://github.com/vakhariaheet/entry-wise.git
 cd entry-wise
 cp .env.example .env
 ```
 
-### Step 2: Set Secrets in `.env`
-Generate random 32-byte strings for your cryptographic secrets:
+Generate your encryption and JWT secrets:
 ```bash
-# Generate keys
-openssl rand -hex 16 # for ENCRYPTION_KEY (32 hex characters)
-openssl rand -base64 32 # for JWT_SECRET
-openssl rand -base64 32 # for ADMIN_SECRET
-```
-Paste these into `.env`:
-```ini
-JWT_SECRET=your_generated_jwt_secret
-ADMIN_SECRET=your_generated_admin_secret
-ENCRYPTION_KEY=your_generated_32_char_hex_key
+openssl rand -hex 32   # Set as ENCRYPTION_KEY in .env
+openssl rand -hex 32   # Set as JWT_SECRET in .env
 ```
 
-### Step 3: Launch EntryWise
+### 2. Choose Your Queue Engine (`QUEUE_DRIVER`)
+
+In `.env`, configure how background deliveries (emails, webhooks, Slack, Discord, Airtable, Notion, Google Sheets) are queued:
+
+- **In-Process Retry Queue (Default — Zero External Dependencies):**
+  ```ini
+  QUEUE_DRIVER=memory
+  QUEUE_MAX_RETRIES=3
+  ```
+  Submissions are persisted to SQLite immediately (`HTTP 200`), and delivery tasks run asynchronously in the background with exponential backoff retries.
+
+- **External HTTP Queue Bridge (Upstash QStash, BullMQ HTTP Bridge, n8n, RabbitMQ):**
+  ```ini
+  QUEUE_DRIVER=http
+  QUEUE_WEBHOOK_URL=https://qstash.upstash.io/v2/publish/https://your-worker.yourdomain.com/webhooks/queue
+  QUEUE_WEBHOOK_TOKEN=your_bearer_token
+  QUEUE_MAX_RETRIES=3
+  ```
+  If the external queue endpoint is temporarily unreachable, EntryWise automatically falls back to local background processing so zero submissions are lost.
+
+### 3. Choose Your Default Email Engine (`DEFAULT_EMAIL_PROVIDER`)
+
+You do **not** need Cloudflare Email in Docker. Configure your preferred default email engine in `.env`:
+
+```ini
+# Options: resend | smtp2go | mailersend | mailtrap | webhook | console
+DEFAULT_EMAIL_PROVIDER=resend
+DEFAULT_FROM_EMAIL=notifications@yourdomain.com
+DEFAULT_FROM_NAME=EntryWise Forms
+
+# Set the API key matching your chosen provider:
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxx
+# SMTP2GO_API_KEY=...
+# MAILERSEND_API_KEY=...
+# MAILTRAP_API_KEY=...
+# EMAIL_WEBHOOK_URL=https://your-n8n-or-smtp-bridge.internal/send
+```
+
+> [!NOTE]
+> Individual workspaces created in the Console can either inherit your server's `DEFAULT_EMAIL_PROVIDER` automatically or override it with their own workspace-specific provider API key.
+
+### 4. Start the Container
+
 ```bash
 docker compose up -d
 ```
 
-EntryWise is now live:
-- **Web Dashboard**: `http://localhost:8787/app`
-- **Form Ingestion Endpoint**: `POST http://localhost:8787/f/:api_key`
-- **Interactive API Docs (Scalar)**: `http://localhost:8787/docs`
-- **OpenAPI Schema**: `http://localhost:8787/openapi`
-
----
-
-## 2. Directory Structure & Volume Persistence
-
-The `docker-compose.yml` mounts two persistent volumes to your host:
+Verify the server is healthy:
+```bash
+curl http://localhost:8787/health
 ```
-entry-wise/
-├── data/              # Stores entrywise.db (SQLite database)
-│   └── entrywise.db   # Form definitions, sites, submissions, auth records
-└── uploads/           # Stores uploaded file attachments
+
+Your self-hosted instance is now serving:
+- **Form Ingestion Endpoint:** `POST http://localhost:8787/f/:site_api_key`
+- **Drop-In Class Binder Script:** `GET http://localhost:8787/embed.js`
+- **Interactive API Reference:** `GET http://localhost:8787/docs`
+- **OpenAPI 3.1 Spec:** `GET http://localhost:8787/openapi`
+
+### 5. Persistent Volumes & Backups
+
+`docker-compose.yml` mounts the `entrywise_data` volume to `/app/data`:
+- `/app/data/entrywise.sqlite` — SQLite database in WAL mode (automatically migrated on container startup).
+- `/app/data/uploads/` — Uploaded form attachments.
+
+Backing up your entire self-hosted instance is as simple as snapshotting `/app/data`.
+
+---
+
+## Option B: Self-Hosting on Cloudflare Workers & D1
+
+### 1. Install Dependencies & Login
+
+```bash
+git clone https://github.com/vakhariaheet/entry-wise.git
+cd entry-wise
+bun install
+bunx wrangler login
 ```
-> **Backup Tip**: Backing up your entire EntryWise installation is as simple as copying the `./data` and `./uploads` directories.
+
+### 2. Provision D1 & Apply Migrations
+
+```bash
+bunx wrangler d1 create entrywise
+# Update database_id in wrangler.jsonc, then run migrations:
+bunx wrangler d1 migrations apply entrywise --remote
+```
+
+### 3. Set Worker Secrets & Deploy
+
+```bash
+bunx wrangler secret put ENCRYPTION_KEY
+bunx wrangler secret put JWT_SECRET
+bunx wrangler deploy --minify
+```
 
 ---
 
-## 3. Asynchronous Queue & Connectors in Self-Hosted Mode
+## Production Reverse Proxy (HTTPS for Docker / VPS)
 
-When running in Docker:
-1. **In-Memory Async Processing (Default)**:
-   - Form submissions are saved to the database immediately and return an `HTTP 200` to the client.
-   - External connectors (Slack, Discord, Google Sheets, Webhooks, Resend/SMTP emails) are processed asynchronously in the background.
-2. **Distributed Redis Queue (Optional for High-Throughput)**:
-   - If processing tens of thousands of submissions per hour, start the Redis profile:
-     ```bash
-     docker compose --profile with-redis up -d
-     ```
-   - Set `QUEUE_DRIVER=redis` and `REDIS_URL=redis://redis:6379` in your `.env`.
+When running via Docker on a VPS, place Caddy or Nginx in front of port `8787` for automatic TLS:
 
----
-
-## 4. Production Reverse Proxy & SSL (HTTPS)
-
-For production deployments on a VPS, expose EntryWise behind a reverse proxy for automatic SSL certificate generation.
-
-### Option A: Caddy (Recommended — Zero Config SSL)
-Create a `Caddyfile`:
+### Caddy (`Caddyfile`)
 ```caddy
 forms.yourdomain.com {
     reverse_proxy localhost:8787
 }
-```
-Run Caddy: `caddy run`
-
-### Option B: Nginx
-```nginx
-server {
-    listen 80;
-    server_name forms.yourdomain.com;
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name forms.yourdomain.com;
-
-    ssl_certificate /etc/letsencrypt/live/forms.yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/forms.yourdomain.com/privkey.pem;
-
-    client_max_body_size 25M;
-
-    location / {
-        proxy_pass http://127.0.0.1:8787;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
----
-
-## 5. Connecting Forms in Self-Hosted Mode
-
-Just like on Cloudflare, your HTML or React form points directly to the API key endpoint:
-```html
-<form action="https://forms.yourdomain.com/f/ew_live_abc123" method="POST">
-  <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" />
-  
-  <input type="text" name="name" placeholder="Your Name" required />
-  <input type="email" name="email" placeholder="Your Email" required />
-  <textarea name="message" placeholder="Your Message" required></textarea>
-
-  <button type="submit">Submit Form</button>
-</form>
 ```
