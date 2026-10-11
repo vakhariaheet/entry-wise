@@ -34,7 +34,7 @@ const groupedDocs = DOC_CATEGORIES.map((category) => ({
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="dark" />
   <meta name="theme-color" content="#08090a" />
-  <title>{title} — EntryWise Documentation</title>
+  <title>{title} | EntryWise Documentation</title>
   <meta name="description" content={description} />
   <link rel="icon" type="image/png" href="/assets/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -85,14 +85,6 @@ const groupedDocs = DOC_CATEGORIES.map((category) => ({
       </div>
 
       <div class="flex items-center gap-2.5">
-        <a
-          href="/_emdash/admin"
-          class="hidden sm:inline-flex items-center gap-1.5 text-[12px] text-[#a1a6b0] hover:text-[#f7f8f8] border border-[#22252b] hover:border-[#32363f] bg-[#0d0e11] px-2.5 py-1 rounded-[6px] transition"
-          title="Edit documentation in EmDash CMS"
-        >
-          <span>CMS</span>
-          <span class="text-[10px] font-mono text-[#686d76]">{isFromCms ? 'Live' : 'Seed'}</span>
-        </a>
         <a
           href="https://app.entrywise.si"
           class="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#08090a] bg-[#f7f8f8] hover:bg-white px-3 py-1 rounded-[6px] transition"
@@ -234,15 +226,6 @@ const groupedDocs = DOC_CATEGORIES.map((category) => ({
               >
                 <span>OpenAPI 3.1 Spec</span>
                 <span class="font-mono text-[11px] text-[#686d76]">↗</span>
-              </a>
-            </li>
-            <li>
-              <a
-                href="/_emdash/admin"
-                class="hover:text-[#f7f8f8] transition flex items-center justify-between"
-              >
-                <span>Edit in EmDash CMS</span>
-                <span class="font-mono text-[11px] text-[#686d76]">→</span>
               </a>
             </li>
             <li>

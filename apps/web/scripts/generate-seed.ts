@@ -8,11 +8,11 @@ const seed: SeedFile = {
   meta: {
     name: 'EntryWise Website & Developer Documentation Seed',
     description:
-      'EmDash CMS collections and content for EntryWise Marketing Site & Developer Documentation Hub',
+      'Collections and content for the EntryWise marketing site and developer documentation hub',
     author: 'EntryWise',
   },
   settings: {
-    title: 'EntryWise — Headless Form Backend & Developer Docs',
+    title: 'EntryWise: Headless Form Backend & Developer Docs',
     tagline:
       'Sub-20ms edge form backend powered by Cloudflare Workers, Docker + SQLite, and Zero-OAuth Connectors.',
   },

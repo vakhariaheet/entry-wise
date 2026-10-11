@@ -90,7 +90,7 @@ const calloutBorder = {
               <ul class="space-y-2 pt-1">
                 {sec.bullets.map((bullet) => (
                   <li class="flex items-start gap-3 text-[14px] text-[#d0d6e0] leading-[1.65]">
-                    <span class="text-[#686d76] font-mono text-xs mt-1 select-none">—</span>
+                    <span class="text-[#686d76] font-mono text-xs mt-1 select-none">-</span>
                     <span>{bullet}</span>
                   </li>
                 ))}
@@ -120,7 +120,7 @@ const calloutBorder = {
                         )}
                         {sec.table?.headers.length === 4 && (
                           <td class="py-2.5 px-4 font-mono text-[#686d76] whitespace-nowrap tabular-nums">
-                            {row.defaultVal ?? '—'}
+                            {row.defaultVal ?? '-'}
                           </td>
                         )}
                         <td class="py-2.5 px-4 text-[#a1a6b0] leading-[1.55]">{row.description}</td>
